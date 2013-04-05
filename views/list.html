@@ -1,0 +1,11 @@
+<ul>
+	<li ng-repeat="app in appsList"> 
+        <p>{{app}}</p>
+		<button ng-click="refreshApp(app)">Refresh</button>
+		<button ng-click="removeApp(app)">Remove</button>
+        <br />
+	</li>
+</ul>
+<button ng-click="loadAppsList()">Reload Apps List</button>
+<br />
+<a href="#/add">Add new App</a>

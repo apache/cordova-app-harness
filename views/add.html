@@ -1,0 +1,16 @@
+<form name="addForm" ng-controller="AddCtrl">
+    <label for="inputAppName">Enter the App Name</label><br />
+    <input type="text" name="appName" ng-model="appName" ng-pattern="/^[\w ]*$/" ng-maxlength="64" required />
+    <span ng-show="addForm.appName.$error.required">Required</span>
+    <span ng-show="addForm.appName.$error.pattern">Invalid characters used</span>
+    <span ng-show="addForm.appName.$error.maxlength">Too long</span>
+    <br />
+
+    <input type="radio" ng-model="appSource" name="appSource" value="url" ng-init="appUrlChecked=true" ng-checked="appUrlChecked" />
+        <label for="inputAppUrl">Enter the URL(should point to a zip file)</label><br />
+        <input id="inputAppUrl" type="url" name="appUrl" ng-model="appUrl" ng-disabled="!appUrlChecked" ng-required="appUrlChecked" />
+        <span ng-show="addForm.appUrl.$error.required">Required</span>
+        <span ng-show="addForm.appUrl.$error.url">Not a URL</span>
+        <br />
+    <button ng-click="addApp(appName, appSource, appUrl)" ng-disabled="!(addForm.$valid)">Add</button>
+</form>

@@ -1,0 +1,31 @@
+{
+    //enforcing
+    "bitwise": true,
+    "camelcase": true,
+    "curly": true,
+    "eqeqeq": false,
+    "forin": true,
+    "immed": true,
+    "indent": 4,
+    "latedef": false,
+    "newcap": true,
+    "noarg": true,
+    "noempty": true,
+    "nonew": true,
+    "plusplus": false,
+    "quotmark": "double",
+    "strict": false,
+    "trailing": true,
+    "undef": true,
+    "unused": true,
+
+    //relaxing
+    "eqnull":true,
+
+    //environment
+    "browser": true,
+    "devel":true,
+
+    //other
+    "globals": {"angular": false }
+}
