@@ -1,0 +1,47 @@
+<!-- Keep stylesheet as a part of the html as this file gets injected into the app -->
+<style>
+#__cordovaappharness_contextMenu_div
+{
+    position: fixed;
+    left : 0px;
+    top : 0px;
+    z-index: 2000;
+    background-color:rgba(0,0,0,0.75);
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+#__cordovaappharness_contextMenu_div p
+{
+    color: white;
+    text-align: center;
+}
+
+#__cordovaappharness_contextMenu_div ul
+{
+    list-style-type: none;
+    margin-left: 20%;
+    margin-right: 20%;
+    padding: 0;
+    width: 60%;
+}
+
+#__cordovaappharness_contextMenu_div li, #__cordovaappharness_contextMenu_div button
+{
+    width: 100%;
+}
+</style>
+<div id="__cordovaappharness_contextMenu_div">
+    <p>Tap Anywhere to Close</p>
+    <ul>
+        <li>
+            <button>Update</button>
+        </li>
+        <li>
+            <button>Restart</button>
+        </li>
+        <li>
+            <a href="file://__cordovaappharness_contextMenu_mainmenu"><button>Back to Main Menu</button></a>
+        </li>
+    </ul>
+</div>

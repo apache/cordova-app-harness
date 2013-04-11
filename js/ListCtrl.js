@@ -1,24 +1,32 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("ListCtrl", [ "$scope", "resourcesLoader", "INSTALL_DIRECTORY", function ($scope, resourcesLoader, INSTALL_DIRECTORY) {
+    myApp.controller("ListCtrl", [ "$scope", "$document", "AppsService", function ($scope, $document, AppsService) {
 
         $scope.appsList = [];
 
-        $scope.loadAppsList = function(source) {
-            var gotDirectoriesCallback = function(directoryNames, errorString) {
-                if(errorString) {
-                    console.error(errorString);
-                    alert("There was an error retrieving the list of installed applications. Please try again.");
-                } else {
-                    $scope.appsList.splice(0, $scope.appsList);
-                    angular.extend($scope.appsList, directoryNames);
-                    if(source === "deviceready") {
-                        $scope.$apply();
-                    }
+        $scope.loadAppsList = function( source ) {
+            AppsService.getAppsList()
+            .then(function(newAppsList){
+                //clear the old apps list
+                $scope.appsList.splice(0, $scope.appsList.length);
+                angular.extend($scope.appsList, newAppsList);
+                if(source === "deviceready") {
+                    $scope.$apply();
                 }
-            };
-            resourcesLoader.getSubDirectories(INSTALL_DIRECTORY, gotDirectoriesCallback, true);
+            }, function(error){
+                var str = "There was an error retrieving the apps list";
+                console.error(str + JSON.stringify(error));
+                alert(str);
+            });
+        };
+
+        $scope.launchApp = function(app){
+            AppsService.launchApp(app)
+            .then(null, function(error){
+                console.error("Error during loading of app: " + error);
+                alert("Something went wrong during the loading of the app. Please try again.");
+            });
         };
 
         $scope.refreshApp = function(app) {
@@ -29,6 +37,6 @@
             alert("removeApp called: " + app);
         };
 
-        document.addEventListener("deviceready", function() { $scope.loadAppsList("deviceready"); }, false);
+        $document.bind("deviceready", function() { $scope.loadAppsList("deviceready"); });
     }]);
 })();
