@@ -1,3 +1,3 @@
 #!/bin/bash
 echo "Running jsHint"
-jshint js/ --verbose --show-non-errors
+jshint www/js/ --verbose --show-non-errors
