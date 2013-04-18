@@ -12,25 +12,6 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 *   Link these plugman and cordova-cli of this branch as the globally symlinked plugman and cordova-cli commands. (You may want to see 'npm link')
 *   Build the cordova-js repo and grab the cordova.android.js and cordova.ios.js
 *   Note this project uses a slightly modified version of cordova.android.js and cordova.ios.js
-*   Modify cordova.android.js by adding the following lines at the end
-
-        (function() {
-            var location = document.location.toString();
-            if(location.indexOf("file:///android_asset") == 0) {
-                console.log("Not injecting");
-            } else {
-                alert("Injecting script");
-                var contextScript = document.createElement('script');
-                contextScript.setAttribute("type","text/javascript");
-                contextScript.setAttribute("src", "file://__cordovaappharness_contextMenu_script.js");
-                document.getElementsByTagName("head")[0].appendChild(contextScript);
-            }
-        })();
-
-*   Modify cordova.ios.js by adding the following lines at the end
-
-        // Coming soon
-
 *   Replace the cordova-cli/lib/cordova-android/framework/assets/js/cordova.android.js and the cordova-cli/lib/cordova-ios/CordovaLib/cordova.ios.js files with the ones above
 *   Build the cordova-android repository and generate new cordova.jar
 *   Run the following commands
@@ -39,9 +20,11 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
         cd CordovaAppHarness
         cordova platform add android
         cordova platform add ios
-        cordova plugin add Repo/cordova-app-harness/plugins/CordovaAppHarnessPlugin
-        cordova plugin add Repo/zip/
-        cordova plugin add Repo/chrome-cordova/plugins/*
+        cordova plugin add ../Repo/cordova-app-harness/plugins/CordovaAppHarnessPlugin
+        cordova plugin add ../Repo/zip/
+        cordova plugin add ../Repo/chrome-cordova/plugins/*
+        cp -rf ../Repo/cordova-app-harness/www app/www
+        cp -rf ../Repo/cordova-app-harness/hooks .cordova/hooks
         cordova prepare
 
 *   Get a copy of the google-play-services.jar
@@ -50,8 +33,6 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 *   Go to eclipse and got to new, other, android, android project from existing code. Navigate to CordovaAppHarness/platforms/android and then add the project
 *   Double click the  .xcodeproj file in CordovaAppHarnessNew/platforms/ios/
 *   You can now build the app harness from the ides or with cordova compile
-
-**Watch out**: Every time you run cordova prepare, you will replace the cordova.js file in the android and ios projects. So either remember to replace the cordova.js with cordova.android.js and cordova.ios.js respectively or make a small script.
 
 ##Using the app
 
