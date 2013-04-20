@@ -1,7 +1,7 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", "$window", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON, $window) {
+    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON) {
 
         function addNewAppFromUrl(appName, appUrl) {
             var fileName = TEMP_DIRECTORY + appName + ".zip";
@@ -23,17 +23,22 @@
         function extractZipToDirectory(fileName, outputDirectory){
             var deferred = Q.defer();
 
-            var onZipDone = function(returnCode) {
-                if(returnCode !== 0) {
-                    deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
-                } else {
-                    deferred.resolve();
-                }
-            };
+            try {
+                var onZipDone = function(returnCode) {
+                    if(returnCode !== 0) {
+                        deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
+                    } else {
+                        deferred.resolve();
+                    }
+                };
 
-            /* global zip */
-            zip.unzip(fileName, outputDirectory, onZipDone);
-            return deferred.promise;
+                /* global zip */
+                zip.unzip(fileName, outputDirectory, onZipDone);
+            } catch(e) {
+                deferred.reject(e);
+            } finally {
+                return deferred.promise;
+            }
         }
 
         function registerApp(appName, appSource, appUrl) {
@@ -47,14 +52,6 @@
                 });
                 return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
             });
-        }
-
-        function getAbsoluteUrl(relativeUrl) {
-            // Can't use $document from angularJS as it does not provie the create constructor
-            /* global document */
-            var a = document.createElement("a");
-            a.href = relativeUrl;
-            return a.href;
         }
 
         function getAppStartPageFromAppLocation(appLocation) {

@@ -1,7 +1,7 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("ListCtrl", [ "$scope", "$document", "AppsService", function ($scope, $document, AppsService) {
+    myApp.controller("ListCtrl", [ "$scope", "AppsService", function ($scope, AppsService) {
 
         $scope.appsList = [];
 
@@ -37,6 +37,6 @@
             alert("removeApp called: " + app);
         };
 
-        $document.bind("deviceready", function() { $scope.loadAppsList("deviceready"); });
+        document.addEventListener("deviceready", function() { $scope.loadAppsList("deviceready"); }, false);
     }]);
 })();

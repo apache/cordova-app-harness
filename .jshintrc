@@ -23,7 +23,7 @@
     "eqnull":true,
 
     //environment
-    "browser": false,
+    "browser": true,
     "devel":true,
 
     //other

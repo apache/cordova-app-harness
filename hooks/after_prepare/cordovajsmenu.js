@@ -11,7 +11,7 @@ var androidAppend = function() {
         console.log("Injecting menu script");
         var contextScript = document.createElement('script');
         contextScript.setAttribute("type","text/javascript");
-        contextScript.setAttribute("src", "file://__cordovaappharness_contextMenu_script.js");
+        contextScript.setAttribute("src", "file:///__cordovaappharness_contextMenu_script.js");
         document.getElementsByTagName("head")[0].appendChild(contextScript);
     }
 };
@@ -26,7 +26,7 @@ var iosAppend = function() {
         console.log("Injecting menu script");
         var contextScript = document.createElement('script');
         contextScript.setAttribute("type","text/javascript");
-        contextScript.setAttribute("src", "file://__cordovaappharness_contextMenu_script.js");
+        contextScript.setAttribute("src", "file:///__cordovaappharness_contextMenu_script.js");
         document.getElementsByTagName("head")[0].appendChild(contextScript);
     }
 }; 
