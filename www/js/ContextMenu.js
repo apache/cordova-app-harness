@@ -1,7 +1,7 @@
 (function () {
 
     function initialise() {
-        var contextHTMLUrl = "file://__cordovaappharness_contextMenu_page.html";
+        var contextHTMLUrl = "file:///__cordovaappharness_contextMenu_page.html";
         var xhr = new window.XMLHttpRequest();
         xhr.onreadystatechange=function()
         {

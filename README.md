@@ -5,8 +5,6 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Setting up environment
 
-**Very important**: At this time, only the android section is implemented and tested
-
 *   Clone the the cordova-app-harness, cordova-android, cordova-ios, cordova-js, plugman, cordova-cli, zip(https://github.com/MobileChromeApps/zip) and chrome-cordova repos into folders of the same name in a common directory - eg 'Repo'. (Note the chrome-cordova repo is required only if you intend to run chrome apps in the harness as well)
 *   Use the future branch of plugman and cordova-cli
 *   Link these plugman and cordova-cli of this branch as the globally symlinked plugman and cordova-cli commands. (You may want to see 'npm link')
@@ -36,7 +34,7 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Using the app
 
-*   Run the app harness (works in android only currently)
+*   Run the app harness
 *   Click add new app
 *   Give a name and a url to a zip. The zip should contain a www directory with a index.html file as the start page
 *   Go back to the main screen after you see the prompt "successfully installed"
