@@ -18,6 +18,7 @@
 */
 package org.apache.cordova.cordovaappharness;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -29,29 +30,19 @@ import android.webkit.WebResourceResponse;
 
 public class CordovaAppHarnessRedirect extends CordovaPlugin {
 
-    // Ensure we we redirect any file:///*/corodva.js uri's to the the cordova.js located in the assets
+    // Ensure we we redirect any file:///*/cordova.js uri's to the the cordova.js located in the assets
     // Ensure we redirect any file:///*/__cordovaappharness_contextMenu_{menu_choice} uri's to the correct locations
-    @Override
-    public WebResourceResponse shouldInterceptRequest(String url) {
 
-        String cleanUrl = Uri.parse(url).getPath();
-        String[] urlParts = cleanUrl.split("/");
-        String fileName = urlParts[urlParts.length - 1];
+    // Returns an empty response, so that an error of unknown url is not displayed.
+    // Used when we are loading a new url immediately
+    private WebResourceResponse getEmptyWebResourceResponse()
+    {
+        InputStream is = new ByteArrayInputStream(new byte[0]);
+        return new WebResourceResponse("text/plain", "UTF-8", is);
+    }
 
-        if(fileName.equals("cordova.js")) {
-            url = "cordova.js";
-        } else if(fileName.equals("__cordovaappharness_contextMenu_page.html")) {
-            url = "contextMenu.html";
-        } else if(fileName.equals("__cordovaappharness_contextMenu_script.js")) {
-            url = "js/ContextMenu.js";
-        } else if(fileName.equals("__cordovaappharness_contextMenu_mainmenu")) {
-            this.webView.loadUrl("file:///android_asset/www/index.html");
-            return null;
-        } else {
-            return null;
-        }
-
-        String mimetype = FileHelper.getMimeType(url, this.cordova);
+    private WebResourceResponse getWebResourceResponseForFile(String assetFile) {
+        String mimetype = FileHelper.getMimeType(assetFile, this.cordova);
         String encoding = null;
         if (mimetype != null && mimetype.startsWith("text/")) {
             encoding = "UTF-8";
@@ -59,11 +50,38 @@ public class CordovaAppHarnessRedirect extends CordovaPlugin {
 
         InputStream is = null;
         try {
-            is = this.cordova.getActivity().getAssets().open("www/" + url);
+            is = this.cordova.getActivity().getAssets().open("www" + assetFile);
         } catch (IOException ioe) {
             return null;
         }
 
         return new WebResourceResponse(mimetype, encoding, is);
+    }
+
+    @Override
+    public WebResourceResponse shouldInterceptRequest(String url) {
+        Uri uri = Uri.parse(url);
+        String scheme = uri.getScheme();
+
+        // we need reroute any requests to cordova.js from an app from the disk to the modified cordova.js in the bundle
+        if("file".equals(scheme)) {
+            String fileName = uri.getLastPathSegment();
+            if("cordova.js".equals(fileName)) {
+                return getWebResourceResponseForFile("/cordova.js");
+            }
+        } else if("cdv-app-harness".equals(scheme)) {
+            String redirectPrefix = "cdv-app-harness:///redirect";
+            String directPrefix = "cdv-app-harness:///direct";
+
+            if(url.startsWith(redirectPrefix)) {
+                String path = url.substring(redirectPrefix.length());
+                webView.loadUrl("file:///android_asset/www" + path);
+                return getEmptyWebResourceResponse();
+            } else if(url.startsWith(directPrefix)) {
+                String path = url.substring(directPrefix.length());
+                return getWebResourceResponseForFile(path);
+            }
+        }
+        return null;
     }
 }

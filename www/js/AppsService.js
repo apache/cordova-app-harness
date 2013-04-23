@@ -1,7 +1,7 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON) {
+    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", "METADATA_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON, METADATA_JSON) {
 
         var platformId = cordova.require("cordova/platform").id;
 
@@ -28,6 +28,7 @@
         function extractZipToDirectory(fileName, outputDirectory){
             var deferred = Q.defer();
 
+            //will throw an exception if the zip plugin is not loaded
             try {
                 var onZipDone = function(returnCode) {
                     if(returnCode !== 0) {
@@ -110,12 +111,18 @@
             },
 
             launchApp : function(appName) {
-                return getAppStartPageFromAppLocation(INSTALL_DIRECTORY + appName + "/")
-                .then(function(startLocation) {
-                    return ResourcesLoader.getFullFilePath(startLocation);
+                return ResourcesLoader.readJSONFileContents(METADATA_JSON)
+                .then(function(settings){
+                    settings = settings || {};
+                    settings.lastLaunched = appName;
+                    return ResourcesLoader.writeJSONFileContents(METADATA_JSON, settings);
                 })
-                .then(function(fullStartLocation){
-                    document.location = fullStartLocation;
+                .then(function(){
+                    return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName);
+                })
+                .then(function(appLocation) {
+                    var startLocation = getAppStartPageFromAppLocation(appLocation);
+                    document.location = startLocation;
                 });
             },
 
@@ -152,6 +159,17 @@
                 })
                 .then(function(){
                     return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
+                });
+            },
+
+            launchLastRunApp : function() {
+                var self = this;
+                return ResourcesLoader.readJSONFileContents(METADATA_JSON)
+                .then(function(settings){
+                    if(!settings || !settings.lastLaunched) {
+                        throw new Error("No App has been launched yet");
+                    }
+                    return self.launchApp(settings.lastLaunched);
                 });
             }
         };
