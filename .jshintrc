@@ -27,5 +27,5 @@
     "devel":true,
 
     //other
-    "globals": {"angular": false, "Q": false }
+    "globals": {"angular": false, "Q": false, "cordova" : false }
 }
