@@ -34,9 +34,12 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Using the app
 
+*   Run the zipapp script and point it to a cordova project. This will package the app into a zip file. (Note: it is expected that you add all relavant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
+        Repo/cordova-app-harness/zipapp ./TestApp TestApp.zip
+*   Upload the the zip onto any hosting site.
 *   Run the app harness
 *   Click add new app
-*   Give a name and a url to a zip. The zip should contain a www directory with a index.html file as the start page
+*   Give a name and the url to the zip.
 *   Go back to the main screen after you see the prompt "successfully installed"
 *   Click launch on the newly installed app
 *   See if the app looks as expected

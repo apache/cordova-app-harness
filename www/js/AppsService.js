@@ -3,6 +3,8 @@
     /* global myApp */
     myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON) {
 
+        var platformId = cordova.require("cordova/platform").id;
+
         function addNewAppFromUrl(appName, appUrl) {
             var fileName = TEMP_DIRECTORY + appName + ".zip";
             var _fullFilePath;
@@ -59,8 +61,33 @@
 
         function getAppStartPageFromAppLocation(appLocation) {
             appLocation += (appLocation.substring(appLocation.length - 1) === "/") ? "" : "/";
-            var startLocation = appLocation + "www/index.html";
-            return startLocation;
+            var configFile = appLocation + "config." + platformId + ".xml";
+
+            return ResourcesLoader.readFileContents(configFile)
+            .then(function(contents){
+                if(!contents) {
+                    throw new Error("config.xml for your platform is empty. Check if the zip package contains config.xml for your platform");
+                } else {
+                    var startLocation = appLocation + "www/index.html";
+                    var parser = new DOMParser();
+                    var xmlDoc = parser.parseFromString(contents, "text/xml");
+                    var els = xmlDoc.getElementsByTagName("content");
+
+                    if(els.length > 0) {
+                        // go through all "content" elements looking for the "src" attribute in reverse order
+                        for(var i = els.length - 1; i >= 0; i--) {
+                            var el = els[i];
+                            var srcValue = el.getAttribute("src");
+                            if(srcValue) {
+                                startLocation = appLocation + "www/" + srcValue;
+                                break;
+                            }
+                        }
+                    }
+
+                    return startLocation;
+                }
+            });
         }
 
         return {
@@ -83,10 +110,12 @@
             },
 
             launchApp : function(appName) {
-                return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName)
-                .then(function(appLocation) {
-                    var startLocation = getAppStartPageFromAppLocation(appLocation);
-                    document.location = startLocation;
+                return getAppStartPageFromAppLocation(INSTALL_DIRECTORY + appName + "/")
+                .then(function(startLocation) {
+                    return ResourcesLoader.getFullFilePath(startLocation);
+                })
+                .then(function(fullStartLocation){
+                    document.location = fullStartLocation;
                 });
             },
 
