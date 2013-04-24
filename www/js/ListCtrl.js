@@ -5,13 +5,13 @@
 
         $scope.appsList = [];
 
-        $scope.loadAppsList = function( source ) {
+        $scope.loadAppsList = function(callApply) {
             AppsService.getAppsList()
             .then(function(newAppsList){
                 //clear the old apps list
                 $scope.appsList.splice(0, $scope.appsList.length);
                 angular.extend($scope.appsList, newAppsList);
-                if(source === "deviceready") {
+                if(callApply) {
                     $scope.$apply();
                 }
             }, function(error){
@@ -24,7 +24,7 @@
         $scope.launchApp = function(app){
             AppsService.launchApp(app)
             .then(null, function(error){
-                console.error("Error during loading of app: " + error);
+                console.error("Error during loading of app " + app + ": " + error);
                 alert("Something went wrong during the loading of the app. Please try again.");
             });
         };
@@ -34,9 +34,16 @@
         };
 
         $scope.removeApp = function(app) {
-            alert("removeApp called: " + app);
+            var shouldUninstall = confirm("Are you sure you want to uninstall " + app + "?");
+            if(shouldUninstall) {
+                AppsService.uninstallApp(app)
+                .then(function() { $scope.loadAppsList(true); }, function(error){
+                    console.error("Error during uninstall of app " + app + ": " + error);
+                    alert("Something went wrong during the uninstall of the app. Please try again.");
+                });
+            }
         };
 
-        document.addEventListener("deviceready", function() { $scope.loadAppsList("deviceready"); }, false);
+        document.addEventListener("deviceready", function() { $scope.loadAppsList(true); }, false);
     }]);
 })();
