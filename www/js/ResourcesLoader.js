@@ -74,6 +74,26 @@
             return path;
         }
 
+        //promise returns the directory entry
+        function getDirectoryEntry(directoryName) {
+            var deferred = Q.defer();
+
+            try {
+                var errorWhileGettingDirectoryEntry = function(error) {
+                    var str = "There was an error while getting the directory entry for directory " + directoryName + " " + JSON.stringify(error);
+                    deferred.reject(new Error(str));
+                };
+                var success = function(directoryEntry) {
+                    deferred.resolve(directoryEntry);
+                };
+                fs.root.getDirectory(directoryName, {create: true, exclusive: false}, success, errorWhileGettingDirectoryEntry);
+            } catch(e) {
+                deferred.reject(new Error(e));
+            } finally {
+                return deferred.promise;
+            }
+        }
+
         //promise returns the file entry
         function getFileEntry(fileName) {
             var deferred = Q.defer();
@@ -127,8 +147,8 @@
         return {
             // returns a promise with a full path to the dir
             ensureDirectoryExists : function(directory) {
-                return initialiseFileSystem().
-                then(function(){
+                return initialiseFileSystem()
+                .then(function(){
                     var deferred = Q.defer();
 
                     directory = truncateToDirectoryPath(directory);
@@ -150,8 +170,8 @@
 
             // promise returns full path to file
             getFullFilePath : function(filePath) {
-                return initialiseFileSystem().
-                then(function(){
+                return initialiseFileSystem()
+                .then(function(){
                     var deferred = Q.defer();
 
                     // Use the file's parent folder to get the full path
@@ -188,8 +208,8 @@
             // returns a promise with a full path to the downloaded file
             downloadFromUrl : function(url, filePath) {
                 var self = this;
-                return initialiseFileSystem().
-                then(function(){
+                return initialiseFileSystem()
+                .then(function(){
                     return self.ensureDirectoryExists(filePath);
                 })
                 .then(function(){
@@ -202,8 +222,8 @@
 
             //returns a promise with the contents of the file
             readFileContents : function(fileName) {
-                return initialiseFileSystem().
-                then(function(){
+                return initialiseFileSystem()
+                .then(function(){
                     return getFile(fileName);
                 })
                 .then(function(file){
@@ -238,8 +258,8 @@
 
             //returns a promise when file is written
             writeFileContents : function(fileName, contents) {
-                return initialiseFileSystem().
-                then(function(){
+                return initialiseFileSystem()
+                .then(function(){
                     return getFileEntry(fileName);
                 })
                 .then(function(fileEntry){
@@ -271,6 +291,22 @@
                     stringContents = JSON.stringify(contents);
                 }
                 return this.writeFileContents(fileName, stringContents);
+            },
+
+            deleteDirectory : function(directoryName) {
+                return initialiseFileSystem()
+                .then(function(){
+                    return getDirectoryEntry(directoryName);
+                })
+                .then(function(dirEntry){
+                    var deferred = Q.defer();
+                    var failedToDeleteDirectory = function(error) {
+                        var str = "There was an error deleting the directory: " + directoryName + " " + JSON.stringify(error);
+                        deferred.reject(new Error(str));
+                    };
+                    dirEntry.removeRecursively(deferred.resolve, failedToDeleteDirectory);
+                    return deferred.promise;
+                });
             }
         };
     }]);

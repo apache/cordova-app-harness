@@ -7,7 +7,10 @@
             var fileName = TEMP_DIRECTORY + appName + ".zip";
             var _fullFilePath;
 
-            return ResourcesLoader.downloadFromUrl(appUrl, fileName)
+            return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
+            .then(function(){
+                return ResourcesLoader.downloadFromUrl(appUrl, fileName);
+            })
             .then(function(fullFilePath){
                 _fullFilePath = fullFilePath;
                 return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName);
@@ -94,6 +97,32 @@
                         throw new Error("An app with this name already exists");
                     }
                     return addNewAppFromUrl(appName, appUrl);
+                });
+            },
+
+            uninstallApp : function(appName) {
+                return ResourcesLoader.ensureDirectoryExists(APPS_JSON)
+                .then(function() {
+                    return ResourcesLoader.readJSONFileContents(APPS_JSON);
+                })
+                .then(function(result){
+                    result.installedApps = result.installedApps || [];
+                    var found = false;
+
+                    for(var i = 0; i < result.installedApps.length; i++){
+                        if(result.installedApps[i].Name === appName) {
+                            result.installedApps.splice(i, 1);
+                            found = true;
+                        }
+                    }
+
+                    if(!found) {
+                        throw new Error("The app " + appName + " was not found.");
+                    }
+                    return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
+                })
+                .then(function(){
+                    return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
                 });
             }
         };
