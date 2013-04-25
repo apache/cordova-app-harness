@@ -4,9 +4,22 @@
     myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", "METADATA_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON, METADATA_JSON) {
 
         var platformId = cordova.require("cordova/platform").id;
+        // handlers that have registered to unpack certain extensions during the installation of an app
+        var extensionHandlers = {};
+
+        function grabExtensionFromUrl(url) {
+            var lastSegment = url.split("#")[0].split("?")[0].split("/").pop();
+            var dotLocation = lastSegment.lastIndexOf(".");
+            var extension = "";
+            if(dotLocation !== -1) {
+                extension = lastSegment.substring(dotLocation + 1);
+            }
+            return extension;
+        }
 
         function addNewAppFromUrl(appName, appUrl) {
-            var fileName = TEMP_DIRECTORY + appName + ".zip";
+            var extension = grabExtensionFromUrl(appUrl);
+            var fileName = TEMP_DIRECTORY + appName + "." + extension;
             var _fullFilePath;
 
             return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
@@ -18,33 +31,14 @@
                 return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName);
             })
             .then(function(directoryPath){
-                return extractZipToDirectory(_fullFilePath, directoryPath);
+                if(!extensionHandlers[extension]) {
+                    throw new Error("No handler for extension " + extension + " found");
+                }
+                return extensionHandlers[extension].extractPackageToDirectory(_fullFilePath, directoryPath);
             })
             .then(function(){
-                return registerApp(appName, "urlToZip", appUrl);
+                return registerApp(appName, "urlToPackage", appUrl);
             });
-        }
-
-        function extractZipToDirectory(fileName, outputDirectory){
-            var deferred = Q.defer();
-
-            //will throw an exception if the zip plugin is not loaded
-            try {
-                var onZipDone = function(returnCode) {
-                    if(returnCode !== 0) {
-                        deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
-                    } else {
-                        deferred.resolve();
-                    }
-                };
-
-                /* global zip */
-                zip.unzip(fileName, outputDirectory, onZipDone);
-            } catch(e) {
-                deferred.reject(e);
-            } finally {
-                return deferred.promise;
-            }
         }
 
         function registerApp(appName, appSource, appUrl) {
@@ -126,7 +120,7 @@
                 });
             },
 
-            addAppFromZipUrl : function(appName, appUrl) {
+            addAppFromUrl : function(appName, appUrl) {
                 return this.getAppsList()
                 .then(function(appsList){
                     if(appsList.indexOf(appName) !== -1) {
@@ -171,6 +165,19 @@
                     }
                     return self.launchApp(settings.lastLaunched);
                 });
+            },
+
+            registerPackageHandler : function(extension, handler) {
+                if(!extension) {
+                    throw new Error("Expcted extension");
+                }
+                if(!handler || typeof(handler.extractPackageToDirectory) !== "function") {
+                    throw new Error("Expected function for handler.extractPackageToDirectory to exist");
+                }
+                if(handler[extension]) {
+                    throw new Error("Handler already exists for the extension: " + extension);
+                }
+                extensionHandlers[extension] = handler;
             }
         };
     }]);

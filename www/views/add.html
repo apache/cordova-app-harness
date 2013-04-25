@@ -6,8 +6,8 @@
     <span ng-show="addForm.appName.$error.maxlength">Too long</span>
     <br />
 
-    <input type="radio" ng-model="appSource" name="appSource" value="urlToZip" ng-init="appUrlChecked=true; appSource='urlToZip'" ng-checked="appUrlChecked" />
-        <label for="inputAppUrl">Enter the URL(should point to a zip file)</label><br />
+    <input type="radio" ng-model="appSource" name="appSource" value="urlToPackage" ng-init="appUrlChecked=true; appSource='urlToPackage'" ng-checked="appUrlChecked" />
+        <label for="inputAppUrl">Enter the URL to a file</label><br />
         <input id="inputAppUrl" type="url" name="appUrl" ng-model="appUrl" ng-disabled="!appUrlChecked" ng-required="appUrlChecked" />
         <span ng-show="addForm.appUrl.$error.required">Required</span>
         <span ng-show="addForm.appUrl.$error.url">Not a URL</span>

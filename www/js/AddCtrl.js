@@ -4,13 +4,13 @@
     myApp.controller("AddCtrl", ["$scope", "AppsService", function ($scope, AppsService) {
 
         $scope.addApp = function(appName, appSource, appUrl) {
-            if(appSource === "urlToZip") {
+            if(appSource === "urlToPackage") {
                 if(!appUrl) {
                     alert("Url not specified");
                     return;
                 }
 
-                AppsService.addAppFromZipUrl(appName, appUrl)
+                AppsService.addAppFromUrl(appName, appUrl)
                 .then(function() {
                     alert("Successfully installed");
                 }, function(error) {
