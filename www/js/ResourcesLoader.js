@@ -65,11 +65,9 @@
             return str && str.replace(/^\s+|\s+$/g, "");
         }
 
-        function makeRelativeToRoot(path) {
-            if(path && (path.charAt(0) === "/")) {
-                path = path.substring(1);
-            } else if(path && path.substring(0, 8) === "file:///") {
-                path = path.substring(8);
+        function fixFilePath(path) {
+            if(path && path.indexOf("file://") === 0) {
+                path = path.substring("file://".length);
             }
             return path;
         }
@@ -144,27 +142,52 @@
             return path;
         }
 
+        function getPathSegments(path){
+            //truncate leading and trailing slashes
+            if(path.charAt(0) === "/"){
+                path = path.substring(1);
+            }
+            if(path.charAt(path.length - 1) === "/"){
+                path = path.substring(0, path.length - 1);
+            }
+            var segments = path.split("/");
+            return segments;
+        }
+
+        function ensureSingleDirectoryExists(directory){
+            var deferred = Q.defer();
+
+            var gotDirEntry = function(dirEntry) {
+                deferred.resolve(dirEntry.fullPath);
+            };
+
+            var failedToGetDirEntry = function(error) {
+                var str = "There was an error checking the directory: " + directory + " " + JSON.stringify(error);
+                deferred.reject(new Error(str));
+            };
+
+            fs.root.getDirectory(directory, {create: true, exclusive: false}, gotDirEntry, failedToGetDirEntry);
+            return deferred.promise;
+        }
+
         return {
             // returns a promise with a full path to the dir
             ensureDirectoryExists : function(directory) {
                 return initialiseFileSystem()
                 .then(function(){
-                    var deferred = Q.defer();
-
                     directory = truncateToDirectoryPath(directory);
-                    directory = makeRelativeToRoot(directory);
-
-                    var gotDirEntry = function(dirEntry) {
-                        deferred.resolve(dirEntry.fullPath);
-                    };
-
-                    var failedToGetDirEntry = function(error) {
-                        var str = "There was an error checking the directory: " + directory + " " + JSON.stringify(error);
-                        deferred.reject(new Error(str));
-                    };
-
-                    fs.root.getDirectory(directory, {create: true, exclusive: false}, gotDirEntry, failedToGetDirEntry);
-                    return deferred.promise;
+                    directory = fixFilePath(directory);
+                    var segments = getPathSegments(directory);
+                    var currentDir = directory.charAt(0) === "/"? "/" : "";
+                    var promiseArr = [];
+                    while(segments.length !== 0) {
+                        currentDir +=  segments.shift() + "/";
+                        promiseArr.push(ensureSingleDirectoryExists(currentDir));
+                    }
+                    return Q.all(promiseArr);
+                })
+                .then(function(paths){
+                    return paths[paths.length - 1];
                 });
             },
 

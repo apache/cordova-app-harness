@@ -10,10 +10,7 @@
         function grabExtensionFromUrl(url) {
             var lastSegment = url.split("#")[0].split("?")[0].split("/").pop();
             var dotLocation = lastSegment.lastIndexOf(".");
-            var extension = "";
-            if(dotLocation !== -1) {
-                extension = lastSegment.substring(dotLocation + 1);
-            }
+            var extension = (dotLocation !== -1)? lastSegment.substring(dotLocation + 1) : "";
             return extension;
         }
 
@@ -55,6 +52,9 @@
         }
 
         function getAppStartPageFromAppLocation(appLocation) {
+            if(appLocation.indexOf("file://") === 0){
+                appLocation = appLocation.substring("file://".length);
+            }
             appLocation += (appLocation.substring(appLocation.length - 1) === "/") ? "" : "/";
             var configFile = appLocation + "config." + platformId + ".xml";
 

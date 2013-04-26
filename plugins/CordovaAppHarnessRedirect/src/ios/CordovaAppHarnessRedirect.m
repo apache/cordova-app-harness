@@ -26,6 +26,9 @@
 - (void)issueNotFoundResponse;
 @end
 
+NSString* const cdvAppHarnessURLScheme = @"cdv-app-harness";
+NSString* const cdvAppHarnessDirectURLPrefix = @"cdv-app-harness:///direct";
+NSString* const cdvAppHarnessRedirectURLPrefix = @"cdv-app-harness:///redirect";
 static NSString* pathPrefix;
 static UIWebView* uiwebview;
 
@@ -39,7 +42,7 @@ static UIWebView* uiwebview;
     uiwebview = theWebView;
     if (self) {
         [NSURLProtocol registerClass:[AppHarnessURLProtocol class]];
-        pathPrefix = [[NSBundle mainBundle] pathForResource:@"chromeapp.html" ofType:@"" inDirectory:@"www"];
+        pathPrefix = [[NSBundle mainBundle] pathForResource:@"cordova.js" ofType:@"" inDirectory:@"www"];
         NSRange range = [pathPrefix rangeOfString:@"/www/"];
         //trim trailing slash after www
         range.length--;
@@ -60,9 +63,9 @@ static UIWebView* uiwebview;
     NSURL* url = [request URL];
     NSString* schemeString = [url scheme];
 
-    if([schemeString isEqualToString:@"cdv-app-harness"]){
+    if([schemeString isEqualToString:cdvAppHarnessURLScheme]){
         NSString* urlString = [url absoluteString];
-        return [urlString hasPrefix:@"cdv-app-harness:///redirect"] || [urlString hasPrefix:@"cdv-app-harness:///direct"];
+        return [urlString hasPrefix:cdvAppHarnessRedirectURLPrefix] || [urlString hasPrefix:cdvAppHarnessDirectURLPrefix];
     }
     return NO;
 }
@@ -108,7 +111,7 @@ static UIWebView* uiwebview;
     if([uiwebview isLoading]) {
         [uiwebview stopLoading];
     }
-    NSString *newUrlString = [NSString stringWithFormat:@"file://%@%@", pathPrefix, file];
+    NSString *newUrlString = [NSString stringWithFormat:@"file://%@%@", [pathPrefix stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding], file];
     NSURL *newUrl = [NSURL URLWithString:newUrlString];
     NSURLRequest *request = [NSURLRequest requestWithURL:newUrl];
     [uiwebview loadRequest:request];
@@ -120,18 +123,16 @@ static UIWebView* uiwebview;
     NSString* schemeString = [url scheme];
     BOOL issuedResponse = NO;
 
-    if([schemeString isEqualToString:@"cdv-app-harness"]){
+    if([schemeString isEqualToString:cdvAppHarnessURLScheme]){
         NSString* urlString = [url absoluteString];
-        NSString* redirectPrefix = @"cdv-app-harness:///redirect";
-        NSString* directPrefix = @"cdv-app-harness:///direct";
         
-        if([urlString hasPrefix:redirectPrefix]){
+        if([urlString hasPrefix:cdvAppHarnessRedirectURLPrefix]){
             issuedResponse = YES;
-            NSString* path = [urlString substringFromIndex:redirectPrefix.length];
+            NSString* path = [urlString substringFromIndex:cdvAppHarnessRedirectURLPrefix.length];
             [self issueRedirectResponseForFile:path];
-        } else if([urlString hasPrefix:directPrefix]){
+        } else if([urlString hasPrefix:cdvAppHarnessDirectURLPrefix]){
             issuedResponse = YES;
-            NSString* path = [urlString substringFromIndex:directPrefix.length];
+            NSString* path = [urlString substringFromIndex:cdvAppHarnessDirectURLPrefix.length];
             [self issueNSURLResponseForFile:path];
         }
     }
