@@ -1,12 +1,22 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON) {
+    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", "METADATA_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON, METADATA_JSON) {
 
         var platformId = cordova.require("cordova/platform").id;
+        // handlers that have registered to unpack certain extensions during the installation of an app
+        var extensionHandlers = {};
+
+        function grabExtensionFromUrl(url) {
+            var lastSegment = url.split("#")[0].split("?")[0].split("/").pop();
+            var dotLocation = lastSegment.lastIndexOf(".");
+            var extension = (dotLocation !== -1)? lastSegment.substring(dotLocation + 1) : "";
+            return extension;
+        }
 
         function addNewAppFromUrl(appName, appUrl) {
-            var fileName = TEMP_DIRECTORY + appName + ".zip";
+            var extension = grabExtensionFromUrl(appUrl);
+            var fileName = TEMP_DIRECTORY + appName + "." + extension;
             var _fullFilePath;
 
             return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
@@ -18,32 +28,14 @@
                 return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName);
             })
             .then(function(directoryPath){
-                return extractZipToDirectory(_fullFilePath, directoryPath);
+                if(!extensionHandlers[extension]) {
+                    throw new Error("No handler for extension " + extension + " found");
+                }
+                return extensionHandlers[extension].extractPackageToDirectory(_fullFilePath, directoryPath);
             })
             .then(function(){
-                return registerApp(appName, "urlToZip", appUrl);
+                return registerApp(appName, "urlToPackage", appUrl);
             });
-        }
-
-        function extractZipToDirectory(fileName, outputDirectory){
-            var deferred = Q.defer();
-
-            try {
-                var onZipDone = function(returnCode) {
-                    if(returnCode !== 0) {
-                        deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
-                    } else {
-                        deferred.resolve();
-                    }
-                };
-
-                /* global zip */
-                zip.unzip(fileName, outputDirectory, onZipDone);
-            } catch(e) {
-                deferred.reject(e);
-            } finally {
-                return deferred.promise;
-            }
         }
 
         function registerApp(appName, appSource, appUrl) {
@@ -60,6 +52,9 @@
         }
 
         function getAppStartPageFromAppLocation(appLocation) {
+            if(appLocation.indexOf("file://") === 0){
+                appLocation = appLocation.substring("file://".length);
+            }
             appLocation += (appLocation.substring(appLocation.length - 1) === "/") ? "" : "/";
             var configFile = appLocation + "config." + platformId + ".xml";
 
@@ -110,16 +105,24 @@
             },
 
             launchApp : function(appName) {
-                return getAppStartPageFromAppLocation(INSTALL_DIRECTORY + appName + "/")
-                .then(function(startLocation) {
-                    return ResourcesLoader.getFullFilePath(startLocation);
+                return ResourcesLoader.readJSONFileContents(METADATA_JSON)
+                .then(function(settings){
+                    settings = settings || {};
+                    settings.lastLaunched = appName;
+                    return ResourcesLoader.writeJSONFileContents(METADATA_JSON, settings);
                 })
-                .then(function(fullStartLocation){
-                    document.location = fullStartLocation;
+                .then(function(){
+                    return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName);
+                })
+                .then(function(appLocation) {
+                    return getAppStartPageFromAppLocation(appLocation);
+                })
+                .then(function(startLocation) {
+                    window.location = startLocation;
                 });
             },
 
-            addAppFromZipUrl : function(appName, appUrl) {
+            addAppFromUrl : function(appName, appUrl) {
                 return this.getAppsList()
                 .then(function(appsList){
                     if(appsList.indexOf(appName) !== -1) {
@@ -153,6 +156,30 @@
                 .then(function(){
                     return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
                 });
+            },
+
+            launchLastRunApp : function() {
+                var self = this;
+                return ResourcesLoader.readJSONFileContents(METADATA_JSON)
+                .then(function(settings){
+                    if(!settings || !settings.lastLaunched) {
+                        throw new Error("No App has been launched yet");
+                    }
+                    return self.launchApp(settings.lastLaunched);
+                });
+            },
+
+            registerPackageHandler : function(extension, handler) {
+                if(!extension) {
+                    throw new Error("Expcted extension");
+                }
+                if(!handler || typeof(handler.extractPackageToDirectory) !== "function") {
+                    throw new Error("Expected function for handler.extractPackageToDirectory to exist");
+                }
+                if(handler[extension]) {
+                    throw new Error("Handler already exists for the extension: " + extension);
+                }
+                extensionHandlers[extension] = handler;
             }
         };
     }]);

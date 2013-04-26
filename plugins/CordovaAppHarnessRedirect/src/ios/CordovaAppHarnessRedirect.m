@@ -21,8 +21,14 @@
 #pragma mark declare
 
 @interface AppHarnessURLProtocol : NSURLProtocol
+- (void)issueNSURLResponseForFile:file;
+- (void)issueRedirectResponseForFile:file;
+- (void)issueNotFoundResponse;
 @end
 
+NSString* const cdvAppHarnessURLScheme = @"cdv-app-harness";
+NSString* const cdvAppHarnessDirectURLPrefix = @"cdv-app-harness:///direct";
+NSString* const cdvAppHarnessRedirectURLPrefix = @"cdv-app-harness:///redirect";
 static NSString* pathPrefix;
 static UIWebView* uiwebview;
 
@@ -36,8 +42,10 @@ static UIWebView* uiwebview;
     uiwebview = theWebView;
     if (self) {
         [NSURLProtocol registerClass:[AppHarnessURLProtocol class]];
-        pathPrefix = [[NSBundle mainBundle] pathForResource:@"chromeapp.html" ofType:@"" inDirectory:@"www"];
+        pathPrefix = [[NSBundle mainBundle] pathForResource:@"cordova.js" ofType:@"" inDirectory:@"www"];
         NSRange range = [pathPrefix rangeOfString:@"/www/"];
+        //trim trailing slash after www
+        range.length--;
         pathPrefix = [[pathPrefix substringToIndex:NSMaxRange(range)] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
     }
     return self;
@@ -53,19 +61,11 @@ static UIWebView* uiwebview;
 + (BOOL)canInitWithRequest:(NSURLRequest*)request
 {
     NSURL* url = [request URL];
+    NSString* schemeString = [url scheme];
 
-    if(![[url scheme] isEqualToString:fileURLScheme]) {
-        return NO;
-    }
-
-    NSString* fileName = [url lastPathComponent];
-    
-    if([fileName isEqualToString:@"cordova.js"]
-       || [fileName isEqualToString:@"__cordovaappharness_contextMenu_page.html"]
-       || [fileName isEqualToString:@"__cordovaappharness_contextMenu_script.js"]
-       || [fileName isEqualToString:@"__cordovaappharness_contextMenu_mainmenu"]
-       ) {
-        return YES;
+    if([schemeString isEqualToString:cdvAppHarnessURLScheme]){
+        NSString* urlString = [url absoluteString];
+        return [urlString hasPrefix:cdvAppHarnessRedirectURLPrefix] || [urlString hasPrefix:cdvAppHarnessDirectURLPrefix];
     }
     return NO;
 }
@@ -75,56 +75,71 @@ static UIWebView* uiwebview;
     return request;
 }
 
+- (void)issueNotFoundResponse
+{
+    NSURL* url = [[self request] URL];
+    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
+    [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+    [[self client] URLProtocolDidFinishLoading:self];
+}
+
+- (void)issueNSURLResponseForFile:file
+{
+    NSURL* url = [[self request] URL];
+    NSString* path = [NSString stringWithFormat:@"%@%@", pathPrefix, file];
+    FILE* fp = fopen([path UTF8String], "r");
+    if (fp) {
+        NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
+        [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+        
+        char buf[32768];
+        size_t len;
+        while ((len = fread(buf,1,sizeof(buf),fp))) {
+            [[self client] URLProtocol:self didLoadData:[NSData dataWithBytes:buf length:len]];
+        }
+        fclose(fp);
+        
+        [[self client] URLProtocolDidFinishLoading:self];
+        
+    } else {
+        [self issueNotFoundResponse];
+    }
+}
+
+- (void)issueRedirectResponseForFile:file
+{
+    if([uiwebview isLoading]) {
+        [uiwebview stopLoading];
+    }
+    NSString *newUrlString = [NSString stringWithFormat:@"file://%@%@", [pathPrefix stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding], file];
+    NSURL *newUrl = [NSURL URLWithString:newUrlString];
+    NSURLRequest *request = [NSURLRequest requestWithURL:newUrl];
+    [uiwebview loadRequest:request];
+}
+
 - (void)startLoading
 {
     NSURL *url = [[self request] URL];
-    NSString *fileName = [url lastPathComponent];
-    NSString *pathString = @"";
-    BOOL redirect = NO;
-    
-    if ([fileName isEqualToString:@"cordova.js"]) {
-        pathString = @"cordova.js";
-    } else if ([fileName isEqualToString:@"__cordovaappharness_contextMenu_page.html"]) {
-        pathString = @"contextMenu.html";
-    } else if ([fileName isEqualToString:@"__cordovaappharness_contextMenu_script.js"]) {
-        pathString = @"js/ContextMenu.js";
-    } else if ([fileName isEqualToString:@"__cordovaappharness_contextMenu_mainmenu"]) {
-        pathString = @"index.html";
-        redirect = YES;
-    } else {
-        NSString* description = [NSString stringWithFormat:@"url %@ cannot be handled",[url absoluteString]];
-        NSAssert(FALSE, description);
-    }
+    NSString* schemeString = [url scheme];
+    BOOL issuedResponse = NO;
 
-    if(redirect) {
-        [uiwebview stopLoading];
-        NSString *newUrlString = [NSString stringWithFormat:@"file://%@%@", pathPrefix, [pathString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
-        NSURL *newUrl = [NSURL URLWithString:newUrlString];
-        NSURLRequest *request = [NSURLRequest requestWithURL:newUrl];
-        [uiwebview loadRequest:request];
-    } else {
-        NSString *path = [NSString stringWithFormat:@"%@%@", pathPrefix, pathString];
-        FILE *fp = fopen([path UTF8String], "r");
-        if (fp) {
-            NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
-            [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
-
-            char buf[32768];
-            size_t len;
-            while ((len = fread(buf,1,sizeof(buf),fp))) {
-                [[self client] URLProtocol:self didLoadData:[NSData dataWithBytes:buf length:len]];
-            }
-            fclose(fp);
-
-            [[self client] URLProtocolDidFinishLoading:self];
-
-        } else {
-            NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
-            [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
-            [[self client] URLProtocolDidFinishLoading:self];
+    if([schemeString isEqualToString:cdvAppHarnessURLScheme]){
+        NSString* urlString = [url absoluteString];
+        
+        if([urlString hasPrefix:cdvAppHarnessRedirectURLPrefix]){
+            issuedResponse = YES;
+            NSString* path = [urlString substringFromIndex:cdvAppHarnessRedirectURLPrefix.length];
+            [self issueRedirectResponseForFile:path];
+        } else if([urlString hasPrefix:cdvAppHarnessDirectURLPrefix]){
+            issuedResponse = YES;
+            NSString* path = [urlString substringFromIndex:cdvAppHarnessDirectURLPrefix.length];
+            [self issueNSURLResponseForFile:path];
         }
     }
-
+    
+    if(!issuedResponse){
+        [self issueNotFoundResponse];
+    }
 }
 
 - (void)stopLoading

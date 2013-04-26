@@ -16,14 +16,14 @@
 #       specific language governing permissions and limitations
 #       under the License.
 #
-# package a cordova project into a zip for app harness
+# package a cordova project into a cdvh for app harness (zip file with a specific file and folder layout)
 #
 # USAGE
-#   ./zipapp project_directory [zipfileName]
+#   ./packapp project_directory [packageName.cdhv]
 #
 if [ $# -lt 1 ]
 then
-  echo "Usage: zipapp project_directory [zipfileName]"
+  echo "Usage: packapp project_directory [packageName.cdhv]"
   exit -1
 fi
 
@@ -31,7 +31,7 @@ ORIG_DIR=$(pwd)
 
 
 cd $1
-FILE_NAME=$(basename "`pwd`" ).zip
+FILE_NAME=$(basename "`pwd`" ).cdvh
 
 if [ $# -ge 2 ]
 then

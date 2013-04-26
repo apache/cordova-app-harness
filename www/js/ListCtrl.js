@@ -1,9 +1,25 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("ListCtrl", [ "$scope", "AppsService", function ($scope, AppsService) {
+    myApp.controller("ListCtrl", [ "$scope", "$routeParams", "AppsService", function ($scope, $routeParams, AppsService) {
 
         $scope.appsList = [];
+
+        function initialise() {
+            if($routeParams.lastLaunched)
+            {
+                AppsService.launchLastRunApp()
+                .then(null, function(e){
+                    e = e || {};
+                    console.error("Error launching last run app: " + e.message);
+                    alert("Error launching last run app. Please try again.");
+                });
+            }
+            else
+            {
+                $scope.loadAppsList(true);
+            }
+        }
 
         $scope.loadAppsList = function(callApply) {
             AppsService.getAppsList()
@@ -44,6 +60,6 @@
             }
         };
 
-        document.addEventListener("deviceready", function() { $scope.loadAppsList(true); }, false);
+        document.addEventListener("deviceready", initialise, false);
     }]);
 })();

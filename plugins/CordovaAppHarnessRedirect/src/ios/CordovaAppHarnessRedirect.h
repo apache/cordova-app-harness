@@ -19,8 +19,6 @@
 #import <Foundation/Foundation.h>
 #import <Cordova/CDVPlugin.h>
 
-NSString* const fileURLScheme = @"file";
-
 @interface CordovaAppHarnessRedirect : CDVPlugin {}
 
 @end
