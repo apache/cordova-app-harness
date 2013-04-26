@@ -1,30 +1,25 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.run(["AppsService", function(AppsService){
+    myApp.run(["AppsService", "ResourcesLoader", function(AppsService, ResourcesLoader){
+
         AppsService.registerPackageHandler("cdvh", {
             extractPackageToDirectory : function (fileName, outputDirectory){
-                var deferred = Q.defer();
-
-                //will throw an exception if the zip plugin is not loaded
-                try {
-                    var onZipDone = function(returnCode) {
-                        if(returnCode !== 0) {
-                            deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
-                        } else {
-                            deferred.resolve();
-                        }
-                    };
-
-                    /* global zip */
-                    zip.unzip(fileName, outputDirectory, onZipDone);
-                } catch(e) {
-                    deferred.reject(e);
-                } finally {
-                    return deferred.promise;
-                }
+                return ResourcesLoader.extractZipFile(fileName, outputDirectory)
+                .then(function(){
+                    return ResourcesLoader.xhrGet("cdv-app-harness:///direct/cordova.js");
+                })
+                .then(function(xhr){
+                    var cordovaJSPath = outputDirectory + "/www/cordova.js";
+                    /************ Begin Work around for File system bug ************/
+                    if(cordovaJSPath.indexOf("file://") === 0) {
+                        cordovaJSPath = cordovaJSPath.substring("file://".length);
+                    }
+                    /************ End Work around for File system bug **************/
+                    return ResourcesLoader.writeFileContents(cordovaJSPath, xhr.responseText);
+                });
             }
         });
-    }]);
 
+    }]);
 })();

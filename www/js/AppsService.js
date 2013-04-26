@@ -115,8 +115,10 @@
                     return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName);
                 })
                 .then(function(appLocation) {
-                    var startLocation = getAppStartPageFromAppLocation(appLocation);
-                    document.location = startLocation;
+                    return getAppStartPageFromAppLocation(appLocation);
+                })
+                .then(function(startLocation) {
+                    window.location = startLocation;
                 });
             },
 

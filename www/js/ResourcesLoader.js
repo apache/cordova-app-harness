@@ -307,6 +307,45 @@
                     dirEntry.removeRecursively(deferred.resolve, failedToDeleteDirectory);
                     return deferred.promise;
                 });
+            },
+
+            extractZipFile : function(fileName, outputDirectory){
+                var deferred = Q.defer();
+
+                //will throw an exception if the zip plugin is not loaded
+                try {
+                    var onZipDone = function(returnCode) {
+                        if(returnCode !== 0) {
+                            deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
+                        } else {
+                            deferred.resolve();
+                        }
+                    };
+
+                    /* global zip */
+                    zip.unzip(fileName, outputDirectory, onZipDone);
+                } catch(e) {
+                    deferred.reject(e);
+                } finally {
+                    return deferred.promise;
+                }
+            },
+
+            xhrGet : function(url) {
+                var deferred = Q.defer();
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if(xhr.status === 200) {
+                            deferred.resolve(xhr);
+                        } else {
+                            deferred.reject("XHR return status: " + xhr.statusText);
+                        }
+                    }
+                };
+                xhr.open("GET", url, true);
+                xhr.send();
+                return deferred.promise;
             }
         };
     }]);

@@ -30,9 +30,6 @@ import android.webkit.WebResourceResponse;
 
 public class CordovaAppHarnessRedirect extends CordovaPlugin {
 
-    // Ensure we we redirect any file:///*/cordova.js uri's to the the cordova.js located in the assets
-    // Ensure we redirect any file:///*/__cordovaappharness_contextMenu_{menu_choice} uri's to the correct locations
-
     // Returns an empty response, so that an error of unknown url is not displayed.
     // Used when we are loading a new url immediately
     private WebResourceResponse getEmptyWebResourceResponse()
@@ -63,13 +60,7 @@ public class CordovaAppHarnessRedirect extends CordovaPlugin {
         Uri uri = Uri.parse(url);
         String scheme = uri.getScheme();
 
-        // we need reroute any requests to cordova.js from an app from the disk to the modified cordova.js in the bundle
-        if("file".equals(scheme)) {
-            String fileName = uri.getLastPathSegment();
-            if("cordova.js".equals(fileName)) {
-                return getWebResourceResponseForFile("/cordova.js");
-            }
-        } else if("cdv-app-harness".equals(scheme)) {
+        if("cdv-app-harness".equals(scheme)) {
             String redirectPrefix = "cdv-app-harness:///redirect";
             String directPrefix = "cdv-app-harness:///direct";
 

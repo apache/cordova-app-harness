@@ -60,12 +60,6 @@ static UIWebView* uiwebview;
     NSURL* url = [request URL];
     NSString* schemeString = [url scheme];
 
-    // we need reroute any requests to cordova.js from an app from the disk to the modified cordova.js in the bundle
-    if([schemeString isEqualToString:@"file"]) {
-        NSString* fileName = [url lastPathComponent];
-        return [fileName isEqualToString:@"cordova.js"];
-    }
-
     if([schemeString isEqualToString:@"cdv-app-harness"]){
         NSString* urlString = [url absoluteString];
         return [urlString hasPrefix:@"cdv-app-harness:///redirect"] || [urlString hasPrefix:@"cdv-app-harness:///direct"];
@@ -126,13 +120,7 @@ static UIWebView* uiwebview;
     NSString* schemeString = [url scheme];
     BOOL issuedResponse = NO;
 
-    if([schemeString isEqualToString:@"file"]) {
-        NSString* fileName = [url lastPathComponent];
-        if([fileName isEqualToString:@"cordova.js"]) {
-            issuedResponse = YES;
-            [self issueNSURLResponseForFile:@"/cordova.js"];
-        }
-    } else if([schemeString isEqualToString:@"cdv-app-harness"]){
+    if([schemeString isEqualToString:@"cdv-app-harness"]){
         NSString* urlString = [url absoluteString];
         NSString* redirectPrefix = @"cdv-app-harness:///redirect";
         NSString* directPrefix = @"cdv-app-harness:///direct";

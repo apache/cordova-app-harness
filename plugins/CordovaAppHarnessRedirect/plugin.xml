@@ -14,7 +14,6 @@
 
     <config-file target="res/xml/config.xml" parent="/cordova/plugins">
       <plugin name="CordovaAppHarnessRedirect" value="org.apache.cordova.cordovaappharness.CordovaAppHarnessRedirect">
-        <url-filter value="file://" />
         <url-filter value="cdv-app-harness://" />
       </plugin>
     </config-file>
