@@ -24,6 +24,7 @@
         $scope.loadAppsList = function(callApply) {
             AppsService.getAppsList()
             .then(function(newAppsList){
+                newAppsList.sort();
                 //clear the old apps list
                 $scope.appsList.splice(0, $scope.appsList.length);
                 angular.extend($scope.appsList, newAppsList);
