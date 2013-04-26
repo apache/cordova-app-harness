@@ -85,6 +85,36 @@
             });
         }
 
+        function removeApp(appName){
+            var entry;
+            return ResourcesLoader.ensureDirectoryExists(APPS_JSON)
+            .then(function() {
+                return ResourcesLoader.readJSONFileContents(APPS_JSON);
+            })
+            .then(function(result){
+                result.installedApps = result.installedApps || [];
+
+                for(var i = 0; i < result.installedApps.length; i++){
+                    if(result.installedApps[i].Name === appName) {
+                        entry = result.installedApps.splice(i, 1)[0];
+                        break;
+                    }
+                }
+
+                if(!entry) {
+                    throw new Error("The app " + appName + " was not found.");
+                }
+
+                return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
+            })
+            .then(function(){
+                return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
+            })
+            .then(function(){
+                return entry;
+            });
+        }
+
         return {
             //return promise with the array of apps
             getAppsList : function() {
@@ -133,39 +163,16 @@
             },
 
             uninstallApp : function(appName) {
-                return ResourcesLoader.ensureDirectoryExists(APPS_JSON)
-                .then(function() {
-                    return ResourcesLoader.readJSONFileContents(APPS_JSON);
-                })
-                .then(function(result){
-                    result.installedApps = result.installedApps || [];
-                    var found = false;
-
-                    for(var i = 0; i < result.installedApps.length; i++){
-                        if(result.installedApps[i].Name === appName) {
-                            result.installedApps.splice(i, 1);
-                            found = true;
-                        }
-                    }
-
-                    if(!found) {
-                        throw new Error("The app " + appName + " was not found.");
-                    }
-                    return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
-                })
-                .then(function(){
-                    return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
-                });
+                return removeApp(appName, true);
             },
 
-            launchLastRunApp : function() {
-                var self = this;
+            getLastRunApp : function() {
                 return ResourcesLoader.readJSONFileContents(METADATA_JSON)
                 .then(function(settings){
                     if(!settings || !settings.lastLaunched) {
                         throw new Error("No App has been launched yet");
                     }
-                    return self.launchApp(settings.lastLaunched);
+                    return settings.lastLaunched;
                 });
             },
 
@@ -180,6 +187,13 @@
                     throw new Error("Handler already exists for the extension: " + extension);
                 }
                 extensionHandlers[extension] = handler;
+            },
+
+            updateApp : function(appName){
+                return removeApp(appName, true)
+                .then(function(entry){
+                    return addNewAppFromUrl(entry.Name, entry.Url);
+                });
             }
         };
     }]);
