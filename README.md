@@ -5,7 +5,7 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Setting up environment
 
-*   Clone the the cordova-app-harness, cordova-android, cordova-ios, cordova-js, plugman, cordova-cli, zip(https://github.com/MobileChromeApps/zip) and chrome-cordova repos into folders of the same name in a common directory - eg 'Repo'. (Note the chrome-cordova repo is required only if you intend to run chrome apps in the harness as well)
+*   Clone the the cordova-app-harness, cordova-android, cordova-ios, cordova-js, plugman, cordova-cli, zip(https://github.com/MobileChromeApps/zip) and AppBundle(https://github.com/MobileChromeApps/AppBundle) repos into folders of the same name in a common directory - eg 'Repo'.
 *   Use the future branch of plugman and cordova-cli
 *   Link these plugman and cordova-cli of this branch as the globally symlinked plugman and cordova-cli commands. (You may want to see 'npm link')
 *   Build the cordova-js repo and grab the cordova.android.js and cordova.ios.js
@@ -18,15 +18,13 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
         cd CordovaAppHarness
         cordova platform add android
         cordova platform add ios
-        cordova plugin add ../Repo/cordova-app-harness/plugins/CordovaAppHarnessPlugin
+        cordova plugin add ../Repo/AppBundle
         cordova plugin add ../Repo/zip/
-        cordova plugin add ../Repo/chrome-cordova/plugins/*
         cp -rf ../Repo/cordova-app-harness/www app/www
         cp -rf ../Repo/cordova-app-harness/hooks .cordova/hooks
         cordova prepare
 
-*   Get a copy of the google-play-services.jar
-*   Put the cordova.jar and the google-play-services.jar in the CordovaAppHarness/platforms/android/libs folder. (Note you may want to link the cordova-android project directly instead of adding a built jar so you can easily make changes to cordova-android and test the app harness)
+*   Put the cordova.jar in the CordovaAppHarness/platforms/android/libs folder. (Note you may want to link the cordova-android project directly instead of adding a built jar so you can easily make changes to cordova-android and test the app harness)
 *   Replace the contents of CordovaAppHarness/platforms/ios/CordovaLib with /Repo/cordova-ios/CordovaLib
 *   Go to eclipse and got to new, other, android, android project from existing code. Navigate to CordovaAppHarness/platforms/android and then add the project
 *   Double click the  .xcodeproj file in CordovaAppHarnessNew/platforms/ios/
@@ -34,9 +32,9 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Using the app
 
-*   Run the zipapp script and point it to a cordova project. This will package the app into a zip file. (Note: it is expected that you add all relavant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
-        Repo/cordova-app-harness/zipapp ./TestApp TestApp.zip
-*   Upload the the zip onto any hosting site.
+*   Run the packapp script and point it to a cordova project. This will package the app into a cdvh file. (Note: it is expected that you add all relevant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
+        Repo/cordova-app-harness/zipapp ./TestApp TestApp.cdvh
+*   Upload the the cdvh onto any hosting site.
 *   Run the app harness
 *   Click add new app
 *   Give a name and the url to the zip.
