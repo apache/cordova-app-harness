@@ -4,48 +4,55 @@
     myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", "METADATA_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON, METADATA_JSON) {
 
         var platformId = cordova.require("cordova/platform").id;
+        // downloaders that know how to download from certain patterns.
+        // Eg: The KnownExtensionDownloader MAY know how to download from any uri's that end in known extensions
+        var downloadHandlers = [];
         // handlers that have registered to unpack certain extensions during the installation of an app
         var extensionHandlers = {};
 
-        function grabExtensionFromUrl(url) {
-            var lastSegment = url.split("#")[0].split("?")[0].split("/").pop();
+        function grabExtensionFromUri(uri) {
+            var lastSegment = uri.split("#")[0].split("?")[0].split("/").pop();
             var dotLocation = lastSegment.lastIndexOf(".");
             var extension = (dotLocation !== -1)? lastSegment.substring(dotLocation + 1) : "";
             return extension;
         }
 
-        function addNewAppFromUrl(appName, appUrl) {
-            var extension = grabExtensionFromUrl(appUrl);
-            var fileName = TEMP_DIRECTORY + appName + "." + extension;
+        function addNewAppFromPattern(appName, appSourcePattern) {
             var _fullFilePath;
 
             return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
             .then(function(){
-                return ResourcesLoader.downloadFromUrl(appUrl, fileName);
+                for(var i = 0; i < downloadHandlers.length; i++){
+                    if(downloadHandlers[i].handler.canHandleSourcePattern(appSourcePattern)){
+                        return downloadHandlers[i].handler.downloadFromPattern(appName, appSourcePattern, TEMP_DIRECTORY);
+                    }
+                }
+                throw new Error("App Harness does not know how to install an app from the pattern: " + appSourcePattern);
             })
             .then(function(fullFilePath){
                 _fullFilePath = fullFilePath;
                 return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName);
             })
             .then(function(directoryPath){
+                var extension = grabExtensionFromUri(appSourcePattern);
                 if(!extensionHandlers[extension]) {
                     throw new Error("No handler for extension " + extension + " found");
                 }
                 return extensionHandlers[extension].extractPackageToDirectory(_fullFilePath, directoryPath);
             })
             .then(function(){
-                return registerApp(appName, "urlToPackage", appUrl);
+                return registerApp(appName, "pattern", appSourcePattern);
             });
         }
 
-        function registerApp(appName, appSource, appUrl) {
+        function registerApp(appName, appSource, appSourcePattern) {
             return ResourcesLoader.readJSONFileContents(APPS_JSON)
             .then(function(result){
                 result.installedApps = result.installedApps || [];
                 result.installedApps.push({
                     "Name" :  appName,
                     "Source" : appSource,
-                    "Url" : appUrl
+                    "Data" : appSourcePattern
                 });
                 return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
             });
@@ -156,13 +163,13 @@
                 });
             },
 
-            addAppFromUrl : function(appName, appUrl) {
+            addAppFromPattern : function(appName, appSourcePattern) {
                 return this.getAppsList()
                 .then(function(appsList){
                     if(appsList.indexOf(appName) !== -1) {
                         throw new Error("An app with this name already exists");
                     }
-                    return addNewAppFromUrl(appName, appUrl);
+                    return addNewAppFromPattern(appName, appSourcePattern);
                 });
             },
 
@@ -180,12 +187,36 @@
                 });
             },
 
+            registerPatternDownloader : function(handler, priority){
+                if(!handler) {
+                    throw new Error("Expected handler");
+                }
+                if(typeof(handler.canHandleSourcePattern) !== "function") {
+                    throw new Error("Expected function for bool handler.canHandleSourcePattern(string pattern) to exist");
+                }
+                if(typeof(handler.downloadFromPattern) !== "function") {
+                    throw new Error("Expected function for (string fullFilePath or QPromise) handler.downloadFromPattern(string appName, string pattern, string tempDirectory) to exist");
+                }
+                if(!priority) {
+                    // Assign a default priority
+                    priority = 500;
+                }
+                var i = 0;
+                var objToInsert = { "priority" : priority, "handler" : handler };
+                for(i = 0; i < downloadHandlers.length; i++){
+                    if(downloadHandlers[i].priority > objToInsert.priority) {
+                        break;
+                    }
+                }
+                downloadHandlers.splice(i, 0, objToInsert);
+            },
+
             registerPackageHandler : function(extension, handler) {
                 if(!extension) {
                     throw new Error("Expcted extension");
                 }
                 if(!handler || typeof(handler.extractPackageToDirectory) !== "function") {
-                    throw new Error("Expected function for handler.extractPackageToDirectory to exist");
+                    throw new Error("Expected function for void handler.extractPackageToDirectory(string fullFilePath, string directoryPath) to exist");
                 }
                 if(handler[extension]) {
                     throw new Error("Handler already exists for the extension: " + extension);
@@ -196,8 +227,14 @@
             updateApp : function(appName){
                 return removeApp(appName, true)
                 .then(function(entry){
-                    return addNewAppFromUrl(entry.Name, entry.Url);
+                    if(entry.Source === "pattern") {
+                        return addNewAppFromPattern(entry.Name, entry.Data);
+                    }
                 });
+            },
+
+            getKnownExtensions : function() {
+                return Object.keys(extensionHandlers);
             }
         };
     }]);

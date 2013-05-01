@@ -10,7 +10,6 @@
             var deferred = Q.defer();
 
             if(!initialised) {
-                initialised = true;
 
                 var failedFileSystemLookUp = function (error) {
                     var errorString = "An error occurred while reading the file system.";
@@ -22,6 +21,7 @@
 
                 var success = function(_fs) {
                     fs = _fs;
+                    initialised = true;
                     deferred.resolve(fs);
                 };
 

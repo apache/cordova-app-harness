@@ -3,14 +3,14 @@
     /* global myApp */
     myApp.controller("AddCtrl", ["$scope", "AppsService", function ($scope, AppsService) {
 
-        $scope.addApp = function(appName, appSource, appUrl) {
-            if(appSource === "urlToPackage") {
-                if(!appUrl) {
+        $scope.addApp = function(appName, appSource, appSourcePattern) {
+            if(appSource === "pattern") {
+                if(!appSourcePattern) {
                     alert("Url not specified");
                     return;
                 }
 
-                AppsService.addAppFromUrl(appName, appUrl)
+                AppsService.addAppFromPattern(appName, appSourcePattern)
                 .then(function() {
                     alert("Successfully installed");
                 }, function(error) {
