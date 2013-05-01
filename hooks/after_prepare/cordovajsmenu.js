@@ -5,13 +5,13 @@ var path = require('path');
  
 var androidAppend = function() {
     var location = document.location.toString();
-    if(location.indexOf("file:///android_asset") === 0) {
+    if(location.indexOf("file:///android_asset") === 0  || location.search("app-bundle:///") === 0) {
         console.log("Not injecting");
     } else {
         console.log("Injecting menu script");
         var contextScript = document.createElement('script');
         contextScript.setAttribute("type","text/javascript");
-        contextScript.setAttribute("src", "app-bundle:///direct/js/ContextMenu.js");
+        contextScript.setAttribute("src", "app-bundle:///js/ContextMenu.js");
         document.getElementsByTagName("head")[0].appendChild(contextScript);
     }
 };
@@ -20,13 +20,13 @@ var iosAppend = function() {
     var location = document.location.toString();
     //Match file:///SOME_PATH/Applications/SOME_GUID/SOME_NAME.app/SOME_PATH
     var regex = /^file:\/\/\/.*?\/Applications\/(\{{0,1}([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}\}{0,1})\/.*?\.app/g;
-    if(location.search(regex) === 0) {
+    if(location.search(regex) === 0 || location.search("app-bundle:///") === 0) {
         console.log("Not injecting");
     } else {
         console.log("Injecting menu script");
         var contextScript = document.createElement('script');
         contextScript.setAttribute("type","text/javascript");
-        contextScript.setAttribute("src", "app-bundle:///direct/js/ContextMenu.js");
+        contextScript.setAttribute("src", "app-bundle:///js/ContextMenu.js");
         document.getElementsByTagName("head")[0].appendChild(contextScript);
     }
 }; 

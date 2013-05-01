@@ -1,7 +1,7 @@
 (function () {
 
     function initialise() {
-        var contextHTMLUrl = "app-bundle:///direct/contextMenu.html";
+        var contextHTMLUrl = "app-bundle:///contextMenu.html";
         var xhr = new window.XMLHttpRequest();
         xhr.onreadystatechange=function()
         {

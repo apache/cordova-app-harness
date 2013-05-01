@@ -23,8 +23,8 @@
                 return ResourcesLoader.extractZipFile(fileName, outputDirectory)
                 .then(function(){
                     return Q.all([
-                        copyFile("cdv-app-harness:///direct/cordova.js", outputDirectory + "/www/cordova.js"),
-                        copyFile("cdv-app-harness:///direct/cdvh_files/www/cordova_plugins.json", outputDirectory + "/www/cordova_plugins.json")
+                        copyFile("app-bundle:///cordova.js", outputDirectory + "/www/cordova.js"),
+                        copyFile("app-bundle:///cdvh_files/www/cordova_plugins.json", outputDirectory + "/www/cordova_plugins.json")
                     ]);
                 });
             }
