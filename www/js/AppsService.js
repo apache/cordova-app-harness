@@ -148,6 +148,10 @@
                     return getAppStartPageFromAppLocation(appLocation);
                 })
                 .then(function(startLocation) {
+                    //ensure we use a file uri
+                    if(startLocation.search("file://") !== 0){
+                        startLocation = "file://" + startLocation;
+                    }
                     window.location = startLocation;
                 });
             },
