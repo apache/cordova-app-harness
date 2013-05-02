@@ -53,6 +53,7 @@
                     "Name" :  appName,
                     "Source" : appSource,
                     "Data" : appSourcePattern
+                    "Installed" : (new Date()).toLocaleString()
                 });
                 return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
             });
@@ -124,7 +125,7 @@
 
         return {
             //return promise with the array of apps
-            getAppsList : function() {
+            getAppsList : function(getFullEntries) {
                 return ResourcesLoader.ensureDirectoryExists(APPS_JSON)
                 .then(function() {
                     return ResourcesLoader.readJSONFileContents(APPS_JSON);
@@ -134,7 +135,11 @@
                     var newAppsList = [];
 
                     for(var i = 0; i < result.installedApps.length; i++){
-                        newAppsList.push(result.installedApps[i].Name);
+                        if(getFullEntries) {
+                            newAppsList.push(result.installedApps[i]);
+                        } else {
+                            newAppsList.push(result.installedApps[i].Name);
+                        }
                     }
 
                     return newAppsList;
@@ -164,7 +169,7 @@
             },
 
             addAppFromPattern : function(appName, appSourcePattern) {
-                return this.getAppsList()
+                return this.getAppsList(false /* App names only */)
                 .then(function(appsList){
                     if(appsList.indexOf(appName) !== -1) {
                         throw new Error("An app with this name already exists");
@@ -174,7 +179,7 @@
             },
 
             uninstallApp : function(appName) {
-                return removeApp(appName, true);
+                return removeApp(appName);
             },
 
             getLastRunApp : function() {
@@ -225,7 +230,7 @@
             },
 
             updateApp : function(appName){
-                return removeApp(appName, true)
+                return removeApp(appName)
                 .then(function(entry){
                     if(entry.Source === "pattern") {
                         return addNewAppFromPattern(entry.Name, entry.Data);
