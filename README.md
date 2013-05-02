@@ -21,7 +21,6 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
         cordova plugin add ../Repo/AppBundle
         cordova plugin add ../Repo/zip/
         cp -rf ../Repo/cordova-app-harness/www app/www
-        cp -rf ../Repo/cordova-app-harness/hooks .cordova/hooks
         cordova prepare
 
 *   Put the cordova.jar in the CordovaAppHarness/platforms/android/libs folder. (Note you may want to link the cordova-android project directly instead of adding a built jar so you can easily make changes to cordova-android and test the app harness)
@@ -33,7 +32,7 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 ##Using the app
 
 *   Run the packapp script and point it to a cordova project. This will package the app into a cdvh file. (Note: it is expected that you add all relevant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
-        Repo/cordova-app-harness/zipapp ./TestApp TestApp.cdvh
+        Repo/cordova-app-harness/packapp -p ./TestApp TestApp.cdvh
 *   Upload the the cdvh onto any hosting site.
 *   Run the app harness
 *   Click add new app
