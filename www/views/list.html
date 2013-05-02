@@ -1,10 +1,10 @@
 <ul>
 	<li ng-repeat="app in appsList"> 
-        <p>{{app}}</p>
-        <button ng-click="launchApp(app)">Launch</button>
-		<button ng-click="refreshApp(app)">Update</button>
-		<button ng-click="removeApp(app)">Remove</button>
-        <br />
+        <p>{{app.Name}}</p>
+        <p>Installed on: {{app.Installed}}</p>
+        <button ng-click="launchApp(app.Name)">Launch</button>
+		<button ng-click="refreshApp(app.Name)">Update</button>
+		<button ng-click="removeApp(app.Name)">Remove</button>
 	</li>
 </ul>
 <button ng-click="loadAppsList()">Reload Apps List</button>
