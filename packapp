@@ -19,18 +19,40 @@
 # package a cordova project into a cdvh for app harness (zip file with a specific file and folder layout)
 #
 # USAGE
-#   ./packapp project_directory [packageName.cdhv]
-#
+#   ./packapp project_directory [packageName.cdvh]
+
+USAGE_STRING="Usage: packapp [-p] project_directory [packageName.cdvh]\n\t-p Runs cordova prepare before packaging the app"
+
 if [ $# -lt 1 ]
 then
-  echo "Usage: packapp project_directory [packageName.cdhv]"
+  echo -e $USAGE_STRING
   exit -1
 fi
 
+RUN_PREPARE=
+
+while getopts ":hp" option; do
+  case $option in
+    h) echo -e $USAGE_STRING; exit ;;
+    p) RUN_PREPARE=1 ;;
+    ?) echo "error: option -$OPTARG is not implemented"; exit ;;
+  esac
+done
+
+# remove the options from the positional parameters
+shift $(( OPTIND - 1 ))
+
 ORIG_DIR=$(pwd)
 
-
+# switch to project directory
 cd $1
+
+if [ ! -z "$RUN_PREPARE" ]
+then
+    echo "Running Prepare"
+    cordova prepare
+fi
+
 FILE_NAME=$(basename "`pwd`" ).cdvh
 
 if [ $# -ge 2 ]
@@ -38,32 +60,25 @@ then
     FILE_NAME=$2
 fi
 
+mkdir packtempDir
+
 if [ -d "./platforms/android" ]
 then
     echo "Platform: android found"
-    cp -f ./platforms/android/res/xml/config.xml ./app/config.android.xml
-    if [ -f "./app/config.android.xml" ]
-    then
-        echo "Platform: android added successfully"
-    else
-        echo "Unable to locate config.xml for android"
-    fi
+    mkdir packtempDir/android
+    cp -f ./platforms/android/res/xml/config.xml ./packtempDir/android/config.xml
+    cp -rf ./platforms/android/assets/www ./packtempDir/android/www
 fi
-
 if [ -d "./platforms/ios" ]
 then
     echo "Platform: ios found"
-    find ./platforms/ios/ -name config.xml -exec cp {} ./app/config.ios.xml \;
-    if [ -f "./app/config.ios.xml" ]
-    then
-        echo "Platform: ios added successfully"
-    else
-        echo "Unable to locate config.xml for ios"
-    fi
+    mkdir packtempDir/ios
+    IOS_PROJ_DIR=$(find ./platforms/ios -name config.xml -exec dirname {} \;)
+    cp -f $IOS_PROJ_DIR/config.xml ./packtempDir/ios/config.xml
+    cp -rf ./platforms/ios/www ./packtempDir/ios/www
 fi
 
-
-cd ./app
-zip -r $ORIG_DIR/$FILE_NAME www config.*.xml
-
-rm config.*.xml
+cd packtempDir
+zip -r $ORIG_DIR/$FILE_NAME android ios >/dev/null
+cd ..
+# rm -rf packtempDir

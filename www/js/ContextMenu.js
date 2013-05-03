@@ -70,7 +70,6 @@
         el.setAttribute("FirebugLite", "4");
         el.innerHTML = el.innerHTML = "{ debug : false, startOpened : "  + startOpened + ", showIconWhenHidden : false, saveCommandLineHistory : true, saveCookies : false }";
         document.head.appendChild(el);
-        console.log("test");
     }
 
     // FirebugLite doesn't catch errors from window.onerror like desktop browser's dev tools do. So we add it manually.

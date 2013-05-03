@@ -93,7 +93,7 @@
         }
 
         //promise returns the file entry
-        function getFileEntry(fileName) {
+        function getFileEntry(fileName, createFlag) {
             var deferred = Q.defer();
 
             try {
@@ -104,7 +104,8 @@
                 var success = function(fileEntry) {
                     deferred.resolve(fileEntry);
                 };
-                fs.root.getFile(fileName, {create: true, exclusive: false}, success, errorWhileGettingFileEntry);
+                // !! - ensures a boolean value
+                fs.root.getFile(fileName, {create: !!createFlag, exclusive: false}, success, errorWhileGettingFileEntry);
             } catch(e) {
                 deferred.reject(new Error(e));
             } finally {
@@ -114,7 +115,7 @@
 
         //promise returns the file
         function getFile(fileName) {
-            return getFileEntry(fileName).
+            return getFileEntry(fileName, true  /* create */).
             then(function(fileEntry){
                 var deferred = Q.defer();
 
@@ -170,7 +171,44 @@
             return deferred.promise;
         }
 
+        function writeToFile(fileName, contents, append) {
+            return getFileEntry(fileName, true)
+            .then(function(fileEntry){
+                var deferred = Q.defer();
+
+                var errorGettingFileWriter = function(error) {
+                    var str = "There was an error writing the file." + JSON.stringify(error);
+                    deferred.reject(new Error(str));
+                };
+
+                var gotFileWriter = function(writer) {
+                    writer.onwrite = deferred.resolve;
+                    writer.onerror = function(evt) {
+                        deferred.reject(new Error(evt));
+                    };
+                    if(append){
+                        writer.seek(writer.length);
+                    }
+                    writer.write(contents);
+                };
+                fileEntry.createWriter(gotFileWriter, errorGettingFileWriter);
+                return deferred.promise;
+            });
+        }
+
         return {
+            doesFileExist : function(fileName){
+                return initialiseFileSystem()
+                .then(function(){
+                    return getFileEntry(fileName, false /* create */);
+                })
+                .then(function(){
+                    return true;
+                }, function(){
+                    return false;
+                });
+            },
+
             // returns a promise with a full path to the dir
             ensureDirectoryExists : function(directory) {
                 return initialiseFileSystem()
@@ -283,25 +321,15 @@
             writeFileContents : function(fileName, contents) {
                 return initialiseFileSystem()
                 .then(function(){
-                    return getFileEntry(fileName);
-                })
-                .then(function(fileEntry){
-                    var deferred = Q.defer();
+                    return writeToFile(fileName, contents, false /* append */);
+                });
+            },
 
-                    var errorGettingFileWriter = function(error) {
-                        var str = "There was an error writing the file." + JSON.stringify(error);
-                        deferred.reject(new Error(str));
-                    };
-
-                    var gotFileWriter = function(writer) {
-                        writer.onwrite = deferred.resolve;
-                        writer.onerror = function(evt) {
-                            deferred.reject(new Error(evt));
-                        };
-                        writer.write(contents);
-                    };
-                    fileEntry.createWriter(gotFileWriter, errorGettingFileWriter);
-                    return deferred.promise;
+            //returns a promise when file is appended
+            appendFileContents : function(fileName, contents) {
+                return initialiseFileSystem()
+                .then(function(){
+                    return writeToFile(fileName, contents, true /* append */);
                 });
             },
 

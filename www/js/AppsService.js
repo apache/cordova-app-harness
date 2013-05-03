@@ -59,19 +59,24 @@
             });
         }
 
-        function getAppStartPageFromAppLocation(appLocation) {
-            if(appLocation.indexOf("file://") === 0){
-                appLocation = appLocation.substring("file://".length);
+        function cleanPath(path){
+            if(path.indexOf("file://") === 0){
+                path = path.substring("file://".length);
             }
-            appLocation += (appLocation.substring(appLocation.length - 1) === "/") ? "" : "/";
-            var configFile = appLocation + "config." + platformId + ".xml";
+            // remove trailing slash
+            return (path.substring(path.length - 1) === "/") ? path.substring(0, path.length - 1) : path;
+        }
+
+        function getAppStartPageFromConfig(configFile, appBaseDirectory) {
+            configFile = cleanPath(configFile);
+            appBaseDirectory = cleanPath(appBaseDirectory);
 
             return ResourcesLoader.readFileContents(configFile)
             .then(function(contents){
                 if(!contents) {
-                    throw new Error("config.xml for your platform is empty. Check if the zip package contains config.xml for your platform");
+                    throw new Error("Config file is empty. Unable to find a start page for your app.");
                 } else {
-                    var startLocation = appLocation + "www/index.html";
+                    var startLocation = appBaseDirectory + "/index.html";
                     var parser = new DOMParser();
                     var xmlDoc = parser.parseFromString(contents, "text/xml");
                     var els = xmlDoc.getElementsByTagName("content");
@@ -82,7 +87,8 @@
                             var el = els[i];
                             var srcValue = el.getAttribute("src");
                             if(srcValue) {
-                                startLocation = appLocation + "www/" + srcValue;
+                                // Relative url's only currently
+                                startLocation = appBaseDirectory + "/" + srcValue;
                                 break;
                             }
                         }
@@ -157,7 +163,8 @@
                     return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName);
                 })
                 .then(function(appLocation) {
-                    return getAppStartPageFromAppLocation(appLocation);
+                    var appPlatformLocation = cleanPath(appLocation) + "/" + platformId;
+                    return getAppStartPageFromConfig(appPlatformLocation + "/config.xml", appPlatformLocation + "/www/");
                 })
                 .then(function(startLocation) {
                     //ensure we use a file uri
