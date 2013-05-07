@@ -9,6 +9,8 @@
         var downloadHandlers = [];
         // handlers that have registered to unpack certain extensions during the installation of an app
         var extensionHandlers = {};
+        // functions to run before launching an app
+        var preLaunchHooks = [];
 
         function grabExtensionFromUri(uri) {
             var lastSegment = uri.split("#")[0].split("?")[0].split("/").pop();
@@ -52,7 +54,7 @@
                 result.installedApps.push({
                     "Name" :  appName,
                     "Source" : appSource,
-                    "Data" : appSourcePattern
+                    "Data" : appSourcePattern,
                     "Installed" : (new Date()).toLocaleString()
                 });
                 return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
@@ -67,9 +69,13 @@
             return (path.substring(path.length - 1) === "/") ? path.substring(0, path.length - 1) : path;
         }
 
+        function isPathAbsolute(path){
+            return (path.match(/^[a-zA-Z0-9]+:/) != null);
+        }
+
         function getAppStartPageFromConfig(configFile, appBaseDirectory) {
             configFile = cleanPath(configFile);
-            appBaseDirectory = cleanPath(appBaseDirectory);
+            appBaseDirectory = "file://" + cleanPath(appBaseDirectory);
 
             return ResourcesLoader.readFileContents(configFile)
             .then(function(contents){
@@ -87,8 +93,12 @@
                             var el = els[i];
                             var srcValue = el.getAttribute("src");
                             if(srcValue) {
-                                // Relative url's only currently
-                                startLocation = appBaseDirectory + "/" + srcValue;
+                                if(isPathAbsolute(srcValue)) {
+                                    startLocation = srcValue;
+                                } else {
+                                    srcValue = srcValue.charAt(0) === "/" ? srcValue.substring(1) : srcValue;
+                                    startLocation = appBaseDirectory + "/" + srcValue;
+                                }
                                 break;
                             }
                         }
@@ -153,6 +163,8 @@
             },
 
             launchApp : function(appName) {
+                var platformWWWLocation;
+                var startLocation;
                 return ResourcesLoader.readJSONFileContents(METADATA_JSON)
                 .then(function(settings){
                     settings = settings || {};
@@ -160,17 +172,21 @@
                     return ResourcesLoader.writeJSONFileContents(METADATA_JSON, settings);
                 })
                 .then(function(){
-                    return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName);
+                    return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName + "/" + platformId);
                 })
-                .then(function(appLocation) {
-                    var appPlatformLocation = cleanPath(appLocation) + "/" + platformId;
-                    return getAppStartPageFromConfig(appPlatformLocation + "/config.xml", appPlatformLocation + "/www/");
+                .then(function(platformLocation){
+                    platformWWWLocation = platformLocation + "/www/";
+                    return getAppStartPageFromConfig(platformLocation + "/config.xml", platformWWWLocation);
                 })
-                .then(function(startLocation) {
-                    //ensure we use a file uri
-                    if(startLocation.search("file://") !== 0){
-                        startLocation = "file://" + startLocation;
+                .then(function(_startLocation){
+                    startLocation = _startLocation;
+                    var promises = [];
+                    for (var i = preLaunchHooks.length - 1; i >= 0; i--) {
+                        promises.push(preLaunchHooks[i](appName, platformWWWLocation));
                     }
+                    return Q.all(promises);
+                })
+                .then(function() {
                     window.location = startLocation;
                 });
             },
@@ -247,6 +263,13 @@
 
             getKnownExtensions : function() {
                 return Object.keys(extensionHandlers);
+            },
+
+            addPreLaunchHook : function(handler){
+                if(!handler || typeof(handler) !== "function") {
+                    throw new Error("Expected (QPromise or void) function(appName, wwwLocation) for handler");
+                }
+                preLaunchHooks.push(handler);
             }
         };
     }]);

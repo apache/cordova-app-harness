@@ -81,4 +81,4 @@ fi
 cd packtempDir
 zip -r $ORIG_DIR/$FILE_NAME android ios >/dev/null
 cd ..
-# rm -rf packtempDir
+rm -rf packtempDir

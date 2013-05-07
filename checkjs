@@ -22,4 +22,4 @@
 #   ./checkjs
 #
 echo "Running jsHint"
-jshint www/js/ --verbose --show-non-errors
+jshint www/cdvah_js/ --verbose --show-non-errors

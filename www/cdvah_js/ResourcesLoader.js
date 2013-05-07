@@ -105,7 +105,7 @@
                     deferred.resolve(fileEntry);
                 };
                 // !! - ensures a boolean value
-                fs.root.getFile(fileName, {create: !!createFlag, exclusive: false}, success, errorWhileGettingFileEntry);
+                fs.root.getFile(fixFilePath(fileName), {create: !!createFlag, exclusive: false}, success, errorWhileGettingFileEntry);
             } catch(e) {
                 deferred.reject(new Error(e));
             } finally {

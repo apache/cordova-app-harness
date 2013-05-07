@@ -1,11 +1,11 @@
 var myApp = angular.module("CordovaAppHarness", []);
 myApp.config(["$routeProvider", function($routeProvider){
     $routeProvider.when("/", {
-        templateUrl: "views/list.html",
+        templateUrl: "cdvah_views/list.html",
         controller: "ListCtrl"
     });
     $routeProvider.when("/add", {
-        templateUrl: "views/add.html",
+        templateUrl: "cdvah_views/add.html",
         controller: "AddCtrl"
     });
 }]);

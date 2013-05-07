@@ -5,35 +5,58 @@
 
         $scope.appsList = [];
 
+        function clearAppBundleAliases(){
+            var deferred = Q.defer();
+            var appBundle = cordova.require("AppBundle.AppBundle");
+
+            try {
+                appBundle.clearAllAliases(function(succeded){
+                    if(succeded){
+                        deferred.resolve();
+                    } else {
+                        deferred.reject(new Error("Unable to clear old url aliases. Please restart App Harness."));
+                    }
+                });
+            } catch(e) {
+                deferred.reject(new Error(e));
+            } finally {
+                return deferred.promise;
+            }
+        }
+
         function initialise() {
-            if($routeParams.lastLaunched) {
-                return AppsService.getLastRunApp()
-                .then(AppsService.launchApp, function(e){
-                    e = e || {};
-                    console.error("Error launching last run app: " + e.message);
-                    alert("Error launching last run app. Please try again.");
-                });
-            }
-            else if($routeParams.updateLastLaunched) {
-                var app;
-                // updating may take a while so we show the apps list like we normally do
-                return $scope.loadAppsList(true)
-                .then(AppsService.getLastRunApp)
-                .then(function(_app){
-                    app = _app;
-                    return AppsService.updateApp(app);
-                })
-                .then(function(){
-                    return AppsService.launchApp(app);
-                }, function(e){
-                    e = e || {};
-                    console.error("Error updating last run app: " + e.message);
-                    alert("Error updating last run app. Please try again.");
-                });
-            }
-            else {
-                return $scope.loadAppsList(true);
-            }
+            //if we are navigating here after running an app, reset any aliases set for the app by app harness or any aliases setup by the previous app
+            return clearAppBundleAliases()
+            .then(function(){
+                if($routeParams.lastLaunched) {
+                    return AppsService.getLastRunApp()
+                    .then(AppsService.launchApp, function(e){
+                        e = e || {};
+                        console.error("Error launching last run app: " + e.message);
+                        alert("Error launching last run app. Please try again.");
+                    });
+                }
+                else if($routeParams.updateLastLaunched) {
+                    var app;
+                    // updating may take a while so we show the apps list like we normally do
+                    return $scope.loadAppsList(true)
+                    .then(AppsService.getLastRunApp)
+                    .then(function(_app){
+                        app = _app;
+                        return AppsService.updateApp(app);
+                    })
+                    .then(function(){
+                        return AppsService.launchApp(app);
+                    }, function(e){
+                        e = e || {};
+                        console.error("Error updating last run app: " + e.message);
+                        alert("Error updating last run app. Please try again.");
+                    });
+                }
+                else {
+                    return $scope.loadAppsList(true);
+                }
+            });
         }
 
         $scope.loadAppsList = function(callApply) {

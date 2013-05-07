@@ -1,7 +1,7 @@
 (function () {
 
     function initialise() {
-        var contextHTMLUrl = "app-bundle:///contextMenu.html";
+        var contextHTMLUrl = "app-bundle:///cdvah_contextMenu.html";
         var xhr = new window.XMLHttpRequest();
         xhr.onreadystatechange=function()
         {
@@ -36,7 +36,6 @@
         document.getElementById(contextDiv).onclick = function() {
             document.getElementById(contextDiv).style.display = "none";
         };
-
         var firstTime = true;
         document.getElementById(showFirebugButton).onclick = function(){
             try {
