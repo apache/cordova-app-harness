@@ -70,7 +70,7 @@
         }
 
         function isPathAbsolute(path){
-            return (path.match(/^[a-zA-Z0-9]+:/) != null);
+            return (path.match(/^[a-z0-9+.-]+:/) != null);
         }
 
         function getAppStartPageFromConfig(configFile, appBaseDirectory) {
