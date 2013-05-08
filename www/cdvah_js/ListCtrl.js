@@ -87,7 +87,7 @@
             return AppsService.launchApp(app)
             .then(null, function(error){
                 console.error("Error during loading of app " + app + ": " + error);
-                alert("Something went wrong during the loading of the app. Please try again.");
+                alert("Something went wrong during the loading of the app. Please try again." + error);
             });
         };
 

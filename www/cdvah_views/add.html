@@ -6,12 +6,18 @@
     <span ng-show="addForm.appName.$error.maxlength">Too long</span>
     <br />
 
-    <input type="radio" ng-model="appSource" name="appSource" value="pattern" ng-init="appPatternChecked=true; appSource='pattern'" ng-checked="appPatternChecked" />
+    <input type="radio" ng-model="appSource" name="appSource" value="pattern" ng-init="appSource='pattern'" ng-checked="appSource=='pattern'" />
         <label for="inputAppPattern">Enter the URL to a file</label><br />
-        <input id="inputAppPattern" type="text" name="appSourcePattern" ng-model="appSourcePattern" ng-disabled="!appPatternChecked" ng-required="appPatternChecked" />
+        <input id="inputAppPattern" type="text" name="appSourcePattern" ng-model="appSourcePattern" ng-disabled="appSource!='pattern'" ng-required="appSource=='pattern'" />
         <span ng-show="addForm.appSourcePattern.$error.required">Required</span>
         <br />
-    <button ng-click="addApp(appName, appSource, appSourcePattern)" ng-disabled="!(addForm.$valid)">Add</button>
+    <input type="radio" ng-model="appSource" name="appSource" value="serve" ng-checked="appSource=='serve'" />
+        <label for="inputAppServe">Enter the URL to the server hosting the app</label><br />
+        <input id="inputAppServe" type="text" name="appSourceServe" ng-model="appSourceServe" ng-disabled="appSource!='serve'" ng-pattern="/.*\/config.xml(\?.*|#.*)?$/" ng-required="appSource=='serve'" />
+        <span ng-show="addForm.appSourceServe.$error.required">Required</span>
+        <span ng-show="addForm.appSourceServe.$error.pattern">Url must point to a config.xml file</span>
+        <br />
+    <button ng-click="addApp(appName, appSource, appSourcePattern, appSourceServe)" ng-disabled="!(addForm.$valid)">Add</button>
     <br />
     <a href="#/">Back To Main Menu</a>
 </form>

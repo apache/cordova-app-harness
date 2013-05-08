@@ -72,6 +72,14 @@
             return path;
         }
 
+        function getScheme(uri){
+            var ret = uri.match(/^[a-z0-9+.-]+(?=:)/);
+            if(!ret){
+                return;
+            }
+            return ret[0];
+        }
+
         //promise returns the directory entry
         function getDirectoryEntry(directoryName) {
             var deferred = Q.defer();
@@ -196,6 +204,23 @@
             });
         }
 
+        function xhrGet(url){
+            var deferred = Q.defer();
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if(xhr.status === 200) {
+                        deferred.resolve(xhr);
+                    } else {
+                        deferred.reject("XHR return status: " + xhr.statusText);
+                    }
+                }
+            };
+            xhr.open("GET", url, true);
+            xhr.send();
+            return deferred.promise;
+        }
+
         return {
             doesFileExist : function(fileName){
                 return initialiseFileSystem()
@@ -283,24 +308,37 @@
 
             //returns a promise with the contents of the file
             readFileContents : function(fileName) {
-                return initialiseFileSystem()
-                .then(function(){
-                    return getFile(fileName);
-                })
-                .then(function(file){
-                    var deferred = Q.defer();
+                return Q.fcall(function(){
+                    var scheme = getScheme(fileName);
+                    // assume file scheme by default
+                    if(!scheme || scheme === "file") {
+                        return initialiseFileSystem()
+                        .then(function(){
+                            return getFile(fileName);
+                        })
+                        .then(function(file){
+                            var deferred = Q.defer();
 
-                    var reader = new $window.FileReader();
-                    reader.onload = function(evt) {
-                        var text = evt.target.result;
-                        deferred.resolve(text);
-                    };
-                    reader.onerror = function(evt) {
-                        deferred.reject(new Error(evt));
-                    };
-                    reader.readAsText(file);
+                            var reader = new $window.FileReader();
+                            reader.onload = function(evt) {
+                                var text = evt.target.result;
+                                deferred.resolve(text);
+                            };
+                            reader.onerror = function(evt) {
+                                deferred.reject(new Error(evt));
+                            };
+                            reader.readAsText(file);
 
-                    return deferred.promise;
+                            return deferred.promise;
+                        });
+                    } else if(scheme === "http" || scheme === "https") {
+                        return xhrGet(fileName)
+                        .then(function(xhr){
+                            return xhr.responseText;
+                        });
+                    } else {
+                        throw new Error("Cannot read file " + fileName);
+                    }
                 });
             },
 
@@ -321,7 +359,13 @@
             writeFileContents : function(fileName, contents) {
                 return initialiseFileSystem()
                 .then(function(){
-                    return writeToFile(fileName, contents, false /* append */);
+                    var scheme = getScheme(fileName);
+                    // assume file scheme by default
+                    if(!scheme || scheme === "file") {
+                        return writeToFile(fileName, contents, false /* append */);
+                    } else {
+                        throw new Error("Cannot write to " + fileName);
+                    }
                 });
             },
 
@@ -383,20 +427,7 @@
             },
 
             xhrGet : function(url) {
-                var deferred = Q.defer();
-                var xhr = new XMLHttpRequest();
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {
-                        if(xhr.status === 200) {
-                            deferred.resolve(xhr);
-                        } else {
-                            deferred.reject("XHR return status: " + xhr.statusText);
-                        }
-                    }
-                };
-                xhr.open("GET", url, true);
-                xhr.send();
-                return deferred.promise;
+                return xhrGet(url);
             }
         };
     }]);
