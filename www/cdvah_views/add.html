@@ -1,23 +1,23 @@
 <form name="addForm" ng-controller="AddCtrl">
     <label for="inputAppName">Enter the App Name</label><br />
-    <input type="text" name="appName" ng-model="appName" ng-pattern="/^[\w ]*$/" ng-maxlength="64" required />
+    <input type="text" name="appName" ng-model="appData.appName" ng-pattern="/^[\w ]*$/" ng-maxlength="64" required />
     <span ng-show="addForm.appName.$error.required">Required</span>
     <span ng-show="addForm.appName.$error.pattern">Invalid characters used</span>
     <span ng-show="addForm.appName.$error.maxlength">Too long</span>
     <br />
 
-    <input type="radio" ng-model="appSource" name="appSource" value="pattern" ng-init="appSource='pattern'" ng-checked="appSource=='pattern'" />
+    <input type="radio" ng-model="appData.appSource" name="appSource" value="pattern" ng-checked="appData.appSource=='pattern'" />
         <label for="inputAppPattern">Enter the URL to a file</label><br />
-        <input id="inputAppPattern" type="text" name="appSourcePattern" ng-model="appSourcePattern" ng-disabled="appSource!='pattern'" ng-required="appSource=='pattern'" />
+        <input id="inputAppPattern" type="text" name="appSourcePattern" ng-model="appData.appSourcePattern" ng-disabled="appData.appSource!='pattern'" ng-required="appSource=='pattern'" />
         <span ng-show="addForm.appSourcePattern.$error.required">Required</span>
         <br />
-    <input type="radio" ng-model="appSource" name="appSource" value="serve" ng-checked="appSource=='serve'" />
+    <input type="radio" ng-model="appData.appSource" name="appSource" value="serve" ng-checked="appData.appSource=='serve'" />
         <label for="inputAppServe">Enter the URL to the server hosting the app</label><br />
-        <input id="inputAppServe" type="text" name="appSourceServe" ng-model="appSourceServe" ng-disabled="appSource!='serve'" ng-pattern="/.*\/config.xml(\?.*|#.*)?$/" ng-required="appSource=='serve'" />
+        <input id="inputAppServe" type="text" name="appSourceServe" ng-model="appData.appSourceServe" ng-disabled="appData.appSource!='serve'" ng-pattern="/.*\/config.xml(\?.*|#.*)?$/" ng-required="appSource=='serve'" />
         <span ng-show="addForm.appSourceServe.$error.required">Required</span>
         <span ng-show="addForm.appSourceServe.$error.pattern">Url must point to a config.xml file</span>
         <br />
-    <button ng-click="addApp(appName, appSource, appSourcePattern, appSourceServe)" ng-disabled="!(addForm.$valid)">Add</button>
+    <button ng-click="addApp()" ng-disabled="!(addForm.$valid)">Add</button>
     <br />
     <a href="#/">Back To Main Menu</a>
 </form>

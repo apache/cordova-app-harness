@@ -426,9 +426,7 @@
                 }
             },
 
-            xhrGet : function(url) {
-                return xhrGet(url);
-            }
+            xhrGet : xhrGet
         };
     }]);
 

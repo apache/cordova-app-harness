@@ -48,7 +48,13 @@
         }
 
         function addNewAppFromServe(appName, appSourceServe){
-            return registerApp(appName, "serve", appSourceServe);
+            return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
+            .then(function(){
+                return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName + "/" + platformId);
+            })
+            .then(function(){
+                return registerApp(appName, "serve", appSourceServe);
+            });
         }
 
         function registerApp(appName, appSource, appSourceData) {
@@ -70,12 +76,13 @@
         }
 
         function getAppStartPageFromConfig(configFile, appBaseLocation) {
+            appBaseLocation += (appBaseLocation.charAt(appBaseLocation.length - 1) === "/")? "" : "/";
             return ResourcesLoader.readFileContents(configFile)
             .then(function(contents){
                 if(!contents) {
                     throw new Error("Config file is empty. Unable to find a start page for your app.");
                 } else {
-                    var startLocation = appBaseLocation + "/index.html";
+                    var startLocation = appBaseLocation + "index.html";
                     var parser = new DOMParser();
                     var xmlDoc = parser.parseFromString(contents, "text/xml");
                     var els = xmlDoc.getElementsByTagName("content");
@@ -90,7 +97,7 @@
                                     startLocation = srcValue;
                                 } else {
                                     srcValue = srcValue.charAt(0) === "/" ? srcValue.substring(1) : srcValue;
-                                    startLocation = appBaseLocation + "/" + srcValue;
+                                    startLocation = appBaseLocation + srcValue;
                                 }
                                 break;
                             }
@@ -110,18 +117,15 @@
             })
             .then(function(result){
                 result.installedApps = result.installedApps || [];
-
                 for(var i = 0; i < result.installedApps.length; i++){
                     if(result.installedApps[i].Name === appName) {
                         entry = result.installedApps.splice(i, 1)[0];
                         break;
                     }
                 }
-
                 if(!entry) {
                     throw new Error("The app " + appName + " was not found.");
                 }
-
                 return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
             })
             .then(function(){
@@ -162,8 +166,7 @@
             });
         }
 
-        function getWWWDirAndStartPageFromConfigForApp(appName){
-            var platformWWWLocation;
+        function getAppEntry(appName){
             return getAppsList(true /* Get full app entry */)
             .then(function(appEntries){
                 var entry;
@@ -176,14 +179,27 @@
                 if(!entry){
                     throw new Error("Could not find the app " + appName + " in the installed apps");
                 }
+                return entry;
+            });
+        }
+
+        // On success, this function returns the following paths
+        // appInstallLocation - INSTALL_DIR/app/platform/
+        // platformWWWLocation - location containing the html, css and js files
+        // configLocation - location of config.xml
+        // startLocation - the path of the page to start the app with
+        function getAppPathsForAppEntry(entry){
+            var appPaths = {};
+            return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + entry.Name + "/" + platformId)
+            .then(function(platformLocation){
+                if(!isPathAbsolute(platformLocation)){
+                    // assume file uri
+                    platformLocation = "file://" + platformLocation;
+                }
+                appPaths.appInstallLocation = platformLocation;
                 if(entry.Source === "pattern"){
-                    return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + appName + "/" + platformId)
-                    .then(function(platformLocation){
-                        return {
-                            platformWWWLocation : platformLocation + "/www/",
-                            configLocation : platformLocation + "/config.xml"
-                        };
-                    });
+                    appPaths.platformWWWLocation = platformLocation + "/www/";
+                    appPaths.configLocation = platformLocation + "/config.xml";
                 } else if(entry.Source === "serve"){
                     var configFile = entry.Data;
                     var location = configFile.indexOf("/config.xml");
@@ -192,24 +208,28 @@
                     }
                     //grab path including upto last slash
                     var appLocation =  configFile.substring(0, location + 1);
-                    return {
-                        platformWWWLocation : appLocation,
-                        configLocation : configFile
-                    };
+                    appPaths.platformWWWLocation = appLocation;
+                    appPaths.configLocation = configFile;
                 } else {
                     throw new Error("Unknown app source: " + entry.Source);
                 }
-            })
-            .then(function(appPaths){
-                platformWWWLocation = appPaths.platformWWWLocation;
                 return getAppStartPageFromConfig(appPaths.configLocation, appPaths.platformWWWLocation);
             })
             .then(function(startLocation){
-                return {
-                    startLocation : startLocation,
-                    platformWWWLocation : platformWWWLocation
-                };
+                appPaths.startLocation = startLocation;
+                return appPaths;
             });
+        }
+
+        function insertObjectAtPriority(objArr, handler, priority){
+            var i = 0;
+            var objToInsert = { "priority" : priority, "handler" : handler };
+            for(i = 0; i < objArr.length; i++){
+                if(objArr[i].priority > objToInsert.priority) {
+                    break;
+                }
+            }
+            objArr.splice(i, 0, objToInsert);
         }
 
         return {
@@ -219,6 +239,7 @@
             },
 
             launchApp : function(appName) {
+                var appEntry;
                 var startLocation;
                 return ResourcesLoader.readJSONFileContents(METADATA_JSON)
                 .then(function(settings){
@@ -227,15 +248,21 @@
                     return ResourcesLoader.writeJSONFileContents(METADATA_JSON, settings);
                 })
                 .then(function(){
-                    return getWWWDirAndStartPageFromConfigForApp(appName);
+                    return getAppEntry(appName);
                 })
-                .then(function(startLocationAndWWWLocation){
-                    startLocation = startLocationAndWWWLocation.startLocation;
-                    var promises = [];
-                    for (var i = preLaunchHooks.length - 1; i >= 0; i--) {
-                        promises.push(preLaunchHooks[i](appName, startLocationAndWWWLocation.platformWWWLocation));
-                    }
-                    return Q.all(promises);
+                .then(function(_appEntry){
+                    appEntry = _appEntry;
+                    return getAppPathsForAppEntry(appEntry);
+                })
+                .then(function(appPaths){
+                    startLocation = appPaths.startLocation;
+                    var result = Q.resolve(0 /* dummy value to set up chain */);
+                    preLaunchHooks.forEach(function (currHook) {
+                        result = result.then(function(){
+                            return currHook.handler(appEntry, appPaths.appInstallLocation, appPaths.platformWWWLocation);
+                        });
+                    });
+                    return result;
                 })
                 .then(function() {
                     window.location = startLocation;
@@ -284,14 +311,7 @@
                     // Assign a default priority
                     priority = 500;
                 }
-                var i = 0;
-                var objToInsert = { "priority" : priority, "handler" : handler };
-                for(i = 0; i < downloadHandlers.length; i++){
-                    if(downloadHandlers[i].priority > objToInsert.priority) {
-                        break;
-                    }
-                }
-                downloadHandlers.splice(i, 0, objToInsert);
+                insertObjectAtPriority(downloadHandlers, handler, priority);
             },
 
             registerPackageHandler : function(extension, handler) {
@@ -320,11 +340,15 @@
                 return Object.keys(extensionHandlers);
             },
 
-            addPreLaunchHook : function(handler){
+            addPreLaunchHook : function(handler, priority){
                 if(!handler || typeof(handler) !== "function") {
                     throw new Error("Expected (QPromise or void) function(appName, wwwLocation) for handler");
                 }
-                preLaunchHooks.push(handler);
+                if(!priority) {
+                    // Assign a default priority
+                    priority = 500;
+                }
+                insertObjectAtPriority(preLaunchHooks, handler, priority);
             }
         };
     }]);
