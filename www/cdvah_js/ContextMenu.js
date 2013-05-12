@@ -2,6 +2,7 @@
 
     function initialise() {
         setupIframe();
+        sendAppNameToIframe();
         setupIframeMessaging();
         loadFirebug(false);
         attachErrorListener();
@@ -21,6 +22,15 @@
                 document.getElementById(contextMenuIframe).style.display = "inline";
             }
         }, false);
+    }
+
+    function sendAppNameToIframe(){
+        if(window.__cordovaAppHarnessAppName){
+            var el = document.getElementById(contextMenuIframe);
+            el.onload = function(){
+                el.contentWindow.postMessage("AppHarnessAppName:" + window.__cordovaAppHarnessAppName, "*");
+            };
+        }
     }
 
     function onContextMenuUpdateClicked(){
@@ -58,6 +68,11 @@
     }
     function onContextMenuHideClicked(){
         document.getElementById(contextMenuIframe).style.display = "none";
+    }
+    function onContextMenuWeinreNameChanged(newName){
+        var el = document.createElement("script");
+        el.setAttribute("src", "http://debug.phonegap.com/target/target-script-min.js#" + newName);
+        document.head.appendChild(el);
     }
 
     var messageHandler = {

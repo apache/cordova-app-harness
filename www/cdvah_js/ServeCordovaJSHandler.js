@@ -14,7 +14,7 @@
                     return ResourcesLoader.xhrGet(cordovaJSPath);
                 })
                 .then(function(xhr){
-                    var dataToAppend = "\n(" + ContextMenuInjectScript.toString() + ")();";
+                    var dataToAppend = ContextMenuInjectScript.getInjectString(appEntry.Name);
                     var completeText = xhr.responseText + dataToAppend;
                     appInstallLocation += (appInstallLocation.charAt(appInstallLocation.length - 1) === "/")? "" : "/";
                     return ResourcesLoader.writeFileContents(appInstallLocation + "cordova.js", completeText);

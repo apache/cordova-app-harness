@@ -40,7 +40,7 @@
                 if(!extensionHandlers[extension]) {
                     throw new Error("No handler for extension " + extension + " found");
                 }
-                return extensionHandlers[extension].extractPackageToDirectory(fullFilePath, directoryPath);
+                return extensionHandlers[extension].extractPackageToDirectory(appName, fullFilePath, directoryPath);
             })
             .then(function(){
                 return registerApp(appName, "pattern", appSourcePattern);

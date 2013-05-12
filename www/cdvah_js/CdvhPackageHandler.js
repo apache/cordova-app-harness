@@ -21,8 +21,8 @@
         }
 
         AppsService.registerPackageHandler("cdvh", {
-            extractPackageToDirectory : function (fileName, outputDirectory){
-                var dataToAppend = "\n(" + ContextMenuInjectScript.toString() + ")();";
+            extractPackageToDirectory : function (appName, fileName, outputDirectory){
+                var dataToAppend = ContextMenuInjectScript.getInjectString(appName);
                 var platformDirectory = outputDirectory + "/" + platformId + "/www/";
                 var cordovaFile = platformDirectory + "cordova.js";
                 var pluginsFile = platformDirectory + "cordova_plugins.json";
