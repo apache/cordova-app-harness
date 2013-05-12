@@ -26,14 +26,12 @@
                 serviceCall = AppsService.addAppFromServe($scope.appData.appName, $scope.appData.appSourceServe);
             }
 
-            if(serviceCall) {
-                serviceCall.then(function() {
-                    alert("Successfully installed");
-                }, function(error) {
-                    console.error(error);
-                    alert("Unable to add application because: \n" + error);
-                });
-            }
+            serviceCall && serviceCall.then(function() {
+                alert("Successfully installed");
+            }, function(error) {
+                console.error(error);
+                alert("Unable to add application because: \n" + error);
+            });
 
         };
     }]);

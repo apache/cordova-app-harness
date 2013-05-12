@@ -20,7 +20,7 @@
         }
 
         function addNewAppFromPattern(appName, appSourcePattern) {
-            var _fullFilePath;
+            var fullFilePath;
 
             return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
             .then(function(){
@@ -31,16 +31,16 @@
                 }
                 throw new Error("App Harness does not know how to install an app from the pattern: " + appSourcePattern);
             })
-            .then(function(fullFilePath){
-                _fullFilePath = fullFilePath;
+            .then(function(_fullFilePath){
+                fullFilePath = _fullFilePath;
                 return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName);
             })
             .then(function(directoryPath){
-                var extension = grabExtensionFromUri(appSourcePattern);
+                var extension = grabExtensionFromUri(fullFilePath);
                 if(!extensionHandlers[extension]) {
                     throw new Error("No handler for extension " + extension + " found");
                 }
-                return extensionHandlers[extension].extractPackageToDirectory(_fullFilePath, directoryPath);
+                return extensionHandlers[extension].extractPackageToDirectory(fullFilePath, directoryPath);
             })
             .then(function(){
                 return registerApp(appName, "pattern", appSourcePattern);

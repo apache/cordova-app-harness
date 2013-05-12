@@ -23,22 +23,6 @@
         }, false);
     }
 
-    function setupIframeMessaging(){
-        window.addEventListener("message", function(e){
-            if(e.data === "ContextMenuUpdate"){
-                onContextMenuUpdateClicked();
-            } else if(e.data === "ContextMenuRestart"){
-                onContextMenuRestartClicked();
-            } else if(e.data === "ContextMenuFirebug"){
-                onContextMenuFirebugClicked();
-            } else if(e.data === "ContextMenuMainMenu"){
-                onContextMenuMainMenuClicked();
-            }else if(e.data === "ContextMenuHide"){
-                onContextMenuHideClicked();
-            }
-        } , false);
-    }
-
     function onContextMenuUpdateClicked(){
         window.location = "app-bundle:///cdvah_index.html#/?updateLastLaunched=true";
     }
@@ -74,6 +58,29 @@
     }
     function onContextMenuHideClicked(){
         document.getElementById(contextMenuIframe).style.display = "none";
+    }
+
+    var messageHandler = {
+        "ContextMenuUpdate" : onContextMenuUpdateClicked,
+        "ContextMenuRestart" : onContextMenuRestartClicked,
+        "ContextMenuFirebug" : onContextMenuFirebugClicked,
+        "ContextMenuMainMenu" : onContextMenuMainMenuClicked,
+        "ContextMenuHide" : onContextMenuHideClicked,
+        "ContextMenuWeinre" : onContextMenuWeinreNameChanged
+    };
+    function setupIframeMessaging(){
+        window.addEventListener("message", function(e){
+            var messageParts = [ e.data ];
+            var location = e.data.indexOf(":");
+            if(location !== -1){
+                messageParts = [ e.data.substring(0, location),
+                    e.data.substring(location + 1)
+                ];
+            }
+            if(messageHandler[messageParts[0]]){
+                messageHandler[messageParts[0]](messageParts[1]);
+            }
+        } , false);
     }
 
     function loadFirebug(startOpened){

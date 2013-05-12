@@ -52,8 +52,7 @@
                 };
 
                 var fileTransfer = new $window.FileTransfer();
-                var uri = encodeURI(url);
-                fileTransfer.download(uri, fullFilePath, downloadSuccess, downloadFail);
+                fileTransfer.download(url, fullFilePath, downloadSuccess, downloadFail);
             } catch(e) {
                 deferred.reject(new Error(e));
             } finally {
@@ -179,6 +178,24 @@
             return deferred.promise;
         }
 
+        function ensureDirectoryExists(directory){
+            return Q.fcall(function(){
+                directory = truncateToDirectoryPath(directory);
+                directory = fixFilePath(directory);
+                var segments = getPathSegments(directory);
+                var currentDir = directory.charAt(0) === "/"? "/" : "";
+                var promiseArr = [];
+                while(segments.length !== 0) {
+                    currentDir +=  segments.shift() + "/";
+                    promiseArr.push(ensureSingleDirectoryExists(currentDir));
+                }
+                return Q.all(promiseArr);
+            })
+            .then(function(paths){
+                return paths[paths.length - 1];
+            });
+        }
+
         function writeToFile(fileName, contents, append) {
             return getFileEntry(fileName, true)
             .then(function(fileEntry){
@@ -238,19 +255,7 @@
             ensureDirectoryExists : function(directory) {
                 return initialiseFileSystem()
                 .then(function(){
-                    directory = truncateToDirectoryPath(directory);
-                    directory = fixFilePath(directory);
-                    var segments = getPathSegments(directory);
-                    var currentDir = directory.charAt(0) === "/"? "/" : "";
-                    var promiseArr = [];
-                    while(segments.length !== 0) {
-                        currentDir +=  segments.shift() + "/";
-                        promiseArr.push(ensureSingleDirectoryExists(currentDir));
-                    }
-                    return Q.all(promiseArr);
-                })
-                .then(function(paths){
-                    return paths[paths.length - 1];
+                    return ensureDirectoryExists(directory);
                 });
             },
 
@@ -405,10 +410,13 @@
             },
 
             extractZipFile : function(fileName, outputDirectory){
-                var deferred = Q.defer();
+                return initialiseFileSystem()
+                .then(function(){
+                    return ensureDirectoryExists(outputDirectory);
+                })
+                .then(function(){
+                    var deferred = Q.defer();
 
-                //will throw an exception if the zip plugin is not loaded
-                try {
                     var onZipDone = function(returnCode) {
                         if(returnCode !== 0) {
                             deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
@@ -419,11 +427,8 @@
 
                     /* global zip */
                     zip.unzip(fileName, outputDirectory, onZipDone);
-                } catch(e) {
-                    deferred.reject(e);
-                } finally {
                     return deferred.promise;
-                }
+                });
             },
 
             xhrGet : xhrGet
