@@ -24,13 +24,35 @@
             }
         }
 
-        AppsService.addPreLaunchHook(function(appName, wwwLocation) {
-            console.log("Adding aliases for " + appName);
+        function getRegex(string){
+            return string.replace("[", "\\[")
+            .replace("\\", "\\\\")
+            .replace("^", "\\^")
+            .replace("$", "\\$")
+            .replace(".", "\\.")
+            .replace("|", "\\|")
+            .replace("?", "\\?")
+            .replace("*", "\\*")
+            .replace("+", "\\+")
+            .replace("(", "\\(")
+            .replace(")", "\\)");
+        }
+
+        AppsService.addPreLaunchHook(function(appEntry, appInstallLocation, wwwLocation) {
+            console.log("Adding aliases for " + appEntry.Name);
             wwwLocation += (wwwLocation.charAt(wwwLocation.length - 1) === "/")? "" : "/";
-            wwwLocation = (wwwLocation.indexOf("file://") === 0) ? wwwLocation : "file://" + wwwLocation;
+            appInstallLocation += (appInstallLocation.charAt(appInstallLocation.length - 1) === "/")? "" : "/";
             //Make any direct references to the bundle paths such as file:///android_asset point to the installed location without redirecting
             //{BUNDLE_WWW} in the regex is automatically replaced by the appBundle component
-            return aliasUri("^{BUNDLE_WWW}.*", "^{BUNDLE_WWW}", wwwLocation, false /* redirect */);
-        });
+            return aliasUri("^{BUNDLE_WWW}.*", "^{BUNDLE_WWW}", wwwLocation, false /* redirect */)
+            .then(function(){
+                //For cordova serve apps, we additionally have to redirect requests to the original cordova.js to a modified cordova.js we have locally
+                if(appEntry.Source === "serve"){
+                    var regexWWWLoc = getRegex(wwwLocation);
+                    var regex = "^" + regexWWWLoc + "cordova.js(\\?|#.*)?";
+                    return aliasUri(regex, regex, appInstallLocation + "cordova.js", false);
+                }
+            });
+        }, 500 /* Give it a priority */);
     }]);
 })();

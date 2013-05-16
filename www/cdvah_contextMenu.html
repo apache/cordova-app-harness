@@ -1,53 +1,56 @@
-<!-- Keep stylesheet as a part of the html as this file gets injected into the app -->
-<style>
-#__cordovaappharness_contextMenu_div
-{
-    position: fixed;
-    left : 0px;
-    top : 0px;
-    z-index: 2000;
-    background-color:rgba(0,0,0,0.75);
-    width: 100%;
-    height: 100%;
-    display: none;
-}
-#__cordovaappharness_contextMenu_div p
-{
-    color: white;
-    text-align: center;
-}
-#__cordovaappharness_contextMenu_div ul
-{
-    list-style-type: none;
-    margin-left: 20%;
-    margin-right: 20%;
-    padding: 0;
-    width: 60%;
-}
-#__cordovaappharness_contextMenu_div li
-{
-    margin-bottom: 0.5cm;
-}
-#__cordovaappharness_contextMenu_div li, #__cordovaappharness_contextMenu_div button
-{
-    width: 100%;
-    height: 1cm;
-}
-</style>
-<div id="__cordovaappharness_contextMenu_div">
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body
+        {
+            position: fixed;
+            left : 0px;
+            top : 0px;
+            z-index: 2000;
+            background-color:rgba(0,0,0,0.75);
+            width: 100%;
+            height: 100%;
+        }
+        body p
+        {
+            color: white;
+            text-align: center;
+        }
+        body ul
+        {
+            list-style-type: none;
+            margin-left: 20%;
+            margin-right: 20%;
+            padding: 0;
+            width: 60%;
+        }
+        body li
+        {
+            margin-bottom: 0.5cm;
+        }
+        body li, body button
+        {
+            width: 100%;
+            height: 1cm;
+        }
+    </style>
+</head>
+<body onclick="parent.postMessage('ContextMenuHide', '*');">
     <p>Tap Anywhere to Close</p>
     <ul>
         <li>
-            <a href="app-bundle:///cdvah_index.html#/?updateLastLaunched=true"><button>Update</button></a>
+            <button onclick="parent.postMessage('ContextMenuUpdate', '*');">Update</button>
         </li>
         <li>
-            <a href="app-bundle:///cdvah_index.html#/?lastLaunched=true"><button>Restart</button></a>
+            <button onclick="parent.postMessage('ContextMenuRestart', '*');">Restart</button>
         </li>
         <li>
-            <button id="__cordovaappharness_contextMenu_firebug_button">Firebug</button>
+            <button onclick="parent.postMessage('ContextMenuFirebug', '*');">Firebug</button>
         </li>
         <li>
-            <a href="app-bundle:///cdvah_index.html"><button>Back to Main Menu</button></a>
+            <button onclick="parent.postMessage('ContextMenuMainMenu', '*');">Back to Main Menu</button>
         </li>
     </ul>
-</div>
+</body>
+</html>
