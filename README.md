@@ -5,7 +5,7 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Setting up environment
 
-*   Clone the the `cordova-app-harness`, `cordova-android`, `cordova-ios`, `cordova-js`, `chrome-cordova`, `plugman`, `cordova-cli`, `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) repos into folders of the same name in a common directory - eg 'Repo'.
+*   Clone the the `cordova-app-harness`, `cordova-android`, `cordova-ios`, `cordova-js`, `plugman`, `cordova-cli`, `chrome-cordova`, `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) repos into folders of the same name in a common directory - eg 'Repo'.
 *   Use the `future` branch for `cordova-cli` and `master` everywhere else
 *   Link these `plugman` and `cordova-cli` of this branch as the globally symlinked `plugman` and `cordova-cli` commands. (You may want to see `npm link`)
 *   Build the `cordova-js` repo and grab the `cordova.android.js` and `cordova.ios.js`
@@ -35,7 +35,7 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
         <content src="chrome-extension://sdfsdfdfssf/chromeapp.html" />
 
-*   Ensure the config.xml for ios has the tags
+*   Ensure the `config.xml` for iOS has the tag
 
         <access origin="app-bundle://*" />
         <access origin="chrome-extension://*" />
@@ -50,8 +50,6 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 *   Install and test multiple applications.
 *   Install crx files directly or from the Chrome App Store.
-*   Run apps locally or run them directly from `cordova serve`.
-*   Edit and Refresh workflow with `cordova serve`.
 *   In App context menu to switch between apps.
 *   Firebug Lite and Weinre support for debugging.
 *   Support for bundle paths such as `file:///android_asset/www` - These point to the tested application's bundle and not the app harness' bundle. (In development)
@@ -89,13 +87,9 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
         cordova serve <platform>
 
-*   Open a new terminal to the same location and run
-
-        cordova prepare
-
-*   If you want to test the app in an actual device, find the network address of your computer by running ifconfig
-    If you are running this on the iOS simulator, you can use "http://localhost" as your address
-    If you are running this on the android simulator, you can use "http://10.0.2.2" as your address
+*   If you want to test the app in an actual device, find the network address of your computer by running
+        ifconfig
+*   If you are running this on a simulator, you can use `http://localhost` as your address
 *   Click add new app
 *   Choose the option "Enter the URL to the server hosting the app"
 *   Give a name and the url as follows. Let's assume the network address discovered above is `a.b.c.d`
