@@ -5,12 +5,12 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ##Setting up environment
 
-*   Clone the the cordova-app-harness, cordova-android, cordova-ios, cordova-js, plugman, cordova-cli, zip(https://github.com/MobileChromeApps/zip) and AppBundle(https://github.com/MobileChromeApps/AppBundle) repos into folders of the same name in a common directory - eg 'Repo'.
-*   Use the future branch for cordova-cli and master everywhere else
-*   Link these plugman and cordova-cli of this branch as the globally symlinked plugman and cordova-cli commands. (You may want to see 'npm link')
-*   Build the cordova-js repo and grab the cordova.android.js and cordova.ios.js
-*   Replace the cordova-cli/lib/cordova-android/framework/assets/js/cordova.android.js and the cordova-cli/lib/cordova-ios/CordovaLib/cordova.ios.js files with the ones above
-*   Build the cordova-android repository and generate new cordova.jar
+*   Clone the the `cordova-app-harness`, `cordova-android`, `cordova-ios`, `cordova-js`, `plugman`, `cordova-cli`, `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) repos into folders of the same name in a common directory - eg 'Repo'.
+*   Use the `future` branch for `cordova-cli` and `master` everywhere else
+*   Link these `plugman` and `cordova-cli` of this branch as the globally symlinked `plugman` and `cordova-cli` commands. (You may want to see `npm link`)
+*   Build the `cordova-js` repo and grab the `cordova.android.js` and `cordova.ios.js`
+*   Replace the `cordova-cli/lib/cordova-android/framework/assets/js/cordova.android.js` and the `cordova-cli/lib/cordova-ios/CordovaLib/cordova.ios.js` files with the ones above
+*   Build the `cordova-android` repository and generate new `cordova.jar`
 *   Run the following commands
 
         cordova create CordovaAppHarness
@@ -22,36 +22,39 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
         cp -rf ../Repo/cordova-app-harness/www app/www
         cordova prepare
 
-*   Put the cordova.jar in the CordovaAppHarness/platforms/android/libs folder. (Note you may want to link the cordova-android project directly instead of adding a built jar so you can easily make changes to cordova-android and test the app harness)
-*   Replace the contents of CordovaAppHarness/platforms/ios/CordovaLib with /Repo/cordova-ios/CordovaLib
-*   Go to eclipse and got to new, other, android, android project from existing code. Navigate to CordovaAppHarness/platforms/android and then add the project
-*   Double click the  .xcodeproj file in CordovaAppHarnessNew/platforms/ios/
-*   Ensure the config.xml for android (Project Folder In IDE/res/xml/config.xml) and ios (Project Folder In IDE/config.xml) have the content tag's src set to
+*   Put the `cordova.jar` in the `CordovaAppHarness/platforms/android/libs` folder. (Note you may want to link the `cordova-android` project directly instead of adding a built jar so you can easily make changes to `cordova-android` and test the app harness)
+*   Replace the contents of `CordovaAppHarness/platforms/ios/CordovaLib` with `/Repo/cordova-ios/CordovaLib`
+*   Go to Eclipse and got to new, other, android, android project from existing code. Navigate to `CordovaAppHarness/platforms/android` and then add the project
+*   Double click the  `.xcodeproj` file in `CordovaAppHarnessNew/platforms/ios/`
+*   Ensure the `config.xml` for Android (Project Folder In IDE/res/xml/config.xml) and iOS (Project Folder In IDE/config.xml) have the content tag's `src` set to
 
         <content src="app-bundle:///cdvah_index.html" />
 
-*   Ensure the config.xml for ios has the tag
+*   Ensure the `config.xml` for iOS has the tag
 
         <access origin="app-bundle://*" />
 
-*   You can now build the app harness from the ides or with cordova compile
+*   You can now build the app harness from the IDEs or with `cordova compile`
 
 ##Features
+
 *   Install and test multiple applications.
-*   Run apps locally or run them directly from cordova serve.
-*   Edit and Refresh workflow with cordova serve.
+*   Run apps locally or run them directly from `cordova serve`.
+*   Edit and Refresh workflow with `cordova serve`.
 *   In App context menu to switch between apps.
 *   Firebug Lite and Weinre support for debugging.
-*   Support for bundle paths such as "file:///android_asset/www" - These point to the tested application's bundle and not the app harness' bundle. (In development)
+*   Support for bundle paths such as `file:///android_asset/www` - These point to the tested application's bundle and not the app harness' bundle. (In development)
 
 ##Install an app in the harness
 
 *   Install the app in one of the two ways below
 
 ###Test by installing the app on the phone through app harness
-*   Run the packapp script and point it to a cordova project of the app you want to test. This will package the app into a cdvh file. (Note: it is expected that you have added all relevant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
+*   Run the `packapp` script and point it to a cordova project of the app you want to test. This will package the app into a `cdvh` file. (Note: it is expected that you have added all relevant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
+
         Repo/cordova-app-harness/packapp -p ./TestApp TestApp.cdvh
-*   Upload the the cdvh onto any hosting site.
+
+*   Upload the the `cdvh` onto any hosting site.
 *   Run the app harness
 *   Click add new app
 *   Give a name and the url to the cdvh file.
@@ -65,10 +68,10 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
         cordova serve <platform>
 *   If you want to test the app in an actual device, find the network address of your computer by running
         ifconfig
-*   If you are running this on a simulator, you can use "http://localhost" as your address
+*   If you are running this on a simulator, you can use `http://localhost` as your address
 *   Click add new app
 *   Choose the option "Enter the URL to the server hosting the app"
-*   Give a name and the url as follows. Let's assume the network address discovered above is a.b.c.d
+*   Give a name and the url as follows. Let's assume the network address discovered above is `a.b.c.d`
 
         Name: App1
         URL to server: http://a.b.c.d:8000/config.xml
