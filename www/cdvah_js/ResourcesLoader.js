@@ -229,7 +229,7 @@
                     if(xhr.status === 200) {
                         deferred.resolve(xhr);
                     } else {
-                        deferred.reject("XHR return status: " + xhr.statusText);
+                        deferred.reject("XHR return status: " + xhr.status + " for url: " + url);
                     }
                 }
             };

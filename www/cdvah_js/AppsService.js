@@ -277,7 +277,27 @@
             },
 
             addAppFromServe : function(appName, appSourceServe) {
-                return isUniqueApp(appName)
+                return ResourcesLoader.readFileContents(appSourceServe)
+                .then(function(contents){
+                    if(!contents){
+                        throw new Error("The contents of config.xml at " + appSourceServe + " could not be read.");
+                    }
+                })
+                .then(null, function(error){
+                    // Code reaches here either because the get request to config.xml fails or config.xml is empty
+                    var continueInstall = confirm("The contents of config.xml at " + appSourceServe + " could not be read.\n" +
+                    "Have you run cordova serve?\n\n" +
+                    "Press OK to continue the install process. Note that the config.xml should be visible before you start the app.");
+                    if(!continueInstall){
+                        throw error;
+                    }
+                })
+                .then(function(){
+                    return isUniqueApp(appName);
+                })
+                .then(function(){
+                    return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
+                })
                 .then(function(){
                     return addNewAppFromServe(appName, appSourceServe);
                 });

@@ -32,7 +32,7 @@
                     return AppsService.getLastRunApp()
                     .then(AppsService.launchApp, function(e){
                         e = e || {};
-                        console.error("Error launching last run app: " + e.message);
+                        console.error("Error launching last run app: " + e);
                         alert("Error launching last run app. Please try again.");
                     });
                 }
@@ -49,7 +49,7 @@
                         return AppsService.launchApp(app);
                     }, function(e){
                         e = e || {};
-                        console.error("Error updating last run app: " + e.message);
+                        console.error("Error updating last run app: " + e);
                         alert("Error updating last run app. Please try again.");
                     });
                 }
@@ -78,7 +78,7 @@
                 }
             }, function(error){
                 var str = "There was an error retrieving the apps list";
-                console.error(str + JSON.stringify(error));
+                console.error(str + ": " + error);
                 alert(str);
             });
         };

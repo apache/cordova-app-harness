@@ -26,13 +26,16 @@
                 serviceCall = AppsService.addAppFromServe($scope.appData.appName, $scope.appData.appSourceServe);
             }
 
-            serviceCall && serviceCall.then(function() {
-                alert("Successfully installed");
-            }, function(error) {
-                console.error(error);
-                alert("Unable to add application because: \n" + error);
-            });
-
+            if(serviceCall){
+                serviceCall.then(function() {
+                    alert("Successfully installed");
+                }, function(error) {
+                    console.error(error);
+                    alert("Unable to add application because: \n" + error);
+                });
+            } else {
+                alert("Add application error: Unrecognized application source - " + $scope.appData.appSource);
+            }
         };
     }]);
 

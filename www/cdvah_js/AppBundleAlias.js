@@ -39,7 +39,6 @@
         }
 
         AppsService.addPreLaunchHook(function(appEntry, appInstallLocation, wwwLocation) {
-            console.log("Adding aliases for " + appEntry.Name);
             wwwLocation += (wwwLocation.charAt(wwwLocation.length - 1) === "/")? "" : "/";
             appInstallLocation += (appInstallLocation.charAt(appInstallLocation.length - 1) === "/")? "" : "/";
             //Make any direct references to the bundle paths such as file:///android_asset point to the installed location without redirecting
