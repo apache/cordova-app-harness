@@ -24,18 +24,31 @@
             }
         }
 
+        function replaceCharWithString(string, searchChar, replaceString){
+            var ret = "";
+            for(var i = 0; i < string.length; i++){
+                if(string[i] === searchChar){
+                    ret += replaceString;
+                } else {
+                    ret += string[i];
+                }
+            }
+            return ret;
+        }
+
         function getRegex(string){
-            return string.replace("[", "\\[")
-            .replace("\\", "\\\\")
-            .replace("^", "\\^")
-            .replace("$", "\\$")
-            .replace(".", "\\.")
-            .replace("|", "\\|")
-            .replace("?", "\\?")
-            .replace("*", "\\*")
-            .replace("+", "\\+")
-            .replace("(", "\\(")
-            .replace(")", "\\)");
+            string = replaceCharWithString(string, "\\", "\\\\");
+            string = replaceCharWithString(string, "[", "\\[");
+            string = replaceCharWithString(string, "^", "\\^");
+            string = replaceCharWithString(string, "$", "\\$");
+            string = replaceCharWithString(string, ".", "\\.");
+            string = replaceCharWithString(string, "|", "\\|");
+            string = replaceCharWithString(string, "?", "\\?");
+            string = replaceCharWithString(string, "*", "\\*");
+            string = replaceCharWithString(string, "+", "\\+");
+            string = replaceCharWithString(string, "(", "\\(");
+            string = replaceCharWithString(string, ")", "\\)");
+            return string;
         }
 
         AppsService.addPreLaunchHook(function(appEntry, appInstallLocation, wwwLocation) {
