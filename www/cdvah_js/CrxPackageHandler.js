@@ -1,9 +1,7 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.run(["AppsService", "ResourcesLoader", "ContextMenuInjectScript", function(AppsService, ResourcesLoader, ContextMenuInjectScript){
-
-        var platformId = cordova.require("cordova/platform").id;
+    myApp.run(["AppsService", "ResourcesLoader", function(AppsService, ResourcesLoader){
 
         function copyFile(startUrl, targetLocation){
             /************ Begin Work around for File system bug ************/
@@ -21,42 +19,36 @@
         }
 
         AppsService.registerPackageHandler("crx", {
-            extractPackageToDirectory : function (appName, fileName, outputDirectory){
-                var dataToAppend = ContextMenuInjectScript.getInjectString(appName);
-                var platformDirectory = outputDirectory + "/" + platformId + "/";
-                var platformWWWDirectory = platformDirectory + "www/";
-                var cordovaFile = platformWWWDirectory + "cordova.js";
-
-                // We need to
-                // 1) Copy over the files required to convert a crx to a normal web app
-                // 2) Modify the cordova.js file
-                return ResourcesLoader.extractZipFile(fileName, platformWWWDirectory)
+            extractPackageToDirectory : function (fileName, outputDirectory){
+                return ResourcesLoader.ensureDirectoryExists(outputDirectory + "/www")
                 .then(function(){
-                    return Q.all([
-                        copyFile("app-bundle:///cordova.js", cordovaFile),
-                        copyFile("app-bundle:///crx_files/config." + platformId + ".xml", platformDirectory + "config.xml"),
-                        copyFile("app-bundle:///crx_files/www/cordova_plugins.json", platformWWWDirectory + "cordova_plugins.json"),
-                        copyFile("app-bundle:///crx_files/www/chromeapp.html", platformWWWDirectory + "chromeapp.html"),
-                        copyFile("app-bundle:///crx_files/www/chromeappstyles.css", platformWWWDirectory + "chromeappstyles.css"),
-                        copyFile("app-bundle:///crx_files/www/chromebgpage.html", platformWWWDirectory + "chromebgpage.html"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome/api/app/runtime.js", platformWWWDirectory + "plugins/chrome/api/app/runtime.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome/api/app/window.js", platformWWWDirectory + "plugins/chrome/api/app/window.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome/api/bootstrap.js", platformWWWDirectory + "plugins/chrome/api/bootstrap.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome/api/helpers/stubs.js", platformWWWDirectory + "plugins/chrome/api/helpers/stubs.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome/api/mobile.js", platformWWWDirectory + "plugins/chrome/api/mobile.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome/api/runtime.js", platformWWWDirectory + "plugins/chrome/api/runtime.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome.common/events.js", platformWWWDirectory + "plugins/chrome.common/events.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome.fileSystem/fileSystem.js", platformWWWDirectory + "plugins/chrome.fileSystem/fileSystem.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome.i18n/i18n.js", platformWWWDirectory + "plugins/chrome.i18n/i18n.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome.identity/identity.js", platformWWWDirectory + "plugins/chrome.identity/identity.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome.socket/socket.js", platformWWWDirectory + "plugins/chrome.socket/socket.js"),
-                        copyFile("app-bundle:///crx_files/www/plugins/chrome.storage/storage.js", platformWWWDirectory + "plugins/chrome.storage/storage.js")
-                    ]);
+                    return ResourcesLoader.extractZipFile(fileName, outputDirectory + "/www");
                 })
                 .then(function(){
-                    return ResourcesLoader.appendFileContents(cordovaFile, dataToAppend);
+                    return Q.all([
+                        copyFile("cdv-app-harness:///direct/cordova.js", outputDirectory + "/www/cordova.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/config.android.xml", outputDirectory + "/config.android.xml"),
+                        copyFile("cdv-app-harness:///direct/crx_files/config.ios.xml", outputDirectory + "/config.ios.xml"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/cordova_plugins.json", outputDirectory + "/www/cordova_plugins.json"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/chromeapp.html", outputDirectory + "/www/chromeapp.html"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/chromeappstyles.css", outputDirectory + "/www/chromeappstyles.css"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/chromebgpage.html", outputDirectory + "/www/chromebgpage.html"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome/api/app/runtime.js", outputDirectory + "/www/plugins/chrome/api/app/runtime.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome/api/app/window.js", outputDirectory + "/www/plugins/chrome/api/app/window.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome/api/bootstrap.js", outputDirectory + "/www/plugins/chrome/api/bootstrap.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome/api/helpers/stubs.js", outputDirectory + "/www/plugins/chrome/api/helpers/stubs.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome/api/mobile.js", outputDirectory + "/www/plugins/chrome/api/mobile.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome/api/runtime.js", outputDirectory + "/www/plugins/chrome/api/runtime.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome.common/events.js", outputDirectory + "/www/plugins/chrome.common/events.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome.fileSystem/fileSystem.js", outputDirectory + "/www/plugins/chrome.fileSystem/fileSystem.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome.i18n/i18n.js", outputDirectory + "/www/plugins/chrome.i18n/i18n.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome.identity/identity.js", outputDirectory + "/www/plugins/chrome.identity/identity.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome.socket/socket.js", outputDirectory + "/www/plugins/chrome.socket/socket.js"),
+                        copyFile("cdv-app-harness:///direct/crx_files/www/plugins/chrome.storage/storage.js", outputDirectory + "/www/plugins/chrome.storage/storage.js")
+                    ]);
                 });
             }
         });
+
     }]);
 })();
