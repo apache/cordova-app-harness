@@ -86,11 +86,16 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
 
 ###Test by using cordova serve
 *   Go to cordova project of the app you want to test in a terminal and run.
-        cordova prepare
+
         cordova serve <platform>
-*   If you want to test the app in an actual device, find the network address of your computer by running
-        ifconfig
-*   If you are running this on a simulator, you can use `http://localhost` as your address
+
+*   Open a new terminal to the same location and run
+
+        cordova prepare
+
+*   If you want to test the app in an actual device, find the network address of your computer by running ifconfig
+    If you are running this on the iOS simulator, you can use "http://localhost" as your address
+    If you are running this on the android simulator, you can use "http://10.0.2.2" as your address
 *   Click add new app
 *   Choose the option "Enter the URL to the server hosting the app"
 *   Give a name and the url as follows. Let's assume the network address discovered above is `a.b.c.d`
