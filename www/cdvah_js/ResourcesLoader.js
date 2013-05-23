@@ -10,7 +10,6 @@
             var deferred = Q.defer();
 
             if(!initialised) {
-                initialised = true;
 
                 var failedFileSystemLookUp = function (error) {
                     var errorString = "An error occurred while reading the file system.";
@@ -22,6 +21,7 @@
 
                 var success = function(_fs) {
                     fs = _fs;
+                    initialised = true;
                     deferred.resolve(fs);
                 };
 
@@ -52,8 +52,7 @@
                 };
 
                 var fileTransfer = new $window.FileTransfer();
-                var uri = encodeURI(url);
-                fileTransfer.download(uri, fullFilePath, downloadSuccess, downloadFail);
+                fileTransfer.download(url, fullFilePath, downloadSuccess, downloadFail);
             } catch(e) {
                 deferred.reject(new Error(e));
             } finally {
@@ -70,6 +69,14 @@
                 path = path.substring("file://".length);
             }
             return path;
+        }
+
+        function getScheme(uri){
+            var ret = uri.match(/^[a-z0-9+.-]+(?=:)/);
+            if(!ret){
+                return;
+            }
+            return ret[0];
         }
 
         //promise returns the directory entry
@@ -93,7 +100,7 @@
         }
 
         //promise returns the file entry
-        function getFileEntry(fileName) {
+        function getFileEntry(fileName, createFlag) {
             var deferred = Q.defer();
 
             try {
@@ -104,7 +111,8 @@
                 var success = function(fileEntry) {
                     deferred.resolve(fileEntry);
                 };
-                fs.root.getFile(fileName, {create: true, exclusive: false}, success, errorWhileGettingFileEntry);
+                // !! - ensures a boolean value
+                fs.root.getFile(fixFilePath(fileName), {create: !!createFlag, exclusive: false}, success, errorWhileGettingFileEntry);
             } catch(e) {
                 deferred.reject(new Error(e));
             } finally {
@@ -114,7 +122,7 @@
 
         //promise returns the file
         function getFile(fileName) {
-            return getFileEntry(fileName).
+            return getFileEntry(fileName, true  /* create */).
             then(function(fileEntry){
                 var deferred = Q.defer();
 
@@ -170,24 +178,84 @@
             return deferred.promise;
         }
 
+        function ensureDirectoryExists(directory){
+            return Q.fcall(function(){
+                directory = truncateToDirectoryPath(directory);
+                directory = fixFilePath(directory);
+                var segments = getPathSegments(directory);
+                var currentDir = directory.charAt(0) === "/"? "/" : "";
+                var promiseArr = [];
+                while(segments.length !== 0) {
+                    currentDir +=  segments.shift() + "/";
+                    promiseArr.push(ensureSingleDirectoryExists(currentDir));
+                }
+                return Q.all(promiseArr);
+            })
+            .then(function(paths){
+                return paths[paths.length - 1];
+            });
+        }
+
+        function writeToFile(fileName, contents, append) {
+            return getFileEntry(fileName, true)
+            .then(function(fileEntry){
+                var deferred = Q.defer();
+
+                var errorGettingFileWriter = function(error) {
+                    var str = "There was an error writing the file." + JSON.stringify(error);
+                    deferred.reject(new Error(str));
+                };
+
+                var gotFileWriter = function(writer) {
+                    writer.onwrite = deferred.resolve;
+                    writer.onerror = function(evt) {
+                        deferred.reject(new Error(evt));
+                    };
+                    if(append){
+                        writer.seek(writer.length);
+                    }
+                    writer.write(contents);
+                };
+                fileEntry.createWriter(gotFileWriter, errorGettingFileWriter);
+                return deferred.promise;
+            });
+        }
+
+        function xhrGet(url){
+            var deferred = Q.defer();
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if(xhr.status === 200) {
+                        deferred.resolve(xhr);
+                    } else {
+                        deferred.reject("XHR return status: " + xhr.status + " for url: " + url);
+                    }
+                }
+            };
+            xhr.open("GET", url, true);
+            xhr.send();
+            return deferred.promise;
+        }
+
         return {
+            doesFileExist : function(fileName){
+                return initialiseFileSystem()
+                .then(function(){
+                    return getFileEntry(fileName, false /* create */);
+                })
+                .then(function(){
+                    return true;
+                }, function(){
+                    return false;
+                });
+            },
+
             // returns a promise with a full path to the dir
             ensureDirectoryExists : function(directory) {
                 return initialiseFileSystem()
                 .then(function(){
-                    directory = truncateToDirectoryPath(directory);
-                    directory = fixFilePath(directory);
-                    var segments = getPathSegments(directory);
-                    var currentDir = directory.charAt(0) === "/"? "/" : "";
-                    var promiseArr = [];
-                    while(segments.length !== 0) {
-                        currentDir +=  segments.shift() + "/";
-                        promiseArr.push(ensureSingleDirectoryExists(currentDir));
-                    }
-                    return Q.all(promiseArr);
-                })
-                .then(function(paths){
-                    return paths[paths.length - 1];
+                    return ensureDirectoryExists(directory);
                 });
             },
 
@@ -245,24 +313,37 @@
 
             //returns a promise with the contents of the file
             readFileContents : function(fileName) {
-                return initialiseFileSystem()
-                .then(function(){
-                    return getFile(fileName);
-                })
-                .then(function(file){
-                    var deferred = Q.defer();
+                return Q.fcall(function(){
+                    var scheme = getScheme(fileName);
+                    // assume file scheme by default
+                    if(!scheme || scheme === "file") {
+                        return initialiseFileSystem()
+                        .then(function(){
+                            return getFile(fileName);
+                        })
+                        .then(function(file){
+                            var deferred = Q.defer();
 
-                    var reader = new $window.FileReader();
-                    reader.onload = function(evt) {
-                        var text = evt.target.result;
-                        deferred.resolve(text);
-                    };
-                    reader.onerror = function(evt) {
-                        deferred.reject(new Error(evt));
-                    };
-                    reader.readAsText(file);
+                            var reader = new $window.FileReader();
+                            reader.onload = function(evt) {
+                                var text = evt.target.result;
+                                deferred.resolve(text);
+                            };
+                            reader.onerror = function(evt) {
+                                deferred.reject(new Error(evt));
+                            };
+                            reader.readAsText(file);
 
-                    return deferred.promise;
+                            return deferred.promise;
+                        });
+                    } else if(scheme === "http" || scheme === "https") {
+                        return xhrGet(fileName)
+                        .then(function(xhr){
+                            return xhr.responseText;
+                        });
+                    } else {
+                        throw new Error("Cannot read file " + fileName);
+                    }
                 });
             },
 
@@ -283,25 +364,21 @@
             writeFileContents : function(fileName, contents) {
                 return initialiseFileSystem()
                 .then(function(){
-                    return getFileEntry(fileName);
-                })
-                .then(function(fileEntry){
-                    var deferred = Q.defer();
+                    var scheme = getScheme(fileName);
+                    // assume file scheme by default
+                    if(!scheme || scheme === "file") {
+                        return writeToFile(fileName, contents, false /* append */);
+                    } else {
+                        throw new Error("Cannot write to " + fileName);
+                    }
+                });
+            },
 
-                    var errorGettingFileWriter = function(error) {
-                        var str = "There was an error writing the file." + JSON.stringify(error);
-                        deferred.reject(new Error(str));
-                    };
-
-                    var gotFileWriter = function(writer) {
-                        writer.onwrite = deferred.resolve;
-                        writer.onerror = function(evt) {
-                            deferred.reject(new Error(evt));
-                        };
-                        writer.write(contents);
-                    };
-                    fileEntry.createWriter(gotFileWriter, errorGettingFileWriter);
-                    return deferred.promise;
+            //returns a promise when file is appended
+            appendFileContents : function(fileName, contents) {
+                return initialiseFileSystem()
+                .then(function(){
+                    return writeToFile(fileName, contents, true /* append */);
                 });
             },
 
@@ -333,10 +410,13 @@
             },
 
             extractZipFile : function(fileName, outputDirectory){
-                var deferred = Q.defer();
+                return initialiseFileSystem()
+                .then(function(){
+                    return ensureDirectoryExists(outputDirectory);
+                })
+                .then(function(){
+                    var deferred = Q.defer();
 
-                //will throw an exception if the zip plugin is not loaded
-                try {
                     var onZipDone = function(returnCode) {
                         if(returnCode !== 0) {
                             deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
@@ -347,29 +427,11 @@
 
                     /* global zip */
                     zip.unzip(fileName, outputDirectory, onZipDone);
-                } catch(e) {
-                    deferred.reject(e);
-                } finally {
                     return deferred.promise;
-                }
+                });
             },
 
-            xhrGet : function(url) {
-                var deferred = Q.defer();
-                var xhr = new XMLHttpRequest();
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {
-                        if(xhr.status === 200) {
-                            deferred.resolve(xhr);
-                        } else {
-                            deferred.reject("XHR return status: " + xhr.statusText);
-                        }
-                    }
-                };
-                xhr.open("GET", url, true);
-                xhr.send();
-                return deferred.promise;
-            }
+            xhrGet : xhrGet
         };
     }]);
 

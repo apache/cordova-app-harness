@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html onclick="parent.postMessage('ContextMenuHide', '*');">
+<head>
+    <style>
+        body
+        {
+            background-color:rgba(0,0,0,0.75);
+            width: 100%;
+            height: 100%;
+        }
+        p, label
+        {
+            color: white;
+            text-align: center;
+        }
+        ul
+        {
+            list-style-type: none;
+            margin-left: 20%;
+            margin-right: 20%;
+            padding: 0;
+            width: 60%;
+        }
+        li
+        {
+            margin-bottom: 0.5cm;
+            width : 100%;
+            min-height: 1cm;
+            border-bottom: 1px solid grey;
+        }
+        .fullwidthElement
+        {
+            width: 100%;
+            min-height: 1cm;
+        }
+        .halfwidthElement
+        {
+            min-height: 1cm;
+            width: 48%;
+            padding-left: 0;
+            padding-right: 0;
+        }
+    </style>
+    <script type="text/javascript">
+        var currentWeinreName;
+
+        function updateWeinreName(){
+            var newName = document.getElementById("WeinreName").value;
+            if(newName !== currentWeinreName){
+                var el = document.getElementById("WeinreLink");
+                var newVal = "http://debug.phonegap.com/client/#" + newName;
+                el.href = newVal;
+                el.innerText = newVal;
+                parent.postMessage("ContextMenuWeinre:" + newName, "*");
+                currentWeinreName = newName;
+            }
+        }
+
+        // Set up listener for incoming messages
+        window.addEventListener("message", function(e){
+            if(e.data.indexOf("AppHarnessAppName:") === 0){
+                var appName = e.data.substring("AppHarnessAppName:".length);
+                document.getElementById("WeinreName").value = appName;
+            }
+        } , false);
+    </script>
+</head>
+<body>
+    <p>Tap Anywhere to Close</p>
+    <ul>
+        <li>
+            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuUpdate', '*');">Update</button>
+        </li>
+        <li>
+            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuRestart', '*');">Restart</button>
+        </li>
+        <li>
+            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuFirebug', '*');">Firebug</button>
+        </li>
+        <li>
+            <label for="WeinreName"><p>Phonegap Weinre</p></label>
+            <br />
+            <input class="halfwidthElement" id="WeinreName" type="text" value="default" onclick="event.stopPropagation();" />
+            <button class="halfwidthElement" onclick="updateWeinreName();">Add PhoneGap Weinre Link</button>
+            <br />
+            <a href="http://debug.phonegap.com/client/#default"><p id="WeinreLink"></p></a>
+        </li>
+        <li>
+            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuMainMenu', '*');">Back to Main Menu</button>
+        </li>
+    </ul>
+</body>
+</html>
