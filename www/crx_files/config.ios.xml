@@ -1,33 +1,93 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget>
-    <content src="index.html" />
+<widget id="io.cordova.helloCordova" version="2.0.0" xmlns="http://www.w3.org/ns/widgets">
+    <name>Hello Cordova</name>
+    <description>
+        Default config.xml for iOS apps in the Cordova App Harness
+    </description>
+    <author email="cordova-team@google.com" href="https://github.com/MobileChromeApps/cordova-app-harness">
+        Google Mobile Chrome Apps Team
+    </author>
+    <feature name="Geolocation">
+        <param name="ios-package" value="CDVLocation" />
+    </feature>
+    <feature name="Device">
+        <param name="ios-package" value="CDVDevice" />
+    </feature>
+    <feature name="Accelerometer">
+        <param name="ios-package" value="CDVAccelerometer" />
+    </feature>
+    <feature name="Compass">
+        <param name="ios-package" value="CDVLocation" />
+    </feature>
+    <feature name="Media">
+        <param name="ios-package" value="CDVSound" />
+    </feature>
+    <feature name="Camera">
+        <param name="ios-package" value="CDVCamera" />
+    </feature>
+    <feature name="Contacts">
+        <param name="ios-package" value="CDVContacts" />
+    </feature>
+    <feature name="File">
+        <param name="ios-package" value="CDVFile" />
+    </feature>
+    <feature name="NetworkStatus">
+        <param name="ios-package" value="CDVConnection" />
+    </feature>
+    <feature name="Notification">
+        <param name="ios-package" value="CDVNotification" />
+    </feature>
+    <feature name="FileTransfer">
+        <param name="ios-package" value="CDVFileTransfer" />
+    </feature>
+    <feature name="Capture">
+        <param name="ios-package" value="CDVCapture" />
+    </feature>
+    <feature name="Battery">
+        <param name="ios-package" value="CDVBattery" />
+    </feature>
+    <feature name="SplashScreen">
+        <param name="ios-package" value="CDVSplashScreen" />
+    </feature>
+    <feature name="Echo">
+        <param name="ios-package" value="CDVEcho" />
+    </feature>
+    <feature name="Globalization">
+        <param name="ios-package" value="CDVGlobalization" />
+    </feature>
+    <feature name="InAppBrowser">
+        <param name="ios-package" value="CDVInAppBrowser" />
+    </feature>
+    <feature name="Logger">
+        <param name="ios-package" value="CDVLogger" />
+    </feature>
+    <feature name="LocalStorage">
+        <param name="ios-package" value="CDVLocalStorage" />
+    </feature>
     <plugins>
-        <plugin name="Device" value="CDVDevice" />
-        <plugin name="Logger" value="CDVLogger" />
-        <plugin name="Compass" value="CDVLocation" />
-        <plugin name="Accelerometer" value="CDVAccelerometer" />
-        <plugin name="Camera" value="CDVCamera" />
-        <plugin name="NetworkStatus" value="CDVConnection" />
-        <plugin name="Contacts" value="CDVContacts" />
-        <plugin name="Debug Console" value="CDVDebugConsole" />
-        <plugin name="Echo" value="CDVEcho" />
-        <plugin name="File" value="CDVFile" />
-        <plugin name="FileTransfer" value="CDVFileTransfer" />
-        <plugin name="Geolocation" value="CDVLocation" />
-        <plugin name="Notification" value="CDVNotification" />
-        <plugin name="Media" value="CDVSound" />
-        <plugin name="Capture" value="CDVCapture" />
-        <plugin name="SplashScreen" value="CDVSplashScreen" />
-        <plugin name="Battery" value="CDVBattery" />
-        <plugin name="Globalization" value="CDVGlobalization" />
-        <plugin name="InAppBrowser" value="CDVInAppBrowser" />
-        <plugin name="Zip" value="Zip" />
-        <plugin name="ChromeExtensionURLs" onload="true" value="ChromeExtensionURLs" />
-        <plugin name="ChromeI18n" value="ChromeI18n" />
-        <plugin name="ChromeSocket" value="ChromeSocket" />
-        <plugin name="ChromeStorage" value="ChromeStorage" />
-        <plugin name="CordovaAppHarnessRedirect" onload="true" value="CordovaAppHarnessRedirect" />
     </plugins>
+    <feature name="AppBundle">
+        <param name="ios-package" value="AppBundle" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="ChromeBootstrap">
+        <param name="ios-package" value="ChromeBootstrap" />
+        <param name="onload" value="true" />
+    </feature>
+    <feature name="ChromeExtensionURLs">
+        <param name="ios-package" value="ChromeExtensionURLs" />
+        <param name="onload" value="true" />
+    </feature>
+    <content src="chrome-extension://ohgfbmefaoadakchflddcopcmphnlcba/chromeapp.html" />
+    <feature name="ChromeSocket">
+        <param name="ios-package" value="ChromeSocket" />
+    </feature>
+    <feature name="ChromeStorage">
+        <param name="ios-package" value="ChromeStorage" />
+    </feature>
+    <feature name="Zip">
+        <param name="ios-package" value="Zip" />
+    </feature>
     <content src="chromeapp.html" />
     <access origin="*" />
     <access origin="chrome-extension://*" />
