@@ -4,7 +4,7 @@
         setupIframe();
         sendAppNameToIframe();
         setupIframeMessaging();
-        loadFirebug(false);
+        //loadFirebug(false);
         attachErrorListener();
     }
 
@@ -85,11 +85,15 @@
     };
     function setupIframeMessaging(){
         window.addEventListener("message", function(e){
+            if (!e || !e.data || typeof e.data !== 'string') {
+                return;
+            }
+
             var messageParts = [ e.data ];
-            var location = e.data.indexOf(":");
-            if(location !== -1){
-                messageParts = [ e.data.substring(0, location),
-                    e.data.substring(location + 1)
+            var loc = e.data.indexOf(":");
+            if(loc !== -1){
+                messageParts = [ e.data.substring(0, loc),
+                    e.data.substring(loc + 1)
                 ];
             }
             if(messageHandler[messageParts[0]]){
@@ -101,7 +105,7 @@
     function loadFirebug(startOpened){
         var el = document.createElement("script");
         el.setAttribute("id", "FirebugLite");
-        el.setAttribute("src", "https://getfirebug.com/firebug-lite.js");
+        el.setAttribute("src", "https://getfirebug.com/firebug-lite-beta.js");
         el.setAttribute("FirebugLite", "4");
         el.innerHTML = el.innerHTML = "{ debug : false, startOpened : "  + startOpened + ", showIconWhenHidden : false, saveCommandLineHistory : true, saveCookies : false }";
         document.head.appendChild(el);
