@@ -1,0 +1,30 @@
+.buttons {
+    margin: 15px;
+}
+
+.notification-container {
+    margin: 0;
+    padding: 0;
+
+    position: fixed;
+    bottom: 20px;
+    left: 0px;
+    right: 0px;
+    z-index: 3;
+}
+
+.notification {
+    border: 1px solid black;
+    border-radius: 10px;
+
+    margin: 0 20px;
+    padding: 10px 20px;
+}
+
+.notification-success {
+    background-color: #dff0d8;
+}
+
+.notification-error {
+    background-color: #f2dede;
+}

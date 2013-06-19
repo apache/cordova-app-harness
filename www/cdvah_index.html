@@ -16,7 +16,19 @@
         <script type="text/javascript" src="cdvah_js/CdvhPackageHandler.js"></script>
         <script type="text/javascript" src="cdvah_js/ListCtrl.js"></script>
         <script type="text/javascript" src="cdvah_js/AddCtrl.js"></script>
+        <script type="text/javascript" src="cdvah_js/Notify.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/topcoat-mobile-light.min.css" />
+        <link rel="stylesheet" type="text/css" href="css/style.css" />
     </head>
-    <body ng-app="CordovaAppHarness" ng-view>
+    <body ng-app="CordovaAppHarness">
+        <div class="topcoat-navigation-bar">
+            <div class="topcoat-navigation-bar__item center full">
+                <h1 class="topcoat-navigation-bar__title">{{ appTitle }}</h1>
+            </div>
+        </div>
+
+        <cdvah-notify></cdvah-notify>
+
+        <div ng-view></div>
     </body>
 </html>

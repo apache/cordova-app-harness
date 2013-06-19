@@ -1,12 +1,17 @@
-<ul>
-	<li ng-repeat="app in appsList"> 
-        <p>{{app.Name}}</p>
-        <p>Installed on: {{app.Installed}}</p>
-        <button ng-click="launchApp(app.Name)">Launch</button>
-		<button ng-click="updateApp(app.Name)" ng-disabled="app.Source==='serve'">Update</button>
-		<button ng-click="removeApp(app.Name)">Remove</button>
-	</li>
-</ul>
-<button ng-click="loadAppsList()">Reload Apps List</button>
+<div class="topcoat-list__container">
+    <h3 class="topcoat-list__header">Installed Apps</h3>
+    <ul class="topcoat-list">
+        <li class="topcoat-list__item" ng-repeat="app in appsList">
+            <p>{{app.Name}}</p>
+            <p>Installed on: {{app.Installed}}</p>
+            <button ng-click="launchApp(app.Name)">Launch</button>
+            <button ng-click="updateApp(app.Name)" ng-disabled="app.Source==='serve'">Update</button>
+            <button ng-click="removeApp(app.Name)">Remove</button>
+        </li>
+    </ul>
+</div>
 <br />
-<a href="#/add">Add new App</a>
+<div class="buttons">
+    <a href="#/add"><button class="topcoat-button--cta">Add app</button></a>
+    <button class="topcoat-button" ng-click="loadAppsList()">Reload</button>
+</div>

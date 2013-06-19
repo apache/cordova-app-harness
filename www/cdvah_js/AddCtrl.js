@@ -1,7 +1,9 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("AddCtrl", ["$scope", "AppsService", function ($scope, AppsService) {
+    myApp.controller("AddCtrl", ["notifier", "$rootScope", "$scope", "$location", "AppsService", function (notifier, $rootScope, $scope, $location, AppsService) {
+
+        $rootScope.appTitle = 'Add App';
 
         $scope.appData = {
             appName : "",
@@ -14,13 +16,13 @@
             var serviceCall;
             if($scope.appData.appSource === "pattern") {
                 if(!$scope.appData.appSourcePattern) {
-                    alert("Url of package not specified");
+                    notifier.error('Url of package not specified');
                     return;
                 }
                 serviceCall = AppsService.addAppFromPattern($scope.appData.appName, $scope.appData.appSourcePattern);
             } else if($scope.appData.appSource === "serve") {
                 if(!$scope.appData.appSourceServe) {
-                    alert("Url of config file not specified");
+                    notifier.error('Url of config file not specified');
                     return;
                 }
                 serviceCall = AppsService.addAppFromServe($scope.appData.appName, $scope.appData.appSourceServe);
@@ -28,15 +30,15 @@
 
             if(serviceCall){
                 serviceCall.then(function() {
-                    alert("Successfully installed");
+                    console.log('successfully installed');
+                    notifier.success('Successfully installed');
                 }, function(error) {
                     console.error(error);
-                    alert("Unable to add application because: \n" + error);
+                    notifier.error('Unable to add application because: ' + error.message);
                 });
             } else {
-                alert("Add application error: Unrecognized application source - " + $scope.appData.appSource);
+                notifier.error('Error adding application: Unrecognized application source: ' + $scope.appData.appSource);
             }
         };
     }]);
-
 })();

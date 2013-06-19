@@ -1,9 +1,10 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("ListCtrl", [ "$scope", "$routeParams", "AppsService", function ($scope, $routeParams, AppsService) {
+    myApp.controller("ListCtrl", [ "notifier", "$rootScope", "$scope", "$location", "$routeParams", "AppsService", function (notifier, $rootScope, $scope, $location, $routeParams, AppsService) {
 
         $scope.appsList = [];
+        $rootScope.appTitle = 'Cordova App Harness';
 
         function clearAppBundleAliases(){
             var deferred = Q.defer();
@@ -33,7 +34,7 @@
                     .then(AppsService.launchApp, function(e){
                         e = e || {};
                         console.error("Error launching last run app: " + e);
-                        alert("Error launching last run app. Please try again.");
+                        notifier.error("Error launching last run app. Please try again.");
                     });
                 }
                 else if($routeParams.updateLastLaunched) {
@@ -50,7 +51,7 @@
                     }, function(e){
                         e = e || {};
                         console.error("Error updating last run app: " + e);
-                        alert("Error updating last run app. Please try again.");
+                        notifier.error("Error updating last run app. Please try again.");
                     });
                 }
                 else {
@@ -79,7 +80,7 @@
             }, function(error){
                 var str = "There was an error retrieving the apps list";
                 console.error(str + ": " + error);
-                alert(str);
+                notifier.error(str);
             });
         };
 
@@ -87,17 +88,18 @@
             return AppsService.launchApp(app)
             .then(null, function(error){
                 console.error("Error during loading of app " + app + ": " + error);
-                alert("Something went wrong during the loading of the app. Please try again." + error);
+                notifier.error("Something went wrong during the loading of the app. Please try again." + error);
             });
         };
 
         $scope.updateApp = function(app) {
             return AppsService.updateApp(app)
             .then(function(){
-                alert("Updated successfully");
+                notifier.success("Updated successfully");
+                console.log('successfully updated');
             }, function(error){
                 console.error("Error during updating of app " + app + ": " + error);
-                alert("Something went wrong during the updating of the app. Please try again.");
+                notifier.error("Something went wrong during the updating of the app. Please try again.");
             });
         };
 
@@ -107,7 +109,7 @@
                 return AppsService.uninstallApp(app)
                 .then(function() { $scope.loadAppsList(true); }, function(error){
                     console.error("Error during uninstall of app " + app + ": " + error);
-                    alert("Something went wrong during the uninstall of the app. Please try again.");
+                    notifier.error("Something went wrong during the uninstall of the app. Please try again.");
                 });
             }
         };
@@ -115,3 +117,5 @@
         document.addEventListener("deviceready", initialise, false);
     }]);
 })();
+
+
