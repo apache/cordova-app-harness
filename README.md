@@ -1,72 +1,67 @@
 cordova-app-harness
 ===================
 
-An App harness for Cordova that can download and run Cordova apps as well as Chrome packaged apps. This enables an edit &amp; refresh workflow. Also enables local development of apps without needing the Android / iOS SDK.
+An wrapper app for Cordova that can download and run Cordova apps as well as Chrome packaged apps. This enables an edit &amp; refresh workflow. Also enables local development of apps without needing the Android / iOS SDK.
 
-##Setting up environment
+## Building the App Harness
 
-*   Clone the the `cordova-app-harness`, `cordova-android`, `cordova-ios`, `cordova-js`, `plugman`, `cordova-cli`, `chrome-cordova`, `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) repos into folders of the same name in a common directory - eg 'Repo'.
-*   Use the `future` branch for `cordova-cli` and `master` everywhere else
-*   Link these `plugman` and `cordova-cli` of this branch as the globally symlinked `plugman` and `cordova-cli` commands. (You may want to see `npm link`)
-*   Build the `cordova-js` repo and grab the `cordova.android.js` and `cordova.ios.js`
-*   Replace the `cordova-cli/lib/cordova-android/framework/assets/js/cordova.android.js` and the `cordova-cli/lib/cordova-ios/CordovaLib/cordova.ios.js` files with the ones above
-*   Build the `cordova-android` repository and generate new `cordova.jar`
-*   Run the following commands
+* Install `plugman` and `cordova-cli`.
+* Create a new CLI app:
 
-        cordova create CordovaAppHarness
-        cd CordovaAppHarness
-        cordova platform add android
-        cordova platform add ios
-        cordova plugin add ../Repo/AppBundle
-        cordova plugin add ../Repo/zip/
-        cordova plugin add ../Repo/chrome-cordova/plugins/*
-        cp -rf ../Repo/cordova-app-harness/www app/www
-        cordova prepare
+        cordova create CordovaAppHarness com.yourcompany.appharness CordovaAppHarness
 
-*   Put the `cordova.jar` in the `CordovaAppHarness/platforms/android/libs` folder. (Note you may want to link the `cordova-android` project directly instead of adding a built jar so you can easily make changes to `cordova-android` and test the app harness)
-*   Replace the contents of `CordovaAppHarness/platforms/ios/CordovaLib` with `/Repo/cordova-ios/CordovaLib`
-*   Go to Eclipse and got to new, other, android, android project from existing code. Navigate to `CordovaAppHarness/platforms/android` and then add the project
-*   Double click the  `.xcodeproj` file in `CordovaAppHarnessNew/platforms/ios/`
-*   Ensure the `config.xml` for Android (Project Folder In IDE/res/xml/config.xml) and iOS (Project Folder In IDE/config.xml) have the content tag's `src` set to
+* Add whichever platforms you want:
 
-        <content src="app-bundle:///cdvah_index.html" />
+        cordova platform add android ios
 
-*   Remove the additional `content` tag added by the `chrome-cordova` plugins later in the file. The line to remove should be something like
+* Add the `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) plugins to the project (`cordova plugin add ...`).
+* If you want to support Chrome apps, also add the `MobileChromeApps` `chrome-bootstrap` plugin, and any other Chrome APIs you want to support (`socket`, `identity`, etc.).
+    * After each `cordova prepare`, you'll have to edit the `config.xml` on each platform to remove the new `<content>` tag that looks like this:
 
-        <content src="chrome-extension://sdfsdfdfssf/chromeapp.html" />
+            <content src="chrome-extension://some_junk_here/chromeapp.html" />
 
-*   Ensure the `config.xml` for iOS has the tag
+* Clone the the `cordova-app-harness` repository.
+* Copy the `www` directory into the project:
+
+     cp -a cordova-app-harness/www CordovaAppHarness/www
+
+* Run `cordova prepare`.
+* Remove all `<content>` tags in `platforms/android/res/xml/config.xml`, and add:
+
+        <content src="cdvah_index.html" />
+
+* Remove all `<content>` tags in `platforms/ios/CordovaAppHarness/config.xml`, and add:
+
+        <content src="cdvah_index.html" />
+
+* Also ensure the `config.xml` for iOS has the tags
 
         <access origin="app-bundle://*" />
         <access origin="chrome-extension://*" />
 
-*   Open the `cordova_plugins.json` file in Eclipse and Xcode and ensure replace the contents with
-
-        [{"file":"plugins/AppBundle/appBundle.js","id":"AppBundle.AppBundle"},{"file":"plugins/zip/zip.js","id":"zip.Zip","clobbers":["zip"]}]
-
-*   You can now build the app harness from the IDEs or with `cordova compile`
+* Now you can build the AppHarness with Eclipse/Xcode or `cordova compile`. Don't run `cordova build`, and if you run `cordova prepare` make sure you redo the above edits to the `<content>` tags.
 
 ##Features
 
 *   Install and test multiple applications.
-*   Install crx files directly or from the Chrome App Store.
-*   In App context menu to switch between apps.
+*   Install `.crx` files directly or from the Chrome Web Store.
+*   In-app context menu to switch between child apps.
 *   Firebug Lite and Weinre support for debugging.
-*   Support for bundle paths such as `file:///android_asset/www` - These point to the tested application's bundle and not the app harness' bundle. (In development)
 
 ##Install an app in the harness
 
-*   Install the app in one of the two ways below
+There are two ways to install an app, detailed below.
 
 ###Test by installing the app on the phone through app harness
-*   Run the `packapp` script and point it to a cordova project of the app you want to test. This will package the app into a `cdvh` file. (Note: it is expected that you have added all relevant platforms. For example, if you want to test on the iphone, you need to have added the ios platform to the project)
+
+*   Run the `packapp` script and point it to a Cordova project of the app you want to test. This will package the app into a `.cdvh` file. (Note: it is expected that you have added all relevant platforms. For example, if you want to test on the iPhone, you need to have added the `ios` platform to the project.)
 
         Repo/cordova-app-harness/packapp -p ./TestApp TestApp.cdvh
 
-*   Upload the the `cdvh` onto any hosting site.
+*   Upload the the `cdvh` file onto any hosting site.
 *   Run the app harness
-*   Click add new app
-*   Give a name and the url to the cdvh file.
+*   Click the "Add" button.
+*   Give the app a name and enter the URL to the `cdvh` file.
 
         Name: App1
         URL to file: http://www.somesite.com/myapp.cdvh
@@ -80,27 +75,32 @@ An App harness for Cordova that can download and run Cordova apps as well as Chr
         Name: App1
         URL to file: http://www.somesite.com/myapp.crx
 
-*   Alternately you can use the url of the app in the apps store for example https://chrome.google.com/webstore/detail/appName/appid
 
-###Test by using cordova serve
-*   Go to cordova project of the app you want to test in a terminal and run.
+Alternately you can use the URL of an app in the Chrome Web Store, for example `https://chrome.google.com/webstore/detail/appName/appid`.
 
+### Test by using `cordova serve`
+
+*   Go to Cordova project of the app you want to test in a terminal and run.
+
+        cordova prepare
         cordova serve <platform>
 
 *   If you want to test the app in an actual device, find the network address of your computer by running
+
         ifconfig
-*   If you are running this on a simulator, you can use `http://localhost` as your address
-*   Click add new app
+
+*   If you are running this on a simulator, you can use `http://localhost` as your address, or on Android `10.0.0.22`.
+*   Click the "Add" button.
 *   Choose the option "Enter the URL to the server hosting the app"
-*   Give a name and the url as follows. Let's assume the network address discovered above is `a.b.c.d`
+*   Give a name and the URL as follows. Let's assume the network address discovered above is `a.b.c.d`.
 
         Name: App1
         URL to server: http://a.b.c.d:8000/config.xml
 
-*   Go back to the main screen after you see the prompt "successfully installed"
 
 ##Running an app in the harness
+
 *   Click launch on the installed app
 *   See if the app looks as expected
-*   Use the 3 finger tap to access the app menu while testing your app
-*   The context menu that pops up, will allow you to return to the main screen, restart or update the app, open a firebug console in the device, setup remote debugging using weinre etc.
+*   Use a 3 finger tap to access the app menu while testing your app. This is unfortunately challenging in simulators.
+*   The context menu that pops up allows you to return to the main screen, restart or update the app, open a Firebug console on the device, or set up remote debugging using Weinre.
