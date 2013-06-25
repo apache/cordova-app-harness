@@ -18,6 +18,7 @@
         <span ng-show="addForm.appSourceServe.$error.pattern">Url must point to a config.xml file</span>
         <br />
     <div class="buttons">
+        <button class="topcoat-button" ng-click="fetchQR()" ng-show="qr_enabled">Scan QR Code</button><br />
         <button class="topcoat-button--cta" ng-click="addApp()" ng-disabled="!(addForm.$valid)">Add</button>
         <a href="#/"><button class="topcoat-button" ng-click="back()">Back</button></a>
     </div>

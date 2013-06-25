@@ -14,7 +14,8 @@ An wrapper app for Cordova that can download and run Cordova apps as well as Chr
 
         cordova platform add android ios
 
-* Add the `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) plugins to the project (`cordova plugin add ...`).
+* Add the `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) plugins to the project (`cordova plugin add ...`)
+* If you want to be able to scan QR codes instead of typing URLs, add the `BarcodeScanner` ([](https://github.com/filmaj/BarcodeScanner)) plugin.
 * If you want to support Chrome apps, also add the `MobileChromeApps` `chrome-bootstrap` plugin, and any other Chrome APIs you want to support (`socket`, `identity`, etc.).
     * After each `cordova prepare`, you'll have to edit the `config.xml` on each platform to remove the new `<content>` tag that looks like this:
 
