@@ -25,7 +25,7 @@
                 var dataToAppend = ContextMenuInjectScript.getInjectString(appName);
                 var platformDirectory = outputDirectory + "/" + platformId + "/www/";
                 var cordovaFile = platformDirectory + "cordova.js";
-                var pluginsFile = platformDirectory + "cordova_plugins.json";
+                var pluginsFile = platformDirectory + "cordova_plugins.js";
 
                 // We need to
                 // 1) Modify the cordova.js file
@@ -39,7 +39,7 @@
                     if(fileExists){
                         return Q.all([
                             ResourcesLoader.appendFileContents(cordovaFile, dataToAppend),
-                            copyFile("app-bundle:///cdvh_files/www/cordova_plugins.json", pluginsFile)
+                            copyFile("app-bundle:///cdvh_files/www/cordova_plugins.js", pluginsFile)
                         ]);
                     } else {
                         throw new Error("The package does not seem to have the files required for the platform: " + platformId);

@@ -33,13 +33,7 @@
                 // 2) Modify the cordova.js file
                 return ResourcesLoader.extractZipFile(fileName, platformWWWDirectory)
                 .then(function(){
-                    // Read cordova_plugins.json and use it to copy the plugin Javascript files.
-                    return ResourcesLoader.xhrGet("app-bundle:///cordova_plugins.json");
-                })
-                .then(function(xhr) {
-                    return JSON.parse(xhr.responseText.trim());
-                })
-                .then(function(plugins){
+                    var plugins = cordova.require('cordova/plugin_list');
                     if (!plugins) {
                         throw new Error('Error loading cordova_plugins.json');
                     }
@@ -47,10 +41,11 @@
                     var copies = [
                         copyFile("app-bundle:///cordova.js", cordovaFile),
                         copyFile("app-bundle:///crx_files/config." + platformId + ".xml", platformDirectory + "config.xml"),
-                        copyFile("app-bundle:///cordova_plugins.json", platformWWWDirectory + "cordova_plugins.json"),
+                        copyFile("app-bundle:///cordova_plugins.js", platformWWWDirectory + "cordova_plugins.js"),
                         copyFile("app-bundle:///chromeapp.html", platformWWWDirectory + "chromeapp.html"),
                         copyFile("app-bundle:///chromeappstyles.css", platformWWWDirectory + "chromeappstyles.css"),
-                        copyFile("app-bundle:///chromebgpage.html", platformWWWDirectory + "chromebgpage.html")
+                        copyFile("app-bundle:///chromebgpage.html", platformWWWDirectory + "chromebgpage.html"),
+                        copyFile("app-bundle:///cdvah_js/ContextMenu.js", platformWWWDirectory + "ContextMenu.js")
                     ];
 
                     for(var i = 0; i < plugins.length; i++) {
