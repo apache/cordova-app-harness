@@ -5,42 +5,23 @@ An wrapper app for Cordova that can download and run Cordova apps as well as Chr
 
 ## Building the App Harness
 
-* Install `plugman` and `cordova-cli`.
 * Create a new CLI app:
 
         cordova create CordovaAppHarness com.yourcompany.appharness CordovaAppHarness
 
-* Add whichever platforms you want:
+* Add whichever platforms you want (currently only iOS and Android are supported by the underlying plugins: AppBundle, zip):
 
         cordova platform add android ios
 
 * Add the `zip` ([](https://github.com/MobileChromeApps/zip)) and `AppBundle` ([](https://github.com/MobileChromeApps/AppBundle)) plugins to the project (`cordova plugin add ...`)
 * If you want to be able to scan QR codes instead of typing URLs, add the `BarcodeScanner` ([](https://github.com/filmaj/BarcodeScanner)) plugin.
 * If you want to support Chrome apps, also add the `MobileChromeApps` `chrome-bootstrap` plugin, and any other Chrome APIs you want to support (`socket`, `identity`, etc.).
-    * After each `cordova prepare`, you'll have to edit the `config.xml` on each platform to remove the new `<content>` tag that looks like this:
-
-            <content src="chrome-extension://some_junk_here/chromeapp.html" />
 
 * Clone the the `cordova-app-harness` repository.
 * Copy the `www` directory into the project:
 
+     rm -r CordovaAppHarness/www
      cp -a cordova-app-harness/www CordovaAppHarness/www
-
-* Run `cordova prepare`.
-* Remove all `<content>` tags in `platforms/android/res/xml/config.xml`, and add:
-
-        <content src="cdvah_index.html" />
-
-* Remove all `<content>` tags in `platforms/ios/CordovaAppHarness/config.xml`, and add:
-
-        <content src="cdvah_index.html" />
-
-* Also ensure the `config.xml` for iOS has the tags
-
-        <access origin="app-bundle://*" />
-        <access origin="chrome-extension://*" />
-
-* Now you can build the AppHarness with Eclipse/Xcode or `cordova compile`. Don't run `cordova build`, and if you run `cordova prepare` make sure you redo the above edits to the `<content>` tags.
 
 ##Features
 
