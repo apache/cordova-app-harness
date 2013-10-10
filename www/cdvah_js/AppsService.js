@@ -1,77 +1,73 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "TEMP_DIRECTORY", "APPS_JSON", "METADATA_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, TEMP_DIRECTORY, APPS_JSON, METADATA_JSON) {
+    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "APPS_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON) {
 
-        var platformId = cordova.require("cordova/platform").id;
-        // downloaders that know how to download from certain patterns.
-        // Eg: The KnownExtensionDownloader MAY know how to download from any uri's that end in known extensions
-        var downloadHandlers = [];
-        // handlers that have registered to unpack certain extensions during the installation of an app
-        var extensionHandlers = {};
+        var platformId = cordova.platformId;
+        // Map of type -> handler.
+        var _installHandlerFactories = {};
         // functions to run before launching an app
         var preLaunchHooks = [];
 
-        function grabExtensionFromUri(uri) {
-            var lastSegment = uri.split("#")[0].split("?")[0].split("/").pop();
-            var dotLocation = lastSegment.lastIndexOf(".");
-            var extension = (dotLocation !== -1)? lastSegment.substring(dotLocation + 1) : "";
-            return extension;
+        var _installHandlers = null;
+        var _lastLaunchedAppId = null;
+
+        function createInstallHandlersFromJson(json) {
+            var appList = json['appList'] || [];
+            var ret = [];
+            for (var i = 0, entry; entry = appList[i]; ++i) {
+                var factory = _installHandlerFactories[entry['appType']];
+                var handler = factory.createFromJson(entry['appUrl'], entry['appId']);
+                handler.lastUpdated = entry['lastUpdated'] && new Date(entry['lastUpdated']);
+                ret.push(handler);
+            }
+            return ret;
         }
 
-        function addNewAppFromPattern(appName, appSourcePattern) {
-            var fullFilePath;
+        function readAppsJson() {
+            var deferred = Q.defer();
+            ResourcesLoader.readJSONFileContents(APPS_JSON)
+            .then(function(result) {
+                deferred.resolve(result);
+            }, function() {
+                // Error means first run.
+                deferred.resolve({});
+            });
+            return deferred.promise;
+        }
 
-            return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
-            .then(function(){
-                for(var i = 0; i < downloadHandlers.length; i++){
-                    if(downloadHandlers[i].handler.canHandleSourcePattern(appSourcePattern)){
-                        return downloadHandlers[i].handler.downloadFromPattern(appName, appSourcePattern, TEMP_DIRECTORY);
-                    }
-                }
-                throw new Error("App Harness does not know how to install an app from the pattern: " + appSourcePattern);
-            })
-            .then(function(_fullFilePath){
-                fullFilePath = _fullFilePath;
-                return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName);
-            })
-            .then(function(directoryPath){
-                var extension = grabExtensionFromUri(fullFilePath);
-                if(!extensionHandlers[extension]) {
-                    throw new Error("No handler for extension " + extension + " found");
-                }
-                return extensionHandlers[extension].extractPackageToDirectory(appName, fullFilePath, directoryPath);
-            })
-            .then(function(){
-                return registerApp(appName, "pattern", appSourcePattern);
+        function initHandlers() {
+            if (_installHandlers) {
+                return Q();
+            }
+
+            return readAppsJson()
+            .then(function(appsJson) {
+                _lastLaunchedAppId  = appsJson['lastLaunched'];
+                _installHandlers = createInstallHandlersFromJson(appsJson);
             });
         }
 
-        function addNewAppFromServe(appName, appSourceServe){
-            return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName)
-            .then(function(){
-                return ResourcesLoader.ensureDirectoryExists(INSTALL_DIRECTORY + appName + "/" + platformId);
-            })
-            .then(function(){
-                return registerApp(appName, "serve", appSourceServe);
-            });
-        }
-
-        function registerApp(appName, appSource, appSourceData) {
-            return ResourcesLoader.readJSONFileContents(APPS_JSON)
-            .then(function(result){
-                result.installedApps = result.installedApps || [];
-                result.installedApps.push({
-                    "Name" :  appName,
-                    "Source" : appSource,
-                    "Data" : appSourceData,
-                    "Installed" : (new Date()).toLocaleString()
+        function writeAppsJson() {
+            var appsJson = {
+                'lastLaunched': _lastLaunchedAppId,
+                'appList': []
+            };
+            var appList = appsJson['appList'];
+            for (var i = 0, handler; handler = _installHandlers[i]; ++i) {
+                appList.push({
+                    'appId' : handler.appId,
+                    'appType' : handler.type,
+                    'appUrl' : handler.url,
+                    'lastUpdated': handler.lastUpdated && +handler.lastUpdated
                 });
-                return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
-            });
+            }
+
+            var stringContents = JSON.stringify(appsJson);
+            return ResourcesLoader.writeFileContents(APPS_JSON, stringContents);
         }
 
-        function isPathAbsolute(path){
+        function isUrlAbsolute(path){
             return (path.match(/^[a-z0-9+.-]+:/) != null);
         }
 
@@ -93,7 +89,7 @@
                             var el = els[i];
                             var srcValue = el.getAttribute("src");
                             if(srcValue) {
-                                if(isPathAbsolute(srcValue)) {
+                                if(isUrlAbsolute(srcValue)) {
                                     startLocation = srcValue;
                                 } else {
                                     srcValue = srcValue.charAt(0) === "/" ? srcValue.substring(1) : srcValue;
@@ -109,110 +105,19 @@
             });
         }
 
-        function removeApp(appName){
-            var entry;
-            return ResourcesLoader.ensureDirectoryExists(APPS_JSON)
-            .then(function() {
-                return ResourcesLoader.readJSONFileContents(APPS_JSON);
-            })
-            .then(function(result){
-                result.installedApps = result.installedApps || [];
-                for(var i = 0; i < result.installedApps.length; i++){
-                    if(result.installedApps[i].Name === appName) {
-                        entry = result.installedApps.splice(i, 1)[0];
-                        break;
-                    }
-                }
-                if(!entry) {
-                    throw new Error("The app " + appName + " was not found.");
-                }
-                return ResourcesLoader.writeJSONFileContents(APPS_JSON, result);
-            })
-            .then(function(){
-                return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
-            })
-            .then(function(){
-                return entry;
-            });
-        }
-
-        function getAppsList(getFullEntries){
-            return ResourcesLoader.ensureDirectoryExists(APPS_JSON)
-            .then(function() {
-                return ResourcesLoader.readJSONFileContents(APPS_JSON);
-            })
-            .then(function(result){
-                result.installedApps = result.installedApps || [];
-                var newAppsList = [];
-
-                for(var i = 0; i < result.installedApps.length; i++){
-                    if(getFullEntries) {
-                        newAppsList.push(result.installedApps[i]);
-                    } else {
-                        newAppsList.push(result.installedApps[i].Name);
-                    }
-                }
-
-                return newAppsList;
-            });
-        }
-
-        function isUniqueApp(appName){
-            return getAppsList(false /* App names only */)
-            .then(function(appsList){
-                if(appsList.indexOf(appName) !== -1) {
-                    throw new Error("An app with this name already exists");
-                }
-            });
-        }
-
-        function getAppEntry(appName){
-            return getAppsList(true /* Get full app entry */)
-            .then(function(appEntries){
-                var entry;
-                for(var i = 0; i < appEntries.length; i++){
-                    if(appEntries[i].Name === appName){
-                        entry = appEntries[i];
-                        break;
-                    }
-                }
-                if(!entry){
-                    throw new Error("Could not find the app " + appName + " in the installed apps");
-                }
-                return entry;
-            });
-        }
-
         // On success, this function returns the following paths
         // appInstallLocation - INSTALL_DIR/app/platform/
         // platformWWWLocation - location containing the html, css and js files
         // configLocation - location of config.xml
         // startLocation - the path of the page to start the app with
-        function getAppPathsForAppEntry(entry){
+        function getAppPathsForHandler(handler) {
             var appPaths = {};
-            return ResourcesLoader.getFullFilePath(INSTALL_DIRECTORY + entry.Name + "/" + platformId)
-            .then(function(platformLocation){
-                if(!isPathAbsolute(platformLocation)){
-                    // assume file uri
-                    platformLocation = "file://" + platformLocation;
-                }
-                appPaths.appInstallLocation = platformLocation;
-                if(entry.Source === "pattern"){
-                    appPaths.platformWWWLocation = platformLocation + "/www/";
-                    appPaths.configLocation = platformLocation + "/config.xml";
-                } else if(entry.Source === "serve"){
-                    var configFile = entry.Data;
-                    var location = configFile.indexOf("/config.xml");
-                    if(location === -1){
-                        throw new Error("The location of config.xml provided is invalid. Expected the location to end with 'config.xml'");
-                    }
-                    //grab path including upto last slash
-                    var appLocation =  configFile.substring(0, location + 1);
-                    appPaths.platformWWWLocation = appLocation;
-                    appPaths.configLocation = configFile;
-                } else {
-                    throw new Error("Unknown app source: " + entry.Source);
-                }
+            var installPath = INSTALL_DIRECTORY + '/' + handler.appId;
+            appPaths.appInstallLocation = installPath;
+            appPaths.configLocation = installPath + "/config.xml";
+            appPaths.platformWWWLocation = installPath + "/www/";
+
+            return Q.fcall(function(){
                 return getAppStartPageFromConfig(appPaths.configLocation, appPaths.platformWWWLocation);
             })
             .then(function(startLocation){
@@ -233,26 +138,21 @@
         }
 
         return {
-            //return promise with the array of apps
-            getAppsList : function(getFullEntries) {
-                return getAppsList(getFullEntries);
+            // return promise with the array of apps
+            getAppList : function() {
+                return initHandlers()
+                .then(function() {
+                    return _installHandlers.slice();
+                });
             },
 
-            launchApp : function(appName) {
+            launchApp : function(handler) {
                 var appEntry;
                 var startLocation;
-                return ResourcesLoader.readJSONFileContents(METADATA_JSON)
-                .then(function(settings){
-                    settings = settings || {};
-                    settings.lastLaunched = appName;
-                    return ResourcesLoader.writeJSONFileContents(METADATA_JSON, settings);
-                })
+                _lastLaunchedAppId = handler.appId;
+                return writeAppsJson()
                 .then(function(){
-                    return getAppEntry(appName);
-                })
-                .then(function(_appEntry){
-                    appEntry = _appEntry;
-                    return getAppPathsForAppEntry(appEntry);
+                    return getAppPathsForHandler(handler);
                 })
                 .then(function(appPaths){
                     startLocation = appPaths.startLocation;
@@ -269,101 +169,45 @@
                 });
             },
 
-            addAppFromPattern : function(appName, appSourcePattern) {
-                return isUniqueApp(appName)
-                .then(function(){
-                    return addNewAppFromPattern(appName, appSourcePattern);
+            addApp : function(installerType, appUrl) {
+                var handlerFactory = _installHandlerFactories[installerType];
+                return Q.fcall(function(){
+                    return handlerFactory.createFromUrl(appUrl);
+                })
+                .then(function(handler) {
+                    _installHandlers.push(handler);
+                    return writeAppsJson()
+                    .then(function() {
+                        return handler;
+                    });
                 });
             },
 
-            addAppFromServe : function(appName, appSourceServe) {
-                return ResourcesLoader.readFileContents(appSourceServe)
-                .then(function(contents){
-                    if(!contents){
-                        throw new Error("The contents of config.xml at " + appSourceServe + " could not be read.");
-                    }
-                })
-                .then(null, function(error){
-                    // Code reaches here either because the get request to config.xml fails or config.xml is empty
-                    var continueInstall = confirm("The contents of config.xml at " + appSourceServe + " could not be read.\n" +
-                    "Have you run cordova serve?\n\n" +
-                    "Press OK to continue the install process. Note that the config.xml should be visible before you start the app.");
-                    if(!continueInstall){
-                        throw error;
-                    }
-                })
-                .then(function(){
-                    return isUniqueApp(appName);
-                })
-                .then(function(){
-                    return ResourcesLoader.deleteDirectory(INSTALL_DIRECTORY + appName);
-                })
-                .then(function(){
-                    return addNewAppFromServe(appName, appSourceServe);
+            uninstallApp : function(handler) {
+                _installHandlers.splice(_installHandlers.indexOf(handler), 1);
+                return writeAppsJson()
+                .then(function() {
+                    var installPath = INSTALL_DIRECTORY + '/' + handler.appId;
+                    return ResourcesLoader.deleteDirectory(installPath);
                 });
-            },
-
-            uninstallApp : function(appName) {
-                return removeApp(appName);
             },
 
             getLastRunApp : function() {
-                return ResourcesLoader.readJSONFileContents(METADATA_JSON)
-                .then(function(settings){
-                    if(!settings || !settings.lastLaunched) {
-                        throw new Error("No App has been launched yet");
-                    }
-                    return settings.lastLaunched;
+                throw new Error('Not implemented.');
+            },
+
+            updateApp : function(handler){
+                return Q.fcall(function() {
+                    var installPath = INSTALL_DIRECTORY + '/' + handler.appId;
+                    return handler.updateApp(installPath);
                 });
             },
 
-            registerPatternDownloader : function(handler, priority){
-                if(!handler) {
-                    throw new Error("Expected handler");
-                }
-                if(typeof(handler.canHandleSourcePattern) !== "function") {
-                    throw new Error("Expected function for bool handler.canHandleSourcePattern(string pattern) to exist");
-                }
-                if(typeof(handler.downloadFromPattern) !== "function") {
-                    throw new Error("Expected function for (string fullFilePath or QPromise) handler.downloadFromPattern(string appName, string pattern, string tempDirectory) to exist");
-                }
-                if(!priority) {
-                    // Assign a default priority
-                    priority = 500;
-                }
-                insertObjectAtPriority(downloadHandlers, handler, priority);
-            },
-
-            registerPackageHandler : function(extension, handler) {
-                if(!extension) {
-                    throw new Error("Expcted extension");
-                }
-                if(!handler || typeof(handler.extractPackageToDirectory) !== "function") {
-                    throw new Error("Expected function for void handler.extractPackageToDirectory(string fullFilePath, string directoryPath) to exist");
-                }
-                if(handler[extension]) {
-                    throw new Error("Handler already exists for the extension: " + extension);
-                }
-                extensionHandlers[extension] = handler;
-            },
-
-            updateApp : function(appName){
-                return removeApp(appName)
-                .then(function(entry){
-                    if(entry.Source === "pattern") {
-                        return addNewAppFromPattern(entry.Name, entry.Data);
-                    }
-                });
-            },
-
-            getKnownExtensions : function() {
-                return Object.keys(extensionHandlers);
+            registerInstallHandlerFactory : function(handlerFactory) {
+                _installHandlerFactories[handlerFactory.type] = handlerFactory;
             },
 
             addPreLaunchHook : function(handler, priority){
-                if(!handler || typeof(handler) !== "function") {
-                    throw new Error("Expected (QPromise or void) function(appName, wwwLocation) for handler");
-                }
                 if(!priority) {
                     // Assign a default priority
                     priority = 500;

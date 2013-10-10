@@ -3,61 +3,29 @@
 
     /* global myApp */
     myApp.factory("ResourcesLoader", [ "$window", function ($window) {
-        var fs;
-        var initialised = false;
+        var rootDir;
 
         function initialiseFileSystem() {
-            var deferred = Q.defer();
-
-            if(!initialised) {
-
-                var failedFileSystemLookUp = function (error) {
-                    var errorString = "An error occurred while reading the file system.";
-                    if(error) {
-                        errorString += " " + JSON.stringify(error);
-                    }
-                    deferred.reject(new Error(errorString));
-                };
-
-                var success = function(_fs) {
-                    fs = _fs;
-                    initialised = true;
-                    deferred.resolve(fs);
-                };
-
-                try {
-                    $window.requestFileSystem($window.LocalFileSystem.PERSISTENT, 0, success, failedFileSystemLookUp);
-                } catch (e) {
-                    failedFileSystemLookUp(e);
-                }
-            } else {
-                deferred.resolve(fs);
-            }
-
-            return deferred.promise;
+            // HACK: Need to discuss better way to get the root entry.
+            return Q(rootDir = new $window.DirectoryEntry('/', '/'));
         }
 
         //promise returns full path to downloaded file
         function downloadFromUrl(url, fullFilePath) {
             var deferred = Q.defer();
 
-            try {
-                var downloadFail = function(error) {
-                    var str = "There was an error while downloading the file " + JSON.stringify(error);
-                    deferred.reject(new Error(str));
-                };
+            var downloadFail = function(error) {
+                var str = "There was an error while downloading the file " + JSON.stringify(error);
+                deferred.reject(new Error(str));
+            };
 
-                var downloadSuccess = function(fileEntry) {
-                    deferred.resolve(fileEntry.fullPath);
-                };
+            var downloadSuccess = function(fileEntry) {
+                deferred.resolve(fileEntry.fullPath);
+            };
 
-                var fileTransfer = new $window.FileTransfer();
-                fileTransfer.download(url, fullFilePath, downloadSuccess, downloadFail);
-            } catch(e) {
-                deferred.reject(new Error(e));
-            } finally {
-                return deferred.promise;
-            }
+            var fileTransfer = new $window.FileTransfer();
+            fileTransfer.download(url, fullFilePath, downloadSuccess, downloadFail);
+            return deferred.promise;
         }
 
         function trim(str) {
@@ -83,41 +51,31 @@
         function getDirectoryEntry(directoryName) {
             var deferred = Q.defer();
 
-            try {
-                var errorWhileGettingDirectoryEntry = function(error) {
-                    var str = "There was an error while getting the directory entry for directory " + directoryName + " " + JSON.stringify(error);
-                    deferred.reject(new Error(str));
-                };
-                var success = function(directoryEntry) {
-                    deferred.resolve(directoryEntry);
-                };
-                fs.root.getDirectory(directoryName, {create: true, exclusive: false}, success, errorWhileGettingDirectoryEntry);
-            } catch(e) {
-                deferred.reject(new Error(e));
-            } finally {
-                return deferred.promise;
-            }
+            var errorWhileGettingDirectoryEntry = function(error) {
+                var str = "There was an error while getting the directory entry for directory " + directoryName + " " + JSON.stringify(error);
+                deferred.reject(new Error(str));
+            };
+            var success = function(directoryEntry) {
+                deferred.resolve(directoryEntry);
+            };
+            rootDir.getDirectory(directoryName, {create: true, exclusive: false}, success, errorWhileGettingDirectoryEntry);
+            return deferred.promise;
         }
 
         //promise returns the file entry
         function getFileEntry(fileName, createFlag) {
             var deferred = Q.defer();
 
-            try {
-                var errorWhileGettingFileEntry = function(error) {
-                    var str = "There was an error while getting the file entry for file " + fileName + " " + JSON.stringify(error);
-                    deferred.reject(new Error(str));
-                };
-                var success = function(fileEntry) {
-                    deferred.resolve(fileEntry);
-                };
-                // !! - ensures a boolean value
-                fs.root.getFile(fixFilePath(fileName), {create: !!createFlag, exclusive: false}, success, errorWhileGettingFileEntry);
-            } catch(e) {
-                deferred.reject(new Error(e));
-            } finally {
-                return deferred.promise;
-            }
+            var errorWhileGettingFileEntry = function(error) {
+                var str = "There was an error while getting the file entry for file " + fileName + " " + JSON.stringify(error);
+                deferred.reject(new Error(str));
+            };
+            var success = function(fileEntry) {
+                deferred.resolve(fileEntry);
+            };
+            // !! - ensures a boolean value
+            rootDir.getFile(fixFilePath(fileName), {create: !!createFlag, exclusive: false}, success, errorWhileGettingFileEntry);
+            return deferred.promise;
         }
 
         //promise returns the file
@@ -126,28 +84,18 @@
             then(function(fileEntry){
                 var deferred = Q.defer();
 
-                try {
-                    var errorWhileGettingFile = function(error) {
-                        var str = "There was an error while getting the file for file " + fileName + " " + JSON.stringify(error);
-                        deferred.reject(new Error(str));
-                    };
+                var errorWhileGettingFile = function(error) {
+                    var str = "There was an error while getting the file for file " + fileName + " " + JSON.stringify(error);
+                    deferred.reject(new Error(str));
+                };
 
-                    fileEntry.file(deferred.resolve, errorWhileGettingFile);
-                } catch(e) {
-                    deferred.reject(new Error(e));
-                } finally {
-                    return deferred.promise;
-                }
+                fileEntry.file(deferred.resolve, errorWhileGettingFile);
+                return deferred.promise;
             });
         }
 
         function truncateToDirectoryPath(path) {
-            //remove the filename if it exists
-            var lastLevelIndex = path.search(/[\w ]+(\.[\w ]+)+$/g);
-            if(lastLevelIndex !== -1) {
-                path = path.substring(0, lastLevelIndex);
-            }
-            return path;
+            return path.replace(/\/[^\/]+$/, '/');
         }
 
         function getPathSegments(path){
@@ -174,7 +122,7 @@
                 deferred.reject(new Error(str));
             };
 
-            fs.root.getDirectory(directory, {create: true, exclusive: false}, gotDirEntry, failedToGetDirEntry);
+            rootDir.getDirectory(directory, {create: true, exclusive: false}, gotDirEntry, failedToGetDirEntry);
             return deferred.promise;
         }
 
@@ -229,7 +177,7 @@
                     if(xhr.status === 200) {
                         deferred.resolve(xhr);
                     } else {
-                        deferred.reject("XHR return status: " + xhr.status + " for url: " + url);
+                        deferred.reject(new Error("XHR return status: " + xhr.status + " for url: " + url));
                     }
                 }
             };
@@ -259,57 +207,8 @@
                 });
             },
 
-            // promise returns full path to file
-            getFullFilePath : function(filePath) {
-                return initialiseFileSystem()
-                .then(function(){
-                    var deferred = Q.defer();
-
-                    // Use the file's parent folder to get the full path
-                    var directory = filePath;
-                    var fileName = "";
-
-                    //remove the filename if it exists
-                    var lastLevelIndex = directory.search(/\/[\w ]+\.[\w ]+$/g);
-                    if(lastLevelIndex !== -1) {
-                        directory = filePath.substring(0, lastLevelIndex);
-                        fileName = filePath.substring(lastLevelIndex + 1);
-                    }
-
-                    //we need the directory name w.r.t the root, so remove any slashes in the beginning
-                    if(directory.charAt(0) === "/") {
-                        directory = directory.substring(1);
-                    }
-
-                    var gotFullPath = function(dirEntry) {
-                        var fullFilePath = dirEntry.fullPath + "/" + fileName;
-                        deferred.resolve(fullFilePath);
-                    };
-
-                    var failedToGetFullPath = function(error) {
-                        var str = "There was an error getting the full path of file: " + filePath + " " + JSON.stringify(error);
-                        deferred.reject(new Error(str));
-                    };
-
-                    fs.root.getDirectory(directory, {create: true, exclusive: false}, gotFullPath, failedToGetFullPath);
-                    return deferred.promise;
-                });
-            },
-
             // returns a promise with a full path to the downloaded file
-            downloadFromUrl : function(url, filePath) {
-                var self = this;
-                return initialiseFileSystem()
-                .then(function(){
-                    return self.ensureDirectoryExists(filePath);
-                })
-                .then(function(){
-                    return self.getFullFilePath(filePath);
-                })
-                .then(function(fullFilePath){
-                    return downloadFromUrl(url, fullFilePath);
-                });
-            },
+            downloadFromUrl : downloadFromUrl,
 
             //returns a promise with the contents of the file
             readFileContents : function(fileName) {
@@ -380,17 +279,6 @@
                 .then(function(){
                     return writeToFile(fileName, contents, true /* append */);
                 });
-            },
-
-            //returns a promise when json file is written
-            writeJSONFileContents : function(fileName, contents) {
-                var stringContents;
-                if(typeof contents === "string") {
-                    stringContents = contents;
-                } else {
-                    stringContents = JSON.stringify(contents);
-                }
-                return this.writeFileContents(fileName, stringContents);
             },
 
             deleteDirectory : function(directoryName) {

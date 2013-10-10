@@ -1,12 +1,12 @@
 <div class="topcoat-list__container">
     <h3 class="topcoat-list__header">Installed Apps</h3>
     <ul class="topcoat-list">
-        <li class="topcoat-list__item" ng-repeat="app in appsList">
-            <p>{{app.Name}}</p>
-            <p>Installed on: {{app.Installed}}</p>
-            <button ng-click="launchApp(app.Name)">Launch</button>
-            <button ng-click="updateApp(app.Name)" ng-disabled="app.Source==='serve'">Update</button>
-            <button ng-click="removeApp(app.Name)">Remove</button>
+        <li class="topcoat-list__item" ng-repeat="app in appList">
+            <p>{{app.appId}}</p>
+            <p>Last updated: {{app.lastUpdated || 'never'}}</p>
+            <button ng-click="launchApp(app)">Launch</button>
+            <button ng-click="updateApp(app)">Update</button>
+            <button ng-click="removeApp(app)">Remove</button>
         </li>
     </ul>
 </div>

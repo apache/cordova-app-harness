@@ -2,9 +2,10 @@
     "use strict";
     /* global myApp */
     myApp.controller("ListCtrl", [ "notifier", "$rootScope", "$scope", "$location", "$routeParams", "AppsService", function (notifier, $rootScope, $scope, $location, $routeParams, AppsService) {
-
-        $scope.appsList = [];
+        $scope.appList = [];
         $rootScope.appTitle = 'Cordova App Harness';
+
+        initialise();
 
         function clearAppBundleAliases(){
             var deferred = Q.defer();
@@ -61,19 +62,17 @@
         }
 
         $scope.loadAppsList = function(callApply) {
-            return AppsService.getAppsList(true /* get full information about the app */)
+            return AppsService.getAppList()
             .then(function(newAppsList){
                 newAppsList.sort(function(a, b){
-                    if(a.Name < b.Name) {
+                    if (a.appId < b.appId) {
                         return -1;
-                    } else if(a.Name > b.Name) {
+                    } else if(a.appId > b.appId) {
                         return 1;
                     }
                     return 0;
                 });
-                //clear the old apps list
-                $scope.appsList.splice(0, $scope.appsList.length);
-                angular.extend($scope.appsList, newAppsList);
+                $scope.appList = newAppsList;
                 if(callApply) {
                     $scope.$apply();
                 }
@@ -87,7 +86,7 @@
         $scope.launchApp = function(app){
             return AppsService.launchApp(app)
             .then(null, function(error){
-                console.error("Error during loading of app " + app + ": " + error);
+                console.error("Error during loading of app " + app.appId + ": " + error);
                 notifier.error("Something went wrong during the loading of the app. Please try again." + error);
             });
         };
@@ -98,23 +97,22 @@
                 notifier.success("Updated successfully");
                 console.log('successfully updated');
             }, function(error){
-                console.error("Error during updating of app " + app + ": " + error);
+                console.error("Error during updating of app " + app.appId + ": " + error);
                 notifier.error("Something went wrong during the updating of the app. Please try again.");
             });
         };
 
         $scope.removeApp = function(app) {
-            var shouldUninstall = confirm("Are you sure you want to uninstall " + app + "?");
+            var shouldUninstall = confirm("Are you sure you want to uninstall " + app.appId + "?");
             if(shouldUninstall) {
                 return AppsService.uninstallApp(app)
-                .then(function() { $scope.loadAppsList(true); }, function(error){
-                    console.error("Error during uninstall of app " + app + ": " + error);
+                .then(function() { $scope.loadAppsList(true); },
+                      function(error) {
+                    console.error(error);
                     notifier.error("Something went wrong during the uninstall of the app. Please try again.");
                 });
             }
-        };
-
-        document.addEventListener("deviceready", initialise, false);
+        }
     }]);
 })();
 

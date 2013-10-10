@@ -14,10 +14,6 @@
                         scope.notification = {};
                         scope.notification.message = newValue.message;
                         scope.notification.css = 'notification-' + newValue.type;
-
-                        $timeout(function() {
-                            $rootScope.notification = undefined;
-                        }, 5000);
                     }
                 });
             }

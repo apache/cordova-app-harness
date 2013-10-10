@@ -21,7 +21,10 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   grunt.registerTask('prepare', 'Runs cdv prepare', function() {
-    cordova.prepare();
+    var done = this.async();
+    cordova.prepare(function(e) {
+      done(!e);
+    });
   });
 
   // Default task(s).
@@ -41,6 +44,7 @@ $CORDOVA plugin add ../../../mobile_chrome_apps/zip
 $CORDOVA plugin add ../../../BarcodeScanner # https://github.com/wildabeast/BarcodeScanner.git
 $CORDOVA plugin add ../../cordova-plugin-file
 $CORDOVA plugin add ../../cordova-plugin-file-transfer
+$CORDOVA plugin add ../../cordova-labs/file-extras
 
 
 exit 0
