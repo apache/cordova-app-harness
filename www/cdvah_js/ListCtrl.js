@@ -1,34 +1,15 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("ListCtrl", [ "notifier", "$rootScope", "$scope", "$location", "$routeParams", "AppsService", function (notifier, $rootScope, $scope, $location, $routeParams, AppsService) {
+    myApp.controller("ListCtrl", [ "AppBundle", "notifier", "$rootScope", "$scope", "$routeParams", "AppsService", function (AppBundle, notifier, $rootScope, $scope, $routeParams, AppsService) {
         $scope.appList = [];
         $rootScope.appTitle = 'Cordova App Harness';
 
         initialise();
 
-        function clearAppBundleAliases(){
-            var deferred = Q.defer();
-            var appBundle = cordova.require("AppBundle.AppBundle");
-
-            try {
-                appBundle.clearAllAliases(function(succeded){
-                    if(succeded){
-                        deferred.resolve();
-                    } else {
-                        deferred.reject(new Error("Unable to clear old url aliases. Please restart App Harness."));
-                    }
-                });
-            } catch(e) {
-                deferred.reject(new Error(e));
-            } finally {
-                return deferred.promise;
-            }
-        }
-
         function initialise() {
             //if we are navigating here after running an app, reset any aliases set for the app by app harness or any aliases setup by the previous app
-            return clearAppBundleAliases()
+            return AppBundle.reset()
             .then(function(){
                 if($routeParams.lastLaunched) {
                     return AppsService.getLastRunApp()

@@ -22,37 +22,40 @@
 @class RouteParams;
 
 static NSString* const kAppBundlePrefix = @"app-bundle:///";
-static NSString* gPathPrefix;
-static UIWebView* gWebView;
-static NSMutableArray* gRerouteParams;
-static RouteParams* gAppBundleParams;
+static NSString* gPathPrefix = nil;
+static UIWebView* gWebView = nil;
+static NSMutableArray* gRerouteParams = nil;
+static RouteParams* gResetUrlParams = nil;
 
 @interface AppBundle : CDVPlugin {}
 - (void)addAlias:(CDVInvokedUrlCommand*)command;
 - (void)clearAllAliases:(CDVInvokedUrlCommand*)command;
 @end
 
-@interface AppBundle()
-{}
-- (void) resetMap;
+@interface AppBundle() {}
+- (void)resetMap;
 @end
 
-@interface RouteParams : NSObject
-{
-@public
+@interface RouteParams : NSObject {
+  @public
     NSRegularExpression* _matchRegex;
     NSRegularExpression* _replaceRegex;
     NSString* _replacer;
     BOOL _redirectToReplacedUrl;
+    NSString* _jsToInject;
 }
-- (RouteParams*)initWithMatchRegex:(NSRegularExpression*)matchRegex replaceRegex:(NSRegularExpression*)replaceRegex replacer:(NSString*)replacer shouldRedirect:(BOOL)redirectToReplacedUrl;
+@end
+
+@implementation RouteParams
+- (BOOL)matches:(NSString*)uriString {
+    NSRange wholeStringRange = NSMakeRange(0, [uriString length]);
+    NSInteger numMatches = [_matchRegex numberOfMatchesInString:uriString options:0 range:wholeStringRange];
+    return numMatches > 0;
+}
 @end
 
 @interface AppBundleURLProtocol : NSURLProtocol
-+ (RouteParams*) getChosenParams:(NSString*)uriString;
-- (void)issueNSURLResponseForFile:(NSString*)file;
-- (void)issueRedirectResponseForFile:(NSString*)file;
-- (void)issueNotFoundResponse;
++ (RouteParams*)getChosenParams:(NSString*)uriString forInjection:(BOOL)forInjection;
 @end
 
 
@@ -60,48 +63,60 @@ static RouteParams* gAppBundleParams;
 
 @implementation AppBundle
 
-- (void)resetMap
-{
+- (void)resetMap {
     NSError *error = NULL;
     NSRegularExpression* bundleMatchRegex = [NSRegularExpression regularExpressionWithPattern:@"^app-bundle:///.*" options:0 error:&error];
     NSRegularExpression* bundleReplaceRegex = [NSRegularExpression regularExpressionWithPattern:@"^app-bundle:///" options:0 error:&error];
-    gAppBundleParams = [[RouteParams alloc] initWithMatchRegex:bundleMatchRegex replaceRegex:bundleReplaceRegex replacer:gPathPrefix shouldRedirect:YES];
+    RouteParams* params = [[RouteParams alloc] init];
+    params->_matchRegex = bundleMatchRegex;
+    params->_replaceRegex = bundleReplaceRegex;
+    params->_replacer = gPathPrefix;
+    params->_redirectToReplacedUrl = YES;
     gRerouteParams = [[NSMutableArray alloc] init];
-    [gRerouteParams addObject:gAppBundleParams];
+    [gRerouteParams addObject:params];
 }
 
-- (CDVPlugin*)initWithWebView:(UIWebView*)theWebView
-{
-    self = [super initWithWebView:theWebView];
-    gWebView = theWebView;
-    if (self) {
-        [NSURLProtocol registerClass:[AppBundleURLProtocol class]];
-        gPathPrefix = [[NSBundle mainBundle] pathForResource:@"cordova.js" ofType:@"" inDirectory:@"www"];
-        gPathPrefix = [gPathPrefix stringByDeletingLastPathComponent];
-        gPathPrefix = [[NSURL fileURLWithPath:gPathPrefix] absoluteString];
-        [self resetMap];
+- (void)pluginInitialize {
+
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pageDidLoad) name:CDVPageDidLoadNotification object:self.webView];
+    gWebView = self.webView;
+    [NSURLProtocol registerClass:[AppBundleURLProtocol class]];
+    gPathPrefix = [[NSBundle mainBundle] pathForResource:@"cordova.js" ofType:@"" inDirectory:@"www"];
+    gPathPrefix = [gPathPrefix stringByDeletingLastPathComponent];
+    gPathPrefix = [[NSURL fileURLWithPath:gPathPrefix] absoluteString];
+    [self resetMap];
+}
+
+- (void)pageDidLoad {
+    if (gResetUrlParams != nil) {
+        NSString* url = [self.webView stringByEvaluatingJavaScriptFromString:@"location.href.replace(/#.*/, '')"];
+        if ([gResetUrlParams matches:url]) {
+            [self resetMap];
+        }
     }
-    return self;
 }
 
-- (void)addAlias:(CDVInvokedUrlCommand*)command
-{
+
+- (void)addAlias:(CDVInvokedUrlCommand*)command {
     CDVPluginResult* pluginResult = nil;
     NSError* error = nil;
-    NSString* sourceUrlMatchRegexString = [[command.arguments objectAtIndex:0] stringByReplacingOccurrencesOfString:@"{BUNDLE_WWW}" withString:[NSRegularExpression escapedPatternForString:gPathPrefix]];
+    NSString* sourceUrlMatchRegexString = [[command argumentAtIndex:0] stringByReplacingOccurrencesOfString:@"{BUNDLE_WWW}" withString:[NSRegularExpression escapedPatternForString:gPathPrefix]];
     NSRegularExpression* sourceUrlMatchRegex = [NSRegularExpression regularExpressionWithPattern:sourceUrlMatchRegexString options:0 error:&error];
     if(error) {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Match regex is invalid"];
     } else {
-        NSString* sourceUrlReplaceRegexString = [[command.arguments objectAtIndex:1] stringByReplacingOccurrencesOfString:@"{BUNDLE_WWW}" withString:[NSRegularExpression escapedPatternForString:gPathPrefix]];
+        NSString* sourceUrlReplaceRegexString = [[command argumentAtIndex:1] stringByReplacingOccurrencesOfString:@"{BUNDLE_WWW}" withString:[NSRegularExpression escapedPatternForString:gPathPrefix]];
         NSRegularExpression* sourceUrlReplaceRegex = [NSRegularExpression regularExpressionWithPattern:sourceUrlReplaceRegexString options:0 error:&error];
         if(error) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Replace regex is invalid"];
         } else {
-            NSString* replaceString = [[command.arguments objectAtIndex:2] stringByReplacingOccurrencesOfString:@"{BUNDLE_WWW}" withString:gPathPrefix];
-            BOOL redirectToReplacedUrl = [[command.arguments objectAtIndex:3] boolValue];
+            NSString* replaceString = [[command argumentAtIndex:2] stringByReplacingOccurrencesOfString:@"{BUNDLE_WWW}" withString:gPathPrefix];
 
-            RouteParams* params = [[RouteParams alloc] initWithMatchRegex:sourceUrlMatchRegex replaceRegex:sourceUrlReplaceRegex replacer:replaceString shouldRedirect:redirectToReplacedUrl];
+            RouteParams* params = [[RouteParams alloc] init];
+            params->_matchRegex = sourceUrlMatchRegex;
+            params->_replaceRegex = sourceUrlReplaceRegex;
+            params->_replacer = replaceString;
+            params->_redirectToReplacedUrl = [[command argumentAtIndex:3] boolValue];
             [gRerouteParams addObject:params];
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         }
@@ -109,83 +124,68 @@ static RouteParams* gAppBundleParams;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)clearAllAliases:(CDVInvokedUrlCommand*)command
-{
+- (void)clearAllAliases:(CDVInvokedUrlCommand*)command {
     [self resetMap];
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
-@end
 
-#pragma mark RouteParams
-
-@implementation RouteParams
-
-- (RouteParams*)initWithMatchRegex:(NSRegularExpression*)matchRegex replaceRegex:(NSRegularExpression*)replaceRegex replacer:(NSString*)replacer shouldRedirect:(BOOL)redirectToReplacedUrl
-{
-    self = [super init];
-    if(self)
-    {
-        _matchRegex = matchRegex;
-        _replaceRegex = replaceRegex;
-        _replacer = replacer;
-        _redirectToReplacedUrl = redirectToReplacedUrl;
-    }
-    return self;
+- (void)injectJs:(CDVInvokedUrlCommand*)command {
+    RouteParams* params = [[RouteParams alloc] init];
+    params->_matchRegex = [NSRegularExpression regularExpressionWithPattern:[command argumentAtIndex:0] options:0 error:nil];
+    params->_jsToInject = [command argumentAtIndex:1];
+    [gRerouteParams addObject:params];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
 }
 
+- (void)setResetUrl:(CDVInvokedUrlCommand*)command {
+    RouteParams* params = [[RouteParams alloc] init];
+    params->_matchRegex = [NSRegularExpression regularExpressionWithPattern:[command argumentAtIndex:0] options:0 error:nil];
+    gResetUrlParams = params;
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+}
 @end
 
 #pragma mark AppBundleURLProtocol
 
 @implementation AppBundleURLProtocol
 
-+ (RouteParams*)getChosenParams:(NSString*)uriString
-{
-    NSRange wholeStringRange = NSMakeRange(0, [uriString length]);
-    for(RouteParams* param in gRerouteParams) {
-        NSInteger numMatches = [param->_matchRegex numberOfMatchesInString:uriString options:0 range:wholeStringRange];
-        if (numMatches > 0) {
++ (RouteParams*)getChosenParams:(NSString*)uriString forInjection:(BOOL)forInjection {
+    for (RouteParams* param in gRerouteParams) {
+        if (forInjection != !!param->_jsToInject) {
+            continue;
+        }
+        if ([param matches:uriString]) {
             return param;
         }
     }
     return nil;
 }
 
-+ (BOOL)canInitWithRequest:(NSURLRequest*)request
-{
++ (BOOL)canInitWithRequest:(NSURLRequest*)request {
     NSURL* url = [request URL];
     NSString* urlString = [url absoluteString];
-    RouteParams* params = [AppBundleURLProtocol getChosenParams:urlString];
+    RouteParams* params = [AppBundleURLProtocol getChosenParams:urlString forInjection:NO];
     return params != nil;
 }
 
-+ (NSURLRequest*)canonicalRequestForRequest:(NSURLRequest*)request
-{
++ (NSURLRequest*)canonicalRequestForRequest:(NSURLRequest*)request {
     return request;
 }
 
-- (void)issueNotFoundResponse
-{
+- (void)issueNotFoundResponse {
     NSURL* url = [[self request] URL];
     NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
     [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
     [[self client] URLProtocolDidFinishLoading:self];
 }
 
-- (void)issueNSURLResponseForFile:(NSString*)file
-{
-    NSURL* uri = [[self request] URL];
-    NSString* uriString = [uri absoluteString];
-    RouteParams* params = [AppBundleURLProtocol getChosenParams:uriString];
-    NSRange wholeStringRange = NSMakeRange(0, [uriString length]);
-    NSString* newUrlString = [params->_replaceRegex stringByReplacingMatchesInString:uriString options:0 range:wholeStringRange withTemplate:params->_replacer];
-    if ([newUrlString hasPrefix:@"file://"]) {
-        NSURL *newUrl = [NSURL URLWithString:newUrlString];
-        NSString* path = [newUrl path];
+- (void)issueNSURLResponseForUrl:(NSURL*)url {
+    if ([[url scheme] isEqualToString:@"file"]) {
+        NSString* path = [url path];
         FILE* fp = fopen([path UTF8String], "r");
         if (fp) {
-            NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:uri statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
+            NSURLResponse *response = [[NSURLResponse alloc] initWithURL:url MIMEType:@"text/html" expectedContentLength:-1 textEncodingName:@"utf8"];//[[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
             [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
 
             char* buf = malloc(32768);
@@ -201,38 +201,44 @@ static RouteParams* gAppBundleParams;
             [self issueNotFoundResponse];
         }
     } else {
-        NSLog(@"Cannot redirect to %@. You can only redirect to file: uri's", newUrlString);
+        NSLog(@"Cannot redirect to %@. You can only redirect to file: uri's", url);
         [self issueNotFoundResponse];
     }
 }
 
-- (void)issueRedirectResponseForFile:(NSString*)uriString
-{
-    RouteParams* params = [AppBundleURLProtocol getChosenParams:uriString];
-    if(params != nil && params->_redirectToReplacedUrl)
-    {
-        if([gWebView isLoading]) {
-            [gWebView stopLoading];
-        }
-        NSRange wholeStringRange = NSMakeRange(0, [uriString length]);
-        NSString* newUrlString = [params->_replaceRegex stringByReplacingMatchesInString:uriString options:0 range:wholeStringRange withTemplate:params->_replacer];
-        NSURL *newUrl = [NSURL URLWithString:newUrlString];
-        NSURLRequest *request = [NSURLRequest requestWithURL:newUrl];
-        [gWebView loadRequest:request];
+- (void)issueRedirectResponseForUrl:(NSURL*)url {
+    if([gWebView isLoading]) {
+        [gWebView stopLoading];
     }
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    [gWebView loadRequest:request];
 }
 
-- (void)startLoading
-{
-    NSURL *url = [[self request] URL];
-    NSString* urlString = [url absoluteString];
-    NSURL* mainUrl = [[self request] mainDocumentURL];
-    NSString* mainUrlString = [mainUrl absoluteString];
+- (void)issueTopLevelRedirect:(NSURL*)url origURL:(NSURL*)origURL {
+    if([gWebView isLoading]) {
+        [gWebView stopLoading];
+    }
+    [gWebView loadData:[NSData dataWithContentsOfURL:url] MIMEType:@"text/html" textEncodingName:@"utf8" baseURL:origURL];
+}
+
+- (void)startLoading {
+    NSURLRequest* request = [self request];
+    NSString* urlString = [[request URL] absoluteString];
     
-    if([mainUrlString isEqualToString:urlString]){
-        [self issueRedirectResponseForFile:urlString];
+    RouteParams* params = [AppBundleURLProtocol getChosenParams:urlString forInjection:NO];
+    NSRange wholeStringRange = NSMakeRange(0, [urlString length]);
+    NSString* newUrlString = [params->_replaceRegex stringByReplacingMatchesInString:urlString options:0 range:wholeStringRange withTemplate:params->_replacer];
+    NSURL* newUrl = [NSURL URLWithString:newUrlString];
+
+    BOOL isTopLevelNavigation = [request.URL isEqual:request.mainDocumentURL];
+    
+    // iOS 6+ just gives "Frame load interrupted" when you try and feed it data via a URLProtocol.
+    if (isTopLevelNavigation) {
+        [self issueTopLevelRedirect:newUrl origURL:[request URL]];
+    } else if(params->_redirectToReplacedUrl) {
+        [self issueRedirectResponseForUrl:newUrl];
     } else {
-        [self issueNSURLResponseForFile:urlString];
+        [self issueNSURLResponseForUrl:newUrl];
     }
 }
 

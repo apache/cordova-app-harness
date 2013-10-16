@@ -30,6 +30,14 @@ exports.addAlias = function(sourceUriMatchRegex, sourceUriReplaceRegex, replaceS
     exec(win, fail, 'AppBundle', 'addAlias', [sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl]);
 };
 
+exports.setResetUrl = function(urlRegex, callback) {
+    exec(callback, null, 'AppBundle', 'setResetUrl', [urlRegex]);
+};
+
+exports.injectJsForUrl = function(urlRegex, jsSnippet, callback) {
+    exec(callback, null, 'AppBundle', 'injectJs', [urlRegex, jsSnippet]);
+};
+
 exports.clearAllAliases = function(callback){
     exec(callback, null, 'AppBundle', 'clearAllAliases', []);
 };

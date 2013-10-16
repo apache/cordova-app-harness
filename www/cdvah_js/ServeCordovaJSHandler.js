@@ -1,27 +1,8 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.run(["AppsService", "ResourcesLoader", "ContextMenuInjectScript", function(AppsService, ResourcesLoader, ContextMenuInjectScript){
+    myApp.run(["$location", "AppBundle", "AppsService", "ResourcesLoader", "ContextMenuInjectScript", function($location, AppBundle, AppsService, ResourcesLoader, ContextMenuInjectScript){
         var platformId = cordova.platformId;
-
-        AppsService.addPreLaunchHook(function(appEntry, appInstallLocation , wwwLocation) {
-            if(appEntry.Source === "serve"){
-                return Q.fcall(function(){
-                    // We can't inject the context menu script into cordova.js remotely
-                    // So we create a local copy of the cordova.js used by the server,
-                    //      append the context menu script (requests for cordova.js are routed to it)
-                    wwwLocation += (wwwLocation.charAt(wwwLocation.length - 1) === "/")? "" : "/";
-                    var cordovaJSPath = wwwLocation + "cordova.js";
-                    return ResourcesLoader.xhrGet(cordovaJSPath);
-                })
-                .then(function(xhr){
-                    var dataToAppend = ContextMenuInjectScript.getInjectString(appEntry.Name);
-                    var completeText = xhr.responseText + dataToAppend;
-                    appInstallLocation += (appInstallLocation.charAt(appInstallLocation.length - 1) === "/")? "" : "/";
-                    return ResourcesLoader.writeFileContents(appInstallLocation + "cordova.js", completeText);
-                });
-            }
-        }, 250 /* Give it a priority */);
 
         function ServeHandler(url, appId) {
             this.url = url;
@@ -56,6 +37,10 @@
                 var files = self._cachedProjectJson['wwwFileList'];
                 var i = 0;
                 function downloadNext() {
+                    // Don't download cordova.js. We want to use the version bundled with the harness.
+                    if (/\/cordova(?:_plugins)?.js$/.exec(files[i])) {
+                        ++i;
+                    }
                     if (!files[i]) {
                         self.lastUpdated = new Date();
                         return;
@@ -69,9 +54,32 @@
                 }
                 return ResourcesLoader.ensureDirectoryExists(installPath + '/config.xml')
                 .then(function() {
-                    return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml);
+                    return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml)
                 })
                 .then(downloadNext);
+            });
+        };
+
+        ServeHandler.prototype.prepareForLaunch = function(installPath, launchUrl) {
+            var harnessUrl = cordova.require('cordova/urlutil').makeAbsolute(location.pathname);
+            var harnessDir = harnessUrl.replace(/\/[^\/]*$/, '');
+            var installUrl = cordova.require('cordova/urlutil').makeAbsolute(installPath);
+            var injectString = ContextMenuInjectScript.getInjectString()
+            // Inject the context menu script for all pages except the harness menu.
+            return AppBundle.injectJsForUrl('^(?!' + harnessUrl + ')', injectString)
+            .then(function() {
+                // Allow navigations back to the menu.
+                return AppBundle.setResetUrl('^' + harnessUrl);
+            })
+            .then(function() {
+                // Make any references to www/ point to the app's install location.
+                return AppBundle.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
+            })
+            .then(function() {
+                return AppBundle.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
+            })
+            .then(function() {
+                return AppBundle.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
             });
         };
 

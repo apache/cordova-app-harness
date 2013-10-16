@@ -6,8 +6,6 @@
         var platformId = cordova.platformId;
         // Map of type -> handler.
         var _installHandlerFactories = {};
-        // functions to run before launching an app
-        var preLaunchHooks = [];
 
         var _installHandlers = null;
         var _lastLaunchedAppId = null;
@@ -71,14 +69,13 @@
             return (path.match(/^[a-z0-9+.-]+:/) != null);
         }
 
-        function getAppStartPageFromConfig(configFile, appBaseLocation) {
-            appBaseLocation += (appBaseLocation.charAt(appBaseLocation.length - 1) === "/")? "" : "/";
+        function getAppStartPageFromConfig(configFile) {
             return ResourcesLoader.readFileContents(configFile)
             .then(function(contents){
                 if(!contents) {
                     throw new Error("Config file is empty. Unable to find a start page for your app.");
                 } else {
-                    var startLocation = appBaseLocation + "index.html";
+                    var startLocation = 'index.html';
                     var parser = new DOMParser();
                     var xmlDoc = parser.parseFromString(contents, "text/xml");
                     var els = xmlDoc.getElementsByTagName("content");
@@ -88,13 +85,8 @@
                         for(var i = els.length - 1; i >= 0; i--) {
                             var el = els[i];
                             var srcValue = el.getAttribute("src");
-                            if(srcValue) {
-                                if(isUrlAbsolute(srcValue)) {
-                                    startLocation = srcValue;
-                                } else {
-                                    srcValue = srcValue.charAt(0) === "/" ? srcValue.substring(1) : srcValue;
-                                    startLocation = appBaseLocation + srcValue;
-                                }
+                            if (srcValue) {
+                                startLocation = srcValue;
                                 break;
                             }
                         }
@@ -118,23 +110,12 @@
             appPaths.platformWWWLocation = installPath + "/www/";
 
             return Q.fcall(function(){
-                return getAppStartPageFromConfig(appPaths.configLocation, appPaths.platformWWWLocation);
+                return getAppStartPageFromConfig(appPaths.configLocation);
             })
-            .then(function(startLocation){
-                appPaths.startLocation = startLocation;
+            .then(function(startLocation) {
+                appPaths.startLocation = cordova.require('cordova/urlutil').makeAbsolute(startLocation);
                 return appPaths;
             });
-        }
-
-        function insertObjectAtPriority(objArr, handler, priority){
-            var i = 0;
-            var objToInsert = { "priority" : priority, "handler" : handler };
-            for(i = 0; i < objArr.length; i++){
-                if(objArr[i].priority > objToInsert.priority) {
-                    break;
-                }
-            }
-            objArr.splice(i, 0, objToInsert);
         }
 
         return {
@@ -147,25 +128,17 @@
             },
 
             launchApp : function(handler) {
-                var appEntry;
-                var startLocation;
                 _lastLaunchedAppId = handler.appId;
                 return writeAppsJson()
                 .then(function(){
                     return getAppPathsForHandler(handler);
                 })
                 .then(function(appPaths){
-                    startLocation = appPaths.startLocation;
-                    var result = Q.resolve(0 /* dummy value to set up chain */);
-                    preLaunchHooks.forEach(function (currHook) {
-                        result = result.then(function(){
-                            return currHook.handler(appEntry, appPaths.appInstallLocation, appPaths.platformWWWLocation);
-                        });
+                    var installPath = INSTALL_DIRECTORY + '/' + handler.appId;
+                    return handler.prepareForLaunch(installPath, appPaths.startLocation)
+                    .then(function() {
+                        window.location = appPaths.startLocation;
                     });
-                    return result;
-                })
-                .then(function() {
-                    window.location = startLocation;
                 });
             },
 
@@ -199,20 +172,13 @@
             updateApp : function(handler){
                 return Q.fcall(function() {
                     var installPath = INSTALL_DIRECTORY + '/' + handler.appId;
-                    return handler.updateApp(installPath);
+                    return handler.updateApp(installPath)
+                    .then(writeAppsJson);
                 });
             },
 
             registerInstallHandlerFactory : function(handlerFactory) {
                 _installHandlerFactories[handlerFactory.type] = handlerFactory;
-            },
-
-            addPreLaunchHook : function(handler, priority){
-                if(!priority) {
-                    // Assign a default priority
-                    priority = 500;
-                }
-                insertObjectAtPriority(preLaunchHooks, handler, priority);
             }
         };
     }]);
