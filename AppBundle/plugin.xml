@@ -1,23 +1,42 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
 <plugin xmlns="http://phonegap.com/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    id="AppBundle"
+    id="org.apache.cordova.AppBundle"
     version="1.0.0">
   <engines>
-    <engine name="cordova" version=">=2.6.0" />
+    <engine name="cordova" version=">=3.0.0" />
   </engines>
 
-  <name>App Bundle Url's</name>
+  <name>App Bundle URLs</name>
 
   <js-module src="appBundle.js" name="AppBundle">
+    <clobbers target="cordova.plugins.appBundle" />
   </js-module>
 
   <platform name="android">
-    <source-file src="src/android/AppBundle.java" target-dir="src/org/apache/cordova" />
+    <source-file src="src/android/AppBundle.java" target-dir="src/org/apache/cordova/appbundle" />
 
-    <config-file target="res/xml/config.xml" parent="/widget">
+    <config-file target="res/xml/config.xml" parent="/*">
       <feature name="AppBundle">
-        <param name="android-package" value="org.apache.cordova.AppBundle"/>
+        <param name="android-package" value="org.apache.cordova.appbundle.AppBundle"/>
         <param name="onload" value="true"/>
       </feature>
       <access origin="app-bundle://*" />
@@ -26,9 +45,8 @@
 
   <platform name="ios">
     <source-file src="src/ios/AppBundle.m" />
-    <header-file src="src/ios/AppBundle.h" />
 
-    <config-file target="config.xml" parent="/widget">
+    <config-file target="config.xml" parent="/*">
       <feature name="AppBundle">
         <param name="ios-package" value="AppBundle"/>
         <param name="onload" value="true"/>

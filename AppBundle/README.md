@@ -1,13 +1,11 @@
 AppBundle
 =========
 
-This plugin allows any uri's that are loaded to be replaced with modified uri's
-These include uri's being loaded by the browser such as page navigation, script tags.
-This also includes file uris being opened by file api etc. (currently android only)
+Enables dynamic rerouting or URLs.
 
 ##AppBundle Uri's
 This plugin allows the use of "app-bundle://" instead of platform specific urls such "file:///android_asset" etc.
-For example to refer to an index.html file in the "www" folder with an absolute path, you can use
+For example, to refer to an index.html file in the "www" folder with an absolute path, you can use
 
     "app-bundle:///index.html"
 
@@ -70,5 +68,3 @@ Apply recursive replacements. A request to http://mysite.com/blah should give ht
     appBundle.addAlias("^http://mysite\.com/.*", "^http://mysite\.com/", "http:///mysiteproxy.com/", false, function(succeded){});
     appBundle.addAlias("^http:///mysiteproxy\.com/.*", "^http:///mysiteproxy\.com/", "http:///mysiteproxy2.com/", false, function(succeded){});
 
-##Installation - Cordova  2.7 or later
-        cordova plugin add directory-of-the-AppBundle-plugin
