@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<plugin xmlns="http://phonegap.com/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="AppBundle"
+    version="1.0.0">
+  <engines>
+    <engine name="cordova" version=">=2.6.0" />
+  </engines>
+
+  <name>App Bundle Url's</name>
+
+  <js-module src="appBundle.js" name="AppBundle">
+  </js-module>
+
+  <platform name="android">
+    <source-file src="src/android/AppBundle.java" target-dir="src/org/apache/cordova" />
+
+    <config-file target="res/xml/config.xml" parent="/widget">
+      <feature name="AppBundle">
+        <param name="android-package" value="org.apache.cordova.AppBundle"/>
+        <param name="onload" value="true"/>
+      </feature>
+      <access origin="app-bundle://*" />
+    </config-file>
+  </platform>
+
+  <platform name="ios">
+    <source-file src="src/ios/AppBundle.m" />
+    <header-file src="src/ios/AppBundle.h" />
+
+    <config-file target="config.xml" parent="/widget">
+      <feature name="AppBundle">
+        <param name="ios-package" value="AppBundle"/>
+        <param name="onload" value="true"/>
+      </feature>
+      <access origin="app-bundle://*" />
+    </config-file>
+  </platform>
+</plugin>
