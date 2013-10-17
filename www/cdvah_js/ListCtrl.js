@@ -16,7 +16,7 @@
                     .then(AppsService.launchApp, function(e){
                         e = e || {};
                         console.error("Error launching last run app: " + e);
-                        notifier.error("Error launching last run app. Please try again.");
+                        notifier.error('' + e);
                     });
                 }
                 else if($routeParams.updateLastLaunched) {
@@ -33,7 +33,7 @@
                     }, function(e){
                         e = e || {};
                         console.error("Error updating last run app: " + e);
-                        notifier.error("Error updating last run app. Please try again.");
+                        notifier.error('' + e);
                     });
                 }
                 else {
@@ -60,7 +60,7 @@
             }, function(error){
                 var str = "There was an error retrieving the apps list";
                 console.error(str + ": " + error);
-                notifier.error(str);
+                notifier.error('' + error);
             });
         };
 
@@ -68,7 +68,7 @@
             return AppsService.launchApp(app)
             .then(null, function(error){
                 console.error("Error during loading of app " + app.appId + ": " + error);
-                notifier.error("Something went wrong during the loading of the app. Please try again." + error);
+                notifier.error('' + error);
             });
         };
 
@@ -79,7 +79,7 @@
                 console.log('successfully updated');
             }, function(error){
                 console.error("Error during updating of app " + app.appId + ": " + error);
-                notifier.error("Something went wrong during the updating of the app. Please try again.");
+                notifier.error('' + error);
             });
         };
 
@@ -90,7 +90,7 @@
                 .then(function() { $scope.loadAppsList(true); },
                       function(error) {
                     console.error(error);
-                    notifier.error("Something went wrong during the uninstall of the app. Please try again.");
+                    notifier.error('' + error);
                 });
             }
         }

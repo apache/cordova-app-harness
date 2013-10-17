@@ -6,7 +6,6 @@
             document.addEventListener('deviceready', function() {
                 console.log("Injecting menu script");
                 var contextScript = document.createElement("script");
-                contextScript.setAttribute("type","text/javascript");
                 contextScript.setAttribute("src", "app-bundle:///ContextMenu.js");
                 window.__cordovaAppHarnessAppName = "appPlaceHolder";
                 document.getElementsByTagName("head")[0].appendChild(contextScript);

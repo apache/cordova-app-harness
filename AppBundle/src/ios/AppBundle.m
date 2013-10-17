@@ -96,7 +96,6 @@ static RouteParams* gResetUrlParams = nil;
     }
 }
 
-
 - (void)addAlias:(CDVInvokedUrlCommand*)command {
     CDVPluginResult* pluginResult = nil;
     NSError* error = nil;
@@ -215,9 +214,7 @@ static RouteParams* gResetUrlParams = nil;
 }
 
 - (void)issueTopLevelRedirect:(NSURL*)url origURL:(NSURL*)origURL {
-    if([gWebView isLoading]) {
-        [gWebView stopLoading];
-    }
+    // BUG: Using loadData: clears the browser history stack. e.g. history.back() doesn't work.
     [gWebView loadData:[NSData dataWithContentsOfURL:url] MIMEType:@"text/html" textEncodingName:@"utf8" baseURL:origURL];
 }
 
@@ -233,6 +230,7 @@ static RouteParams* gResetUrlParams = nil;
     BOOL isTopLevelNavigation = [request.URL isEqual:request.mainDocumentURL];
     
     // iOS 6+ just gives "Frame load interrupted" when you try and feed it data via a URLProtocol.
+    // http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup/19432303
     if (isTopLevelNavigation) {
         [self issueTopLevelRedirect:newUrl origURL:[request URL]];
     } else if(params->_redirectToReplacedUrl) {

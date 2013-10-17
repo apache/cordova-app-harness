@@ -1,7 +1,7 @@
 
 Q.longStackSupport = true;
 
-var myApp = angular.module("CordovaAppHarness", []);
+var myApp = angular.module("CordovaAppHarness", ['ngRoute']);
 
 
 myApp.config(["$routeProvider", function($routeProvider){
@@ -21,7 +21,6 @@ document.addEventListener('deviceready', function() {
         var path = dirEntry.fullPath;
         myApp.value("INSTALL_DIRECTORY", path + "/apps");
         myApp.value("APPS_JSON", path + "/apps.json");
-        alert('booting strap');
         angular.bootstrap(document, ['CordovaAppHarness']);
     });
 }, false);
