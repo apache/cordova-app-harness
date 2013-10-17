@@ -16,8 +16,7 @@
             serviceCall.then(function(handler) {
                 console.log('successfully installed');
                 notifier.success('Successfully installed');
-                return AppsService.updateApp(handler)
-                .done();
+                return AppsService.updateApp(handler);
             }, function(error) {
                 console.error(error);
                 notifier.error('Unable to add application because: ' + error.message);

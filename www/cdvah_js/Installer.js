@@ -1,7 +1,7 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.factory("Installer", ["AppBundle", "ResourcesLoader", "ContextMenuInjectScript", function(AppBundle, ResourcesLoader, ContextMenuInjectScript) {
+    myApp.factory("Installer", ["$q", "AppBundle", "ResourcesLoader", "ContextMenuInjectScript", function($q, AppBundle, ResourcesLoader, ContextMenuInjectScript) {
 
         function getAppStartPageFromConfig(configFile) {
             return ResourcesLoader.readFileContents(configFile)
@@ -46,13 +46,11 @@
         };
 
         Installer.prototype.deleteFiles = function() {
-            var self = this;
-            return Q.fcall(function() {
-                self.lastUpdated = null;
-                if (self.installPath) {
-                    return ResourcesLoader.deleteDirectory(self.installPath);
-                }
-            });
+            this.lastUpdated = null;
+            if (this.installPath) {
+                return ResourcesLoader.deleteDirectory(this.installPath);
+            }
+            return $q.when();
         };
 
         Installer.prototype.launch = function() {

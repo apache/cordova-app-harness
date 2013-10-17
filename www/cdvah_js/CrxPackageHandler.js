@@ -1,7 +1,7 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.run(["AppsService", "ResourcesLoader", "ContextMenuInjectScript", function(AppsService, ResourcesLoader, ContextMenuInjectScript){
+    myApp.run(["$q", "AppsService", "ResourcesLoader", "ContextMenuInjectScript", function($q, AppsService, ResourcesLoader, ContextMenuInjectScript){
 
         var platformId = cordova.require("cordova/platform").id;
 
@@ -53,7 +53,7 @@
                         copies.push(copyFile("app-bundle:///" + plugins[i].file, platformWWWDirectory + plugins[i].file));
                     }
 
-                    return Q.all(copies);
+                    return $q.all(copies);
                 })
                 .then(function(){
                     return ResourcesLoader.appendFileContents(cordovaFile, dataToAppend);

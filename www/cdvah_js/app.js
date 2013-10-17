@@ -1,6 +1,4 @@
 
-Q.longStackSupport = true;
-
 var myApp = angular.module("CordovaAppHarness", ['ngRoute']);
 
 

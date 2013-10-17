@@ -1,7 +1,7 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.factory("AppsService", [ "ResourcesLoader", "INSTALL_DIRECTORY", "APPS_JSON", function(ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON) {
+    myApp.factory("AppsService", ["$q", "ResourcesLoader", "INSTALL_DIRECTORY", "APPS_JSON", function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON) {
 
         var platformId = cordova.platformId;
         // Map of type -> installer.
@@ -24,7 +24,7 @@
         }
 
         function readAppsJson() {
-            var deferred = Q.defer();
+            var deferred = $q.defer();
             ResourcesLoader.readJSONFileContents(APPS_JSON)
             .then(function(result) {
                 deferred.resolve(result);
@@ -37,7 +37,7 @@
 
         function initHandlers() {
             if (_installers) {
-                return Q();
+                return $q.when();
             }
 
             return readAppsJson()
@@ -90,9 +90,7 @@
 
             addApp : function(installerType, appUrl) {
                 var installerFactory = _installerFactories[installerType];
-                return Q.fcall(function(){
-                    return installerFactory.createFromUrl(appUrl);
-                })
+                return installerFactory.createFromUrl(appUrl)
                 .then(function(installer) {
                     _installers.push(installer);
                     return writeAppsJson()
@@ -115,11 +113,9 @@
             },
 
             updateApp : function(installer){
-                return Q.fcall(function() {
-                    var installPath = INSTALL_DIRECTORY + '/' + installer.appId;
-                    return installer.updateApp(installPath)
-                    .then(writeAppsJson);
-                });
+                var installPath = INSTALL_DIRECTORY + '/' + installer.appId;
+                return installer.updateApp(installPath)
+                .then(writeAppsJson);
             },
 
             registerInstallerFactory : function(installerFactory) {

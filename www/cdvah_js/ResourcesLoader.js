@@ -2,17 +2,17 @@
     "use strict";
 
     /* global myApp */
-    myApp.factory("ResourcesLoader", [ "$window", function ($window) {
+    myApp.factory("ResourcesLoader", ["$q", "$window", function($q, $window) {
         var rootDir;
 
         function initialiseFileSystem() {
             // HACK: Need to discuss better way to get the root entry.
-            return Q(rootDir = new $window.DirectoryEntry('/', '/'));
+            return $q.when(rootDir = new $window.DirectoryEntry('/', '/'));
         }
 
         //promise returns full path to downloaded file
         function downloadFromUrl(url, fullFilePath) {
-            var deferred = Q.defer();
+            var deferred = $q.defer();
 
             var downloadFail = function(error) {
                 var str = "There was an error while downloading the file " + JSON.stringify(error);
@@ -49,7 +49,7 @@
 
         //promise returns the directory entry
         function getDirectoryEntry(directoryName) {
-            var deferred = Q.defer();
+            var deferred = $q.defer();
 
             var errorWhileGettingDirectoryEntry = function(error) {
                 var str = "There was an error while getting the directory entry for directory " + directoryName + " " + JSON.stringify(error);
@@ -64,7 +64,7 @@
 
         //promise returns the file entry
         function getFileEntry(fileName, createFlag) {
-            var deferred = Q.defer();
+            var deferred = $q.defer();
 
             var errorWhileGettingFileEntry = function(error) {
                 var str = "There was an error while getting the file entry for file " + fileName + " " + JSON.stringify(error);
@@ -82,7 +82,7 @@
         function getFile(fileName) {
             return getFileEntry(fileName, true  /* create */).
             then(function(fileEntry){
-                var deferred = Q.defer();
+                var deferred = $q.defer();
 
                 var errorWhileGettingFile = function(error) {
                     var str = "There was an error while getting the file for file " + fileName + " " + JSON.stringify(error);
@@ -111,7 +111,7 @@
         }
 
         function ensureSingleDirectoryExists(directory){
-            var deferred = Q.defer();
+            var deferred = $q.defer();
 
             var gotDirEntry = function(dirEntry) {
                 deferred.resolve(dirEntry.fullPath);
@@ -127,18 +127,16 @@
         }
 
         function ensureDirectoryExists(directory){
-            return Q.fcall(function(){
-                directory = truncateToDirectoryPath(directory);
-                directory = fixFilePath(directory);
-                var segments = getPathSegments(directory);
-                var currentDir = directory.charAt(0) === "/"? "/" : "";
-                var promiseArr = [];
-                while(segments.length !== 0) {
-                    currentDir +=  segments.shift() + "/";
-                    promiseArr.push(ensureSingleDirectoryExists(currentDir));
-                }
-                return Q.all(promiseArr);
-            })
+            directory = truncateToDirectoryPath(directory);
+            directory = fixFilePath(directory);
+            var segments = getPathSegments(directory);
+            var currentDir = directory.charAt(0) === "/"? "/" : "";
+            var promiseArr = [];
+            while(segments.length !== 0) {
+                currentDir +=  segments.shift() + "/";
+                promiseArr.push(ensureSingleDirectoryExists(currentDir));
+            }
+            return $q.all(promiseArr)
             .then(function(paths){
                 return paths[paths.length - 1];
             });
@@ -147,7 +145,7 @@
         function writeToFile(fileName, contents, append) {
             return getFileEntry(fileName, true)
             .then(function(fileEntry){
-                var deferred = Q.defer();
+                var deferred = $q.defer();
 
                 var errorGettingFileWriter = function(error) {
                     var str = "There was an error writing the file." + JSON.stringify(error);
@@ -170,7 +168,7 @@
         }
 
         function xhrGet(url){
-            var deferred = Q.defer();
+            var deferred = $q.defer();
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
@@ -212,38 +210,35 @@
 
             //returns a promise with the contents of the file
             readFileContents : function(fileName) {
-                return Q.fcall(function(){
-                    var scheme = getScheme(fileName);
-                    // assume file scheme by default
-                    if(!scheme || scheme === "file") {
-                        return initialiseFileSystem()
-                        .then(function(){
-                            return getFile(fileName);
-                        })
-                        .then(function(file){
-                            var deferred = Q.defer();
+                var scheme = getScheme(fileName);
+                // assume file scheme by default
+                if (!scheme || scheme === "file") {
+                    return initialiseFileSystem()
+                    .then(function(){
+                        return getFile(fileName);
+                    })
+                    .then(function(file){
+                        var deferred = $q.defer();
 
-                            var reader = new $window.FileReader();
-                            reader.onload = function(evt) {
-                                var text = evt.target.result;
-                                deferred.resolve(text);
-                            };
-                            reader.onerror = function(evt) {
-                                deferred.reject(new Error(evt));
-                            };
-                            reader.readAsText(file);
+                        var reader = new $window.FileReader();
+                        reader.onload = function(evt) {
+                            var text = evt.target.result;
+                            deferred.resolve(text);
+                        };
+                        reader.onerror = function(evt) {
+                            deferred.reject(new Error(evt));
+                        };
+                        reader.readAsText(file);
 
-                            return deferred.promise;
-                        });
-                    } else if(scheme === "http" || scheme === "https") {
-                        return xhrGet(fileName)
-                        .then(function(xhr){
-                            return xhr.responseText;
-                        });
-                    } else {
-                        throw new Error("Cannot read file " + fileName);
-                    }
-                });
+                        return deferred.promise;
+                    });
+                } else if(scheme === "http" || scheme === "https") {
+                    return xhrGet(fileName)
+                    .then(function(xhr){
+                        return xhr.responseText;
+                    });
+                }
+                throw new Error("Cannot read file " + fileName);
             },
 
             //returns a promise with the json contents of the file
@@ -287,7 +282,7 @@
                     return getDirectoryEntry(directoryName);
                 })
                 .then(function(dirEntry){
-                    var deferred = Q.defer();
+                    var deferred = $q.defer();
                     var failedToDeleteDirectory = function(error) {
                         var str = "There was an error deleting the directory: " + directoryName + " " + JSON.stringify(error);
                         deferred.reject(new Error(str));
@@ -303,7 +298,7 @@
                     return ensureDirectoryExists(outputDirectory);
                 })
                 .then(function(){
-                    var deferred = Q.defer();
+                    var deferred = $q.defer();
 
                     var onZipDone = function(returnCode) {
                         if(returnCode !== 0) {
