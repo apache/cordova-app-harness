@@ -1,0 +1,30 @@
+<form name="addForm" ng-controller="AddCtrl" ng-submit="addApp()">
+    <label>How to retrieve the app:<br>
+        <select ng-model="appData.installerType">
+            <option value="serve">cordova serve</option>
+            <option value="cdvh">.cdvh file</option>
+        </select>
+    </label>
+    <div ng-show="appData.installerType == 'serve'">
+      <label>Enter server URL
+          <div><input class="topcoat-text-input" style="width:100%;-webkit-box-sizing:border-box" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off"></div>
+      </label>
+          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qr_enabled">QR Code</button>
+          <select ng-model="appData.serveTemplateValue" ng-change="selectTemplate()">
+              <option value="">Template</option>
+              <option value="localhost:8000">localhost</option>
+              <option value="KEY.t.proxylocal.com">ProxyLocal</option>
+              <option value="KEY.localtunnel.com">LocalTunnel</option>
+          </select>
+    </div>
+    <div ng-show="appData.installerType == 'cdvh'">
+      <label>Enter URL<br>
+          <input class="topcoat-text-input" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off">
+      </label>
+          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qr_enabled">Scan QR Code</button><br>
+    </div>
+    <div class="buttons">
+        <input type="submit" value="Add" class="topcoat-button--cta"></button>
+        <a href="#/"><button class="topcoat-button" ng-click="back()">Back</button></a>
+    </div>
+</form>

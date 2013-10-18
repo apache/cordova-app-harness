@@ -1,11 +1,11 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.directive("cdvahNotify", [ "$rootScope", "$timeout", function($rootScope, $timeout) {
+    myApp.directive("cdvahNotify", [ "$rootScope", function($rootScope) {
         return {
             scope: {},
             restrict: 'E',
-            template: '<div class="notification-container" ng-show="showNotify"><div class="notification" ng-class="notification.css">{{ notification.message }}</div></div>',
+            template: '<div class="notification-container" ng-click="showNotify=false" ng-show="showNotify"><div class="notification" ng-class="notification.css">{{ notification.message }}</div></div>',
             replace: true,
             link: function(scope, element, attrs) {
                 $rootScope.$watch('notification', function(newValue) {
@@ -24,11 +24,9 @@
         return {
             success: function(msg) {
                 $rootScope.notification = { message: msg, type: 'success' };
-                $rootScope.$apply();
             },
             error: function(msg) {
                 $rootScope.notification = { message: msg, type: 'error' };
-                $rootScope.$apply();
             }
         };
     }]);

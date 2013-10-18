@@ -34,6 +34,7 @@
         function Installer(url, appId) {
             this.url = url;
             this.appId = appId || '';
+            this.updatingStatus = null;
             this.lastUpdated = null;
             this.installPath = null;
         }
@@ -41,8 +42,16 @@
         Installer.prototype.type = '';
 
         Installer.prototype.updateApp = function(installPath) {
-            this.installPath = installPath;
-            this.lastUpdated = new Date();
+            var self = this;
+            this.updatingStatus = 0;
+            return this._doUpdateApp(installPath)
+            .then(function() {
+                self.installPath = installPath;
+                self.lastUpdated = new Date();
+                self.updatingStatus = null;
+            }, null, function(status) {
+                self.updatingStatus = Math.round(status * 100);
+            });
         };
 
         Installer.prototype.deleteFiles = function() {
@@ -62,31 +71,35 @@
 
             return getAppStartPageFromConfig(configLocation)
             .then(function(rawStartLocation) {
-                var harnessUrl = cordova.require('cordova/urlutil').makeAbsolute(location.pathname);
-                var harnessDir = harnessUrl.replace(/\/[^\/]*$/, '');
-                var installUrl = cordova.require('cordova/urlutil').makeAbsolute(installPath);
+                var urlutil = cordova.require('cordova/urlutil');
+                var harnessUrl = urlutil.makeAbsolute(location.pathname);
+                var harnessDir = harnessUrl.replace(/\/[^\/]*\/[^\/]*$/, '');
+                var installUrl = urlutil.makeAbsolute(installPath);
                 var injectString = ContextMenuInjectScript.getInjectString();
+                var startLocation = urlutil.makeAbsolute(rawStartLocation).replace('/cdvah/', '/');
+                // On iOS, file:// URLs can't be re-routed via an NSURLProtocol for top-level navications.
+                // http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup
+                // The work-around (using loadData:) breaks history.back().
+                // So, for file:// start pages, we just point to the install location.
+                if (cordova.platformId == 'ios') {
+                    startLocation = startLocation.replace(harnessDir, installUrl + '/www')
+                }
+
                 // Inject the context menu script for all pages except the harness menu.
                 AppBundle.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
                 // Allow navigations back to the menu.
                 AppBundle.setResetUrl('^' + harnessUrl);
-                // Make any references to www/ point to the app's install location.
-                AppBundle.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
-                // Override cordova.js and cordova_plugins.js.
+                // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
                 AppBundle.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
                 AppBundle.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
-                // Set-up app-bundle: scheme to point at the harness.
-                AppBundle.aliasUri('^app-bundle:///cdvah_index.html', '^app-bundle://', harnessDir, true);
-                return AppBundle.aliasUri('^app-bundle:', '^app-bundle://', harnessDir, false)
+                var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
+                AppBundle.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+                // Make any references to www/ point to the app's install location.
+                AppBundle.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
+                // Set-up app-harness: scheme to point at the harness.
+                AppBundle.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true);
+                return AppBundle.aliasUri('^app-harness:', '^app-harness://', harnessDir, false)
                 .then(function() {
-                    var startLocation = cordova.require('cordova/urlutil').makeAbsolute(rawStartLocation);
-                    // On iOS, file:// URLs can't be re-routed via an NSURLProtocol for top-level navications.
-                    // http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup
-                    // The work-around (using loadData:) breaks history.back().
-                    // So, for file:// start pages, we just point to the install location.
-                    if (cordova.platformId == 'ios') {
-                        return startLocation.replace(harnessDir, installUrl + '/www')
-                    }
                     return startLocation;
                 });
             });

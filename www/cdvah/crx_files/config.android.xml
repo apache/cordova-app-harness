@@ -78,7 +78,6 @@
         <param name="android-package" value="com.google.cordova.ChromeExtensionURLs" />
         <param name="onload" value="true" />
     </feature>
-    <content src="app-bundle:///cdvah_index.html" />
     <feature name="ChromeStorage">
         <param name="android-package" value="com.google.cordova.ChromeStorage" />
     </feature>

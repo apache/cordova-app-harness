@@ -22,7 +22,7 @@
                 else if($routeParams.updateLastLaunched) {
                     var app;
                     // updating may take a while so we show the apps list like we normally do
-                    return $scope.loadAppsList(true)
+                    return $scope.loadAppsList()
                     .then(AppsService.getLastRunApp)
                     .then(function(_app){
                         app = _app;
@@ -35,14 +35,13 @@
                         console.error("Error updating last run app: " + e);
                         notifier.error('' + e);
                     });
-                }
-                else {
-                    return $scope.loadAppsList(true);
+                } else {
+                    return $scope.loadAppsList();
                 }
             });
         }
 
-        $scope.loadAppsList = function(callApply) {
+        $scope.loadAppsList = function() {
             return AppsService.getAppList()
             .then(function(newAppsList){
                 newAppsList.sort(function(a, b){
@@ -54,9 +53,6 @@
                     return 0;
                 });
                 $scope.appList = newAppsList;
-                if(callApply) {
-                    $scope.$apply();
-                }
             }, function(error){
                 var str = "There was an error retrieving the apps list";
                 console.error(str + ": " + error);
@@ -87,8 +83,9 @@
             var shouldUninstall = confirm("Are you sure you want to uninstall " + app.appId + "?");
             if(shouldUninstall) {
                 return AppsService.uninstallApp(app)
-                .then(function() { $scope.loadAppsList(true); },
-                      function(error) {
+                .then(function() {
+                    return $scope.loadAppsList();
+                }, function(error) {
                     console.error(error);
                     notifier.error('' + error);
                 });

@@ -10,7 +10,7 @@
 
     var contextMenuIframe = "__cordovaappharness_contextMenu_iframe";
     function setupIframe(){
-        var contextHTMLUrl = "app-bundle:///cdvah_contextMenu.html";
+        var contextHTMLUrl = "app-harness:///cdvahcm/contextMenu.html";
         var el = document.createElement("iframe");
         el.setAttribute("id", contextMenuIframe);
         el.setAttribute("src", contextHTMLUrl);
@@ -34,10 +34,10 @@
     }
 
     function onContextMenuUpdateClicked(){
-        window.location = "app-bundle:///cdvah_index.html#/?updateLastLaunched=true";
+        window.location = "app-harness:///cdvah/index.html#/?updateLastLaunched=true";
     }
     function onContextMenuRestartClicked(){
-        window.location = "app-bundle:///cdvah_index.html#/?lastLaunched=true";
+        window.location = "app-harness:///cdvah/index.html#/?lastLaunched=true";
     }
     var firebugFirstOpen = true;
     function onContextMenuFirebugClicked(){
@@ -64,7 +64,7 @@
         }
     }
     function onContextMenuMainMenuClicked(){
-        window.location = "app-bundle:///cdvah_index.html";
+        window.location = "app-harness:///cdvah/index.html";
     }
     function onContextMenuHideClicked(){
         document.getElementById(contextMenuIframe).style.display = "none";
