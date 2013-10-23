@@ -3,19 +3,21 @@
     /* global myApp */
     myApp.factory("ContextMenuInjectScript", [ function () {
         var toInject = function() {
-            document.addEventListener('deviceready', function() {
-                console.log("Injecting menu script");
-                var contextScript = document.createElement("script");
-                contextScript.setAttribute("src", "app-harness:///cdvahcm/ContextMenu.js");
-                window.__cordovaAppHarnessAppName = "appPlaceHolder";
-                document.getElementsByTagName("head")[0].appendChild(contextScript);
-            });
+            console.log("Menu script injected.");
+            var contextScript = document.createElement("script");
+            contextScript.setAttribute("src", "app-harness:///cdvahcm/ContextMenu.js");
+            window.__cordovaAppHarnessData = {
+                'appIndex': appIndexPlaceHolder,
+                'appName': 'appNamePlaceHolder'
+            };
+            document.getElementsByTagName("head")[0].appendChild(contextScript);
         };
 
         return {
-            getInjectString : function(appName){
+            getInjectString : function(appName, appIndex) {
                 var string = "\n(" + toInject.toString() + ")();";
-                string = string.replace("appPlaceHolder", appName);
+                string = string.replace('appNamePlaceHolder', appName);
+                string = string.replace('appIndexPlaceHolder', appIndex);
                 return string;
             }
         };

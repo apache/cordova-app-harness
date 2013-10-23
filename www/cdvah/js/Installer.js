@@ -62,10 +62,11 @@
             return $q.when();
         };
 
-        Installer.prototype.launch = function() {
+        Installer.prototype.launch = function(appIndex) {
             var installPath = this.installPath;
+            var appId = this.appId;
             if (!installPath) {
-                throw new Error('App ' + this.appId + ' requires an update');
+                throw new Error('App ' + appId + ' requires an update');
             }
             var configLocation = installPath + '/config.xml';
 
@@ -75,7 +76,7 @@
                 var harnessUrl = urlutil.makeAbsolute(location.pathname);
                 var harnessDir = harnessUrl.replace(/\/[^\/]*\/[^\/]*$/, '');
                 var installUrl = urlutil.makeAbsolute(installPath);
-                var injectString = ContextMenuInjectScript.getInjectString();
+                var injectString = ContextMenuInjectScript.getInjectString(appId, appIndex);
                 var startLocation = urlutil.makeAbsolute(rawStartLocation).replace('/cdvah/', '/');
                 // On iOS, file:// URLs can't be re-routed via an NSURLProtocol for top-level navications.
                 // http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup

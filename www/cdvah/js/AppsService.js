@@ -6,9 +6,8 @@
         var platformId = cordova.platformId;
         // Map of type -> installer.
         var _installerFactories = {};
-
+        // Array of installer objects.
         var _installers = null;
-        var _lastLaunchedAppId = null;
 
         function createInstallHandlersFromJson(json) {
             var appList = json['appList'] || [];
@@ -42,14 +41,12 @@
 
             return readAppsJson()
             .then(function(appsJson) {
-                _lastLaunchedAppId  = appsJson['lastLaunched'];
                 _installers = createInstallHandlersFromJson(appsJson);
             });
         }
 
         function writeAppsJson() {
             var appsJson = {
-                'lastLaunched': _lastLaunchedAppId,
                 'appList': []
             };
             var appList = appsJson['appList'];
@@ -77,12 +74,7 @@
             },
 
             launchApp : function(installer) {
-                _lastLaunchedAppId = installer.appId;
-                return writeAppsJson()
-                .then(function() {
-                    var installPath = INSTALL_DIRECTORY + '/' + installer.appId;
-                    return installer.launch(installPath);
-                })
+                return installer.launch(_installers.indexOf(installer))
                 .then(function(launchUrl) {
                     window.location = launchUrl;
                 });

@@ -1,43 +1,36 @@
 (function () {
+    var contextMenuIframeEl = null;
 
     function initialise() {
         setupIframe();
-        sendAppNameToIframe();
         setupIframeMessaging();
         //loadFirebug(false);
         attachErrorListener();
     }
 
-    var contextMenuIframe = "__cordovaappharness_contextMenu_iframe";
     function setupIframe(){
         var contextHTMLUrl = "app-harness:///cdvahcm/contextMenu.html";
         var el = document.createElement("iframe");
-        el.setAttribute("id", contextMenuIframe);
-        el.setAttribute("src", contextHTMLUrl);
-        el.setAttribute("style", "position: fixed; left : 0px; top : 0px; z-index: 2000; width: 100%; height: 100%; display : none;");
+        contextMenuIframeEl = el;
+        el.src = contextHTMLUrl;
+        el.style.cssText = 'position: fixed; left: 0; top: 0; z-index: 2000; width: 100%; height: 100%; border: none; display:none';
+        el.onload = function() {
+            el.contentWindow.postMessage("AppHarnessAppName:" + __cordovaAppHarnessData['appName'], "*");
+        };
         document.body.appendChild(el);
         // Setup the listeners to toggle the context menu
         document.addEventListener("touchmove", function (event) {
-            if(event.touches.length >= 3) {
-                document.getElementById(contextMenuIframe).style.display = "inline";
+            if (event.touches.length >= 3) {
+                el.style.display = '';
             }
         }, false);
     }
 
-    function sendAppNameToIframe(){
-        if(window.__cordovaAppHarnessAppName){
-            var el = document.getElementById(contextMenuIframe);
-            el.onload = function(){
-                el.contentWindow.postMessage("AppHarnessAppName:" + window.__cordovaAppHarnessAppName, "*");
-            };
-        }
-    }
-
     function onContextMenuUpdateClicked(){
-        window.location = "app-harness:///cdvah/index.html#/?updateLastLaunched=true";
+        window.location = "app-harness:///cdvah/index.html#/?action=update&appIndex=" + __cordovaAppHarnessData['appIndex'];
     }
     function onContextMenuRestartClicked(){
-        window.location = "app-harness:///cdvah/index.html#/?lastLaunched=true";
+        window.location = "app-harness:///cdvah/index.html#/?action=restart&appIndex=" + __cordovaAppHarnessData['appIndex'];
     }
     var firebugFirstOpen = true;
     function onContextMenuFirebugClicked(){
@@ -67,7 +60,7 @@
         window.location = "app-harness:///cdvah/index.html";
     }
     function onContextMenuHideClicked(){
-        document.getElementById(contextMenuIframe).style.display = "none";
+        contextMenuIframeEl.style.display = "none";
     }
     function onContextMenuWeinreNameChanged(newName){
         var el = document.createElement("script");

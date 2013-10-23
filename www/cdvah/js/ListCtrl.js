@@ -1,42 +1,34 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.controller("ListCtrl", [ "AppBundle", "notifier", "$rootScope", "$scope", "$routeParams", "AppsService", function (AppBundle, notifier, $rootScope, $scope, $routeParams, AppsService) {
+    myApp.controller("ListCtrl", ['$location', "notifier", "$rootScope", "$scope", "$routeParams", "AppsService", function ($location, notifier, $rootScope, $scope, $routeParams, AppsService) {
         $scope.appList = [];
         $rootScope.appTitle = 'Cordova App Harness';
 
-        initialise();
-
         function initialise() {
-            //if we are navigating here after running an app, reset any aliases set for the app by app harness or any aliases setup by the previous app
-            return AppBundle.reset()
-            .then(function(){
-                if($routeParams.lastLaunched) {
-                    return AppsService.getLastRunApp()
-                    .then(AppsService.launchApp, function(e){
-                        e = e || {};
-                        console.error("Error launching last run app: " + e);
-                        notifier.error('' + e);
-                    });
-                }
-                else if($routeParams.updateLastLaunched) {
-                    var app;
-                    // updating may take a while so we show the apps list like we normally do
-                    return $scope.loadAppsList()
-                    .then(AppsService.getLastRunApp)
-                    .then(function(_app){
-                        app = _app;
-                        return AppsService.updateApp(app);
-                    })
-                    .then(function(){
-                        return AppsService.launchApp(app);
-                    }, function(e){
-                        e = e || {};
-                        console.error("Error updating last run app: " + e);
-                        notifier.error('' + e);
-                    });
-                } else {
-                    return $scope.loadAppsList();
+            return $scope.loadAppsList()
+            .then(AppsService.getAppList)
+            .then(function(appList) {
+                var action = $routeParams['action'];
+                if (action) {
+                    var appIndex = +$routeParams['appIndex'];
+                    var activeApp = appList[appIndex];
+                    if (action == 'restart') {
+                        return AppsService.launchApp(activeApp)
+                        .then(null, function(e){
+                            console.error("Error launching last run app: " + e);
+                            notifier.error('' + e);
+                        });
+                    } else if (action == 'update') {
+                        // updating may take a while so we show the apps list like we normally do
+                        return AppsService.updateApp(activeApp)
+                        .then(function() {
+                            return AppsService.launchApp(activeApp);
+                        }).then(null, function(e){
+                            console.error("Error updating last run app: " + e);
+                            notifier.error('' + e);
+                        });
+                    }
                 }
             });
         }
@@ -91,6 +83,8 @@
                 });
             }
         }
+
+        initialise();
     }]);
 })();
 
