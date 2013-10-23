@@ -24,20 +24,20 @@ exports.addAlias = function(sourceUriMatchRegex, sourceUriReplaceRegex, replaceS
         callback(true);
     };
     var fail = callback && function(error) {
-        console.error("AppBundle error: " + error);
+        console.error("UrlRemap error: " + error);
         callback(false);
     };
-    exec(win, fail, 'AppBundle', 'addAlias', [sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl]);
+    exec(win, fail, 'UrlRemap', 'addAlias', [sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl]);
 };
 
 exports.setResetUrl = function(urlRegex, callback) {
-    exec(callback, null, 'AppBundle', 'setResetUrl', [urlRegex]);
+    exec(callback, null, 'UrlRemap', 'setResetUrl', [urlRegex]);
 };
 
 exports.injectJsForUrl = function(urlRegex, jsSnippet, callback) {
-    exec(callback, null, 'AppBundle', 'injectJs', [urlRegex, jsSnippet]);
+    exec(callback, null, 'UrlRemap', 'injectJs', [urlRegex, jsSnippet]);
 };
 
 exports.clearAllAliases = function(callback){
-    exec(callback, null, 'AppBundle', 'clearAllAliases', []);
+    exec(callback, null, 'UrlRemap', 'clearAllAliases', []);
 };

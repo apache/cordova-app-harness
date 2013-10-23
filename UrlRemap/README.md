@@ -1,4 +1,4 @@
-AppBundle
+UrlRemap
 =========
 
 Enables dynamic rerouting of URLs.

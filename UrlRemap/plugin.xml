@@ -18,40 +18,35 @@
   under the License.
 -->
 <plugin xmlns="http://phonegap.com/ns/plugins/1.0"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    id="org.apache.cordova.AppBundle"
+    id="org.apache.cordova.UrlRemap"
     version="1.0.0">
   <engines>
     <engine name="cordova" version=">=3.0.0" />
   </engines>
 
-  <name>App Bundle URLs</name>
+  <name>URL Remapper</name>
 
-  <js-module src="appBundle.js" name="AppBundle">
-    <clobbers target="cordova.plugins.appBundle" />
+  <js-module src="urlremap.js" name="UrlRemap">
+    <clobbers target="cordova.plugins.urlremap" />
   </js-module>
 
   <platform name="android">
-    <source-file src="src/android/AppBundle.java" target-dir="src/org/apache/cordova/appbundle" />
+    <source-file src="src/android/UrlRemap.java" target-dir="src/org/apache/cordova/urlremap" />
 
     <config-file target="res/xml/config.xml" parent="/*">
-      <feature name="AppBundle">
-        <param name="android-package" value="org.apache.cordova.appbundle.AppBundle"/>
-        <param name="onload" value="true"/>
+      <feature name="UrlRemap">
+        <param name="android-package" value="org.apache.cordova.urlremap.UrlRemap"/>
       </feature>
-      <access origin="app-bundle://*" />
     </config-file>
   </platform>
 
   <platform name="ios">
-    <source-file src="src/ios/AppBundle.m" />
+    <source-file src="src/ios/UrlRemap.m" />
 
     <config-file target="config.xml" parent="/*">
-      <feature name="AppBundle">
-        <param name="ios-package" value="AppBundle"/>
-        <param name="onload" value="true"/>
+      <feature name="UrlRemap">
+        <param name="ios-package" value="UrlRemap"/>
       </feature>
-      <access origin="app-bundle://*" />
     </config-file>
   </platform>
 </plugin>

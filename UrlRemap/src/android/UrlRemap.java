@@ -16,7 +16,7 @@
        specific language governing permissions and limitations
        under the License.
 */
-package org.apache.cordova.appbundle;
+package org.apache.cordova.urlremap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,58 +29,9 @@ import android.net.Uri;
 import android.net.Uri.Builder;
 import android.util.Log;
 
-public class AppBundle extends CordovaPlugin {
-
-    /*
-    This plugin allows any uri's that are loaded to be replaced with modified uri's
-    These include uri's being loaded by the browser such as page navigation, script tags, as well as file uris being opened by file api etc.
-    There are 4 parameters here that affect the replacement.
-    The matchRegex, replaceRegex, replacerString, shouldRedirect
-
-    The algorithm operates as follows
-
-    currently loading 'url'
-    if(url matches matchRegex){
-        newUrl = url.replace(replaceRegex, replacerString)
-        if(this is topLevelRequest){
-            stopLoadingUrl()
-            loadUrl(newUrl)
-            return
-        } else {
-            url = newUrl
-        }
-    }
-    continue loading 'url'
-
-    There are some implementation details involved here such as the ability to distinguish between top level requests and other requests.
-    Please see the code for details regarding this.
-
-    There is an array of {matchRegex, replaceRegex, replacerString, shouldRedirect} stored referred to as the reroute map
-
-    "app-bundle:" uri's are absolute uri's that point to your bundle.
-    By default the rerouteMap contains the parameters required to redirect
-        app-bundle:///blah -> file:///android_asset/www/blah
-
-    The rerouteMap can be modified from javascript by calling the addAlias and clearAlias methods
-
-    Recursive replacements are supported by this plugin as well.
-    Consider the reroute map contains
-         1) http://mysite.com/ -> file:///android_asset/www/
-         2) file:///android_asset/www/blah -> file:///storage/www/
-         3) http://mysite.com/ -> http:///mysiteproxy.com/
-         4) http://mysiteproxy.com/ -> http:///mysiteproxy2.com/
-    A request to http://mysite.com/blah should give http:///mysiteproxy2.com/blah
-    Also note that the recursive replacements apply the rules last to first.
-
-    CAVEAT: Recursive replacements to app-bundle: should not occur
-    For example lets say the we have the rerouteParams set up as
-         1) app-bundle:/// -> file:///android_asset/www/
-         2) file:///android_asset/www/ -> file:///storage/www/
-    A request to app-bundle:///blah should give file:///android_asset/www/ NOT file:///storage/www/
-    This requirement is required by the definition of app-bundle: uris.
-    */
-    private static final String LOG_TAG = "AppBundle";
-    private static final String APP_BUNDLE_REPLACED = "AppBundleReplaced";
+public class UrlRemap extends CordovaPlugin {
+    private static final String LOG_TAG = "UrlRemap";
+    private static final String APP_BUNDLE_REPLACED = "UrlRemapReplaced";
 
     private static class RouteParams {
         public String matchRegex;

@@ -1,7 +1,7 @@
 (function(){
     "use strict";
     /* global myApp */
-    myApp.factory("Installer", ["$q", "AppBundle", "ResourcesLoader", "ContextMenuInjectScript", function($q, AppBundle, ResourcesLoader, ContextMenuInjectScript) {
+    myApp.factory("Installer", ["$q", "UrlRemap", "ResourcesLoader", "ContextMenuInjectScript", function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript) {
 
         function getAppStartPageFromConfig(configFile) {
             return ResourcesLoader.readFileContents(configFile)
@@ -87,19 +87,19 @@
                 }
 
                 // Inject the context menu script for all pages except the harness menu.
-                AppBundle.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
+                UrlRemap.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
                 // Allow navigations back to the menu.
-                AppBundle.setResetUrl('^' + harnessUrl);
+                UrlRemap.setResetUrl('^' + harnessUrl);
                 // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
-                AppBundle.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
-                AppBundle.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
+                UrlRemap.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
+                UrlRemap.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
                 var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
-                AppBundle.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+                UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
                 // Make any references to www/ point to the app's install location.
-                AppBundle.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
+                UrlRemap.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
                 // Set-up app-harness: scheme to point at the harness.
-                AppBundle.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true);
-                return AppBundle.aliasUri('^app-harness:', '^app-harness://', harnessDir, false)
+                UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true);
+                return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false)
                 .then(function() {
                     return startLocation;
                 });

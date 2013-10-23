@@ -39,7 +39,7 @@ ln -s ../www www
 $CORDOVA platform add ios
 ../../cordova-ios/bin/update_cordova_subproject platforms/ios/CordovaAppHarness.xcodeproj
 
-$CORDOVA plugin add ../AppBundle
+$CORDOVA plugin add ../UrlRemap
 $CORDOVA plugin add ../../../mobile_chrome_apps/zip
 $CORDOVA plugin add ../../../BarcodeScanner # https://github.com/wildabeast/BarcodeScanner.git
 $CORDOVA plugin add ../../cordova-plugin-file

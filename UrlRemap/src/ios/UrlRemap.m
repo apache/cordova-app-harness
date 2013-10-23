@@ -24,14 +24,14 @@
 static UIWebView* gWebView = nil;
 static NSMutableArray* gRerouteParams = nil;
 
-@interface AppBundle : CDVPlugin {
+@interface UrlRemap : CDVPlugin {
   RouteParams* _resetUrlParams;
 }
 - (void)addAlias:(CDVInvokedUrlCommand*)command;
 - (void)clearAllAliases:(CDVInvokedUrlCommand*)command;
 @end
 
-@interface AppBundle() {}
+@interface UrlRemap() {}
 @end
 
 @interface RouteParams : NSObject {
@@ -52,25 +52,25 @@ static NSMutableArray* gRerouteParams = nil;
 }
 @end
 
-@interface AppBundleURLProtocol : NSURLProtocol
+@interface UrlRemapURLProtocol : NSURLProtocol
 + (RouteParams*)getChosenParams:(NSString*)uriString forInjection:(BOOL)forInjection;
 @end
 
 
-#pragma mark AppBundle
+#pragma mark UrlRemap
 
-@implementation AppBundle
+@implementation UrlRemap
 
 - (void)pluginInitialize {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pageDidLoad) name:CDVPageDidLoadNotification object:self.webView];
     gWebView = self.webView;
-    [NSURLProtocol registerClass:[AppBundleURLProtocol class]];
+    [NSURLProtocol registerClass:[UrlRemapURLProtocol class]];
     gRerouteParams = [[NSMutableArray alloc] init];
 }
 
 - (void)pageDidLoad {
     NSString* url = [self.webView stringByEvaluatingJavaScriptFromString:@"location.href.replace(/#.*/, '')"];
-    RouteParams* params = [AppBundleURLProtocol getChosenParams:url forInjection:YES];
+    RouteParams* params = [UrlRemapURLProtocol getChosenParams:url forInjection:YES];
     if (params != nil) {
         [gWebView stringByEvaluatingJavaScriptFromString:params->_jsToInject];
     }
@@ -135,9 +135,9 @@ static NSMutableArray* gRerouteParams = nil;
 }
 @end
 
-#pragma mark AppBundleURLProtocol
+#pragma mark UrlRemapURLProtocol
 
-@implementation AppBundleURLProtocol
+@implementation UrlRemapURLProtocol
 
 + (RouteParams*)getChosenParams:(NSString*)uriString forInjection:(BOOL)forInjection {
     for (RouteParams* param in gRerouteParams) {
@@ -154,7 +154,7 @@ static NSMutableArray* gRerouteParams = nil;
 + (BOOL)canInitWithRequest:(NSURLRequest*)request {
     NSURL* url = [request URL];
     NSString* urlString = [url absoluteString];
-    RouteParams* params = [AppBundleURLProtocol getChosenParams:urlString forInjection:NO];
+    RouteParams* params = [UrlRemapURLProtocol getChosenParams:urlString forInjection:NO];
     return params != nil;
 }
 
@@ -213,7 +213,7 @@ static NSMutableArray* gRerouteParams = nil;
     NSURLRequest* request = [self request];
     NSString* urlString = [[request URL] absoluteString];
     
-    RouteParams* params = [AppBundleURLProtocol getChosenParams:urlString forInjection:NO];
+    RouteParams* params = [UrlRemapURLProtocol getChosenParams:urlString forInjection:NO];
     NSRange wholeStringRange = NSMakeRange(0, [urlString length]);
     NSString* newUrlString = [params->_replaceRegex stringByReplacingMatchesInString:urlString options:0 range:wholeStringRange withTemplate:params->_replacer];
     NSURL* newUrl = [NSURL URLWithString:newUrlString];
