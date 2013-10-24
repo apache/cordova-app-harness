@@ -1,27 +1,43 @@
 cordova-app-harness
 ===================
 
-An wrapper app for Cordova that can download and run Cordova apps as well as
-Chrome packaged apps. This enables an edit &amp; refresh workflow. Also enables
-local development of apps without needing the Android / iOS SDK.
+An App that can download and run Cordova apps.
+
+Primary Goals:
+* Super-fast edit &amp; refresh workflow
+* Test on devices without needing platform SDKs
 
 ## Building the App Harness
-* Create a new CLI app:
+
+TLDR - using a Unix environment, run:
+
+    ./createproject.sh
+
+The manual way:
+
+1. Create a new CLI app:
 
         cordova create CordovaAppHarness com.yourcompany.appharness CordovaAppHarness
 
-* Add whichever platforms you want (currently only iOS and Android are supported by the underlying plugins: UrlRemap, zip):
+1. Add whichever platforms you want (currently only iOS and Android are supported by the underlying plugins: UrlRemap, zip):
 
         cordova platform add android ios
 
-* Add the `zip` ([](https://github.com/MobileChromeApps/zip)) and `UrlRemap` (bundled in this repo) plugins to the project (`cordova plugin add ...`)
-* If you want to be able to scan QR codes instead of typing URLs, add the `BarcodeScanner` ([](https://github.com/wildabeast/BarcodeScanner.git)) plugin.
+1. Add the following plugins:
+   * org.apache.cordova.UrlRemap (exists in the `UrlRemap` directory)
+   * com.phonegap.plugins.barcodescanner (optional - adds barcode scanning)
+   * org.apache.cordova.file
+   * org.apache.cordova.file-extras (exists in cordova-labs right now)
+   * org.apache.cordova.file-transfer
 
-* Clone the the `cordova-app-harness` repository.
-* Copy the `www` directory into the project:
+1. Clone the the `cordova-app-harness` repository.
+1. Copy the `www` directory into the project:
 
      rm -r CordovaAppHarness/www
      cp -a cordova-app-harness/www CordovaAppHarness/www
+     cordova prepare
+
+1. Add any plugins that your apps might need.
 
 ## Features
 * Install and test multiple applications.
