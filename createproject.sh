@@ -8,19 +8,19 @@ cd CordovaAppHarness
 
 
 echo '
-var cordova = require('../../cordova-cli/cordova');
+var cordova = require("../../cordova-cli/cordova");
 
 module.exports = function(grunt) {
   // Simple config to run jshint any time a file is added, changed or deleted
   grunt.initConfig({
     watch: {
-      files: ['www/**'],
-      tasks: ['prepare'],
+      files: ["www/**"],
+      tasks: ["prepare"],
     },
   });
-  grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks("grunt-contrib-watch");
 
-  grunt.registerTask('prepare', 'Runs cdv prepare', function() {
+  grunt.registerTask("prepare", "Runs cdv prepare", function() {
     var done = this.async();
     cordova.prepare(function(e) {
       done(!e);
@@ -28,7 +28,7 @@ module.exports = function(grunt) {
   });
 
   // Default task(s).
-  grunt.registerTask('default', ['watch']);
+  grunt.registerTask("default", ["watch"]);
 };
 ' > Gruntfile.js
 mkdir node_modules
@@ -45,6 +45,7 @@ $CORDOVA plugin add ../../../BarcodeScanner # https://github.com/wildabeast/Barc
 $CORDOVA plugin add ../../cordova-plugin-file
 $CORDOVA plugin add ../../cordova-plugin-file-transfer
 $CORDOVA plugin add ../../cordova-labs/file-extras
+$CORDOVA plugin add ../../cordova-plugin-device # Not used by harness, but used by mobile-spec.
 
 
 exit 0
