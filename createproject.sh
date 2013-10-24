@@ -1,11 +1,11 @@
 #!/bin/bash
 
 CORDOVA=${CORDOVA-cordova}
+PLATFORMS=${PLATFORMS-ios}
 
 set -x
-$CORDOVA create CordovaAppHarness org.apache.appharness CordovaAppHarness
+$CORDOVA create CordovaAppHarness org.apache.appharness CordovaAppHarness || exit 1
 cd CordovaAppHarness
-
 
 echo '
 var cordova = require("../../cordova-cli/cordova");
@@ -36,17 +36,21 @@ npm install grunt grunt-contrib-watch
 
 rm -r www
 ln -s ../www www
-$CORDOVA platform add ios
-../../cordova-ios/bin/update_cordova_subproject platforms/ios/CordovaAppHarness.xcodeproj
+
+$CORDOVA platform add $PLATFORMS || exit 1
+
+if [[ $PLATFORMS = *ios* ]]; then
+    ../../cordova-ios/bin/update_cordova_subproject platforms/ios/CordovaAppHarness.xcodeproj
+fi
 
 $CORDOVA plugin add ../UrlRemap
-$CORDOVA plugin add ../../../mobile_chrome_apps/zip
-$CORDOVA plugin add ../../../BarcodeScanner # https://github.com/wildabeast/BarcodeScanner.git
 $CORDOVA plugin add ../../cordova-plugin-file
 $CORDOVA plugin add ../../cordova-plugin-file-transfer
 $CORDOVA plugin add ../../cordova-labs/file-extras
+$CORDOVA plugin add https://github.com/wildabeast/BarcodeScanner.git # Optional
 $CORDOVA plugin add ../../cordova-plugin-device # Not used by harness, but used by mobile-spec.
-
+# Currently unused. Will want it for .cdvh .crx support.
+# $CORDOVA plugin add ../../../mobile_chrome_apps/zip
 
 exit 0
 
@@ -54,6 +58,4 @@ exit 0
 for l in ../cordova-plugin-* ; do
   $CORDOVA plugin add "$l"
 done
-
-
 
