@@ -24,18 +24,19 @@ The manual way:
         cordova platform add android ios
 
 1. Add the following plugins:
-   * org.apache.cordova.UrlRemap (exists in the `UrlRemap` directory)
-   * com.phonegap.plugins.barcodescanner (optional - adds barcode scanning)
-   * org.apache.cordova.file
-   * org.apache.cordova.file-extras (exists in cordova-labs right now)
-   * org.apache.cordova.file-transfer
+
+    * `org.apache.cordova.UrlRemap` (exists in the `UrlRemap` directory)
+    * `org.apache.cordova.file`
+    * `org.apache.cordova.file-extras` (exists in cordova-labs right now)
+    * `org.apache.cordova.file-transfer`
+    * `com.phonegap.plugins.barcodescanner` (optional - adds barcode scanning)
 
 1. Clone the the `cordova-app-harness` repository.
 1. Copy the `www` directory into the project:
 
-     rm -r CordovaAppHarness/www
-     cp -a cordova-app-harness/www CordovaAppHarness/www
-     cordova prepare
+        rm -r CordovaAppHarness/www
+        cp -a cordova-app-harness/www CordovaAppHarness/www
+        cordova prepare
 
 1. Add any plugins that your apps might need.
 
