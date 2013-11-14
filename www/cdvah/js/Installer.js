@@ -44,7 +44,7 @@
         Installer.prototype.updateApp = function(installPath) {
             var self = this;
             this.updatingStatus = 0;
-            return this._doUpdateApp(installPath)
+            return this.doUpdateApp(installPath)
             .then(function() {
                 self.installPath = installPath;
                 self.lastUpdated = new Date();
