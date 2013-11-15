@@ -50,7 +50,7 @@
             ResourcesLoader.xhrGet(url + '/' + platformId + '/project.json')
             .then(function(xhr) {
                 ret.projectJson = JSON.parse(xhr.responseText);
-                return ResourcesLoader.xhrGet(url + ret.projectJson['configPath']);
+                return ResourcesLoader.xhrGet(url + ret.projectJson.configPath);
             }, function(e) {
                 // If there was no :8000, try again with one appended.
                 if (!/:(\d)/.test(url)) {
@@ -68,7 +68,7 @@
                 deferred.resolve(ret);
             }, deferred.reject);
             return deferred.promise;
-        };
+        }
 
         // TODO: update should be more atomic. Maybe download to a new directory?
         ServeInstaller.prototype.doUpdateApp = function(installPath) {
@@ -134,7 +134,7 @@
                 }
                 return ResourcesLoader.ensureDirectoryExists(installPath + '/config.xml')
                 .then(function() {
-                    return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml)
+                    return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml);
                 })
                 .then(downloadNext);
             });

@@ -31,12 +31,30 @@
             });
         }
 
+        function getAppPlugins(cordovaPluginsFile) {
+            return ResourcesLoader.readFileContents(cordovaPluginsFile)
+            .then(function(contents) {
+                if (!contents) {
+                    throw new Error('cordova_plugins.js file is empty. Something has gone wrong with "cordova prepare".');
+                }
+
+                // Extract the JSON data from inside the JS file.
+                // It's between two magic comments created by Plugman.
+                var startIndex = contents.indexOf('TOP OF METADATA') + 16;
+                var endIndex = contents.indexOf('// BOTTOM OF METADATA');
+                var target = contents.substring(startIndex, endIndex);
+                var metadata = JSON.parse(target);
+                return metadata;
+            });
+        }
+
         function Installer(url, appId) {
             this.url = url;
             this.appId = appId || '';
             this.updatingStatus = null;
             this.lastUpdated = null;
             this.installPath = null;
+            this.plugins = {};
         }
 
         Installer.prototype.type = '';
@@ -49,8 +67,11 @@
                 self.installPath = installPath;
                 self.lastUpdated = new Date();
                 self.updatingStatus = null;
+                return getAppPlugins(installPath + '/www/cordova_plugins.js');
             }, null, function(status) {
                 self.updatingStatus = Math.round(status * 100);
+            }).then(function(metadata) {
+                self.plugins = metadata;
             });
         };
 

@@ -1,22 +1,22 @@
 (function() {
     "use strict";
     /* global myApp */
-    myApp.factory("AppsService", ["$q", "ResourcesLoader", "INSTALL_DIRECTORY", "APPS_JSON", function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON) {
+    myApp.factory("AppsService", ["$q", "ResourcesLoader", "INSTALL_DIRECTORY", "APPS_JSON", "pluginMetadata", function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, pluginMetadata) {
 
-        var platformId = cordova.platformId;
         // Map of type -> installer.
         var _installerFactories = {};
         // Array of installer objects.
         var _installers = null;
 
         function createInstallHandlersFromJson(json) {
-            var appList = json['appList'] || [];
+            var appList = json.appList || [];
             var ret = [];
             for (var i = 0, entry; entry = appList[i]; ++i) {
-                var factory = _installerFactories[entry['appType']];
-                var installer = factory.createFromJson(entry['appUrl'], entry['appId']);
-                installer.lastUpdated = entry['lastUpdated'] && new Date(entry['lastUpdated']);
-                installer.installPath = entry['installPath'];
+                var factory = _installerFactories[entry.appType];
+                var installer = factory.createFromJson(entry.appUrl, entry.appId);
+                installer.lastUpdated = entry.lastUpdated && new Date(entry.lastUpdated);
+                installer.installPath = entry.installPath;
+                installer.plugins = entry.plugins;
                 ret.push(installer);
             }
             return ret;
@@ -49,14 +49,14 @@
             var appsJson = {
                 'appList': []
             };
-            var appList = appsJson['appList'];
             for (var i = 0, installer; installer = _installers[i]; ++i) {
-                appList.push({
+                appsJson.appList.push({
                     'appId' : installer.appId,
                     'appType' : installer.type,
                     'appUrl' : installer.url,
                     'lastUpdated': installer.lastUpdated && +installer.lastUpdated,
-                    'installPath': installer.installPath
+                    'installPath': installer.installPath,
+                    'plugins': installer.plugins
                 });
             }
 
@@ -96,7 +96,7 @@
                 return installer.deleteFiles()
                 .then(function() {
                     _installers.splice(_installers.indexOf(installer), 1);
-                    return writeAppsJson()
+                    return writeAppsJson();
                 });
             },
 
