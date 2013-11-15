@@ -4,7 +4,7 @@
     var ASSET_MANIFEST_PATH = 'installmanifest.json';
 
     /* global myApp */
-    myApp.run(["$q", "Installer", "AppsService", "ResourcesLoader", function($q, Installer, AppsService, ResourcesLoader) {
+    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', function($q, Installer, AppsService, ResourcesLoader) {
         var platformId = cordova.platformId;
 
         function ServeInstaller(url, appId) {
@@ -154,7 +154,7 @@
             });
         }
 
-        function createFromJson(url, appId, installPath) {
+        function createFromJson(url, appId) {
             return new ServeInstaller(url, appId);
         }
 

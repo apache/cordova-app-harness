@@ -1,8 +1,8 @@
 (function() {
-    "use strict";
+    'use strict';
 
     /* global myApp */
-    myApp.factory("ResourcesLoader", ["$q", "$window", function($q, $window) {
+    myApp.factory('ResourcesLoader', ['$q', '$window', function($q, $window) {
         var rootDir;
 
         function initialiseFileSystem() {
@@ -15,7 +15,7 @@
             var deferred = $q.defer();
 
             var downloadFail = function(error) {
-                var str = "There was an error while downloading the file " + JSON.stringify(error);
+                var str = 'There was an error while downloading the file ' + JSON.stringify(error);
                 deferred.reject(new Error(str));
             };
 
@@ -29,12 +29,12 @@
         }
 
         function trim(str) {
-            return str && str.replace(/^\s+|\s+$/g, "");
+            return str && str.replace(/^\s+|\s+$/g, '');
         }
 
         function fixFilePath(path) {
-            if(path && path.indexOf("file://") === 0) {
-                path = path.substring("file://".length);
+            if(path && path.indexOf('file://') === 0) {
+                path = path.substring('file://'.length);
             }
             return path;
         }
@@ -52,7 +52,7 @@
             var deferred = $q.defer();
 
             var errorWhileGettingDirectoryEntry = function(error) {
-                var str = "There was an error while getting the directory entry for directory " + directoryName + " " + JSON.stringify(error);
+                var str = 'There was an error while getting the directory entry for directory ' + directoryName + ' ' + JSON.stringify(error);
                 deferred.reject(new Error(str));
             };
             var success = function(directoryEntry) {
@@ -67,7 +67,7 @@
             var deferred = $q.defer();
 
             var errorWhileGettingFileEntry = function(error) {
-                var str = "There was an error while getting the file entry for file " + fileName + " " + JSON.stringify(error);
+                var str = 'There was an error while getting the file entry for file ' + fileName + ' ' + JSON.stringify(error);
                 deferred.reject(new Error(str));
             };
             var success = function(fileEntry) {
@@ -85,7 +85,7 @@
                 var deferred = $q.defer();
 
                 var errorWhileGettingFile = function(error) {
-                    var str = "There was an error while getting the file for file " + fileName + " " + JSON.stringify(error);
+                    var str = 'There was an error while getting the file for file ' + fileName + ' ' + JSON.stringify(error);
                     deferred.reject(new Error(str));
                 };
 
@@ -100,13 +100,13 @@
 
         function getPathSegments(path){
             //truncate leading and trailing slashes
-            if(path.charAt(0) === "/"){
+            if(path.charAt(0) === '/'){
                 path = path.substring(1);
             }
-            if(path.charAt(path.length - 1) === "/"){
+            if(path.charAt(path.length - 1) === '/'){
                 path = path.substring(0, path.length - 1);
             }
-            var segments = path.split("/");
+            var segments = path.split('/');
             return segments;
         }
 
@@ -118,7 +118,7 @@
             };
 
             var failedToGetDirEntry = function(error) {
-                var str = "There was an error checking the directory: " + directory + " " + JSON.stringify(error);
+                var str = 'There was an error checking the directory: ' + directory + ' ' + JSON.stringify(error);
                 deferred.reject(new Error(str));
             };
 
@@ -130,10 +130,10 @@
             directory = truncateToDirectoryPath(directory);
             directory = fixFilePath(directory);
             var segments = getPathSegments(directory);
-            var currentDir = directory.charAt(0) === "/"? "/" : "";
+            var currentDir = directory.charAt(0) === '/'? '/' : '';
             var promiseArr = [];
             while(segments.length !== 0) {
-                currentDir +=  segments.shift() + "/";
+                currentDir +=  segments.shift() + '/';
                 promiseArr.push(ensureSingleDirectoryExists(currentDir));
             }
             return $q.all(promiseArr)
@@ -148,7 +148,7 @@
                 var deferred = $q.defer();
 
                 var errorGettingFileWriter = function(error) {
-                    var str = "There was an error writing the file." + JSON.stringify(error);
+                    var str = 'There was an error writing the file.' + JSON.stringify(error);
                     deferred.reject(new Error(str));
                 };
 
@@ -175,11 +175,11 @@
                     if(xhr.status === 200) {
                         deferred.resolve(xhr);
                     } else {
-                        deferred.reject(new Error("XHR return status: " + xhr.status + " for url: " + url));
+                        deferred.reject(new Error('XHR return status: ' + xhr.status + ' for url: ' + url));
                     }
                 }
             };
-            xhr.open("GET", url, true);
+            xhr.open('GET', url, true);
             xhr.send();
             return deferred.promise;
         }
@@ -212,7 +212,7 @@
             readFileContents : function(fileName) {
                 var scheme = getScheme(fileName);
                 // assume file scheme by default
-                if (!scheme || scheme === "file") {
+                if (!scheme || scheme === 'file') {
                     return initialiseFileSystem()
                     .then(function(){
                         return getFile(fileName);
@@ -232,13 +232,13 @@
 
                         return deferred.promise;
                     });
-                } else if(scheme === "http" || scheme === "https") {
+                } else if(scheme === 'http' || scheme === 'https') {
                     return xhrGet(fileName)
                     .then(function(xhr){
                         return xhr.responseText;
                     });
                 }
-                throw new Error("Cannot read file " + fileName);
+                throw new Error('Cannot read file ' + fileName);
             },
 
             //returns a promise with the json contents of the file
@@ -260,10 +260,10 @@
                 .then(function(){
                     var scheme = getScheme(fileName);
                     // assume file scheme by default
-                    if(!scheme || scheme === "file") {
+                    if(!scheme || scheme === 'file') {
                         return writeToFile(fileName, contents, false /* append */);
                     } else {
-                        throw new Error("Cannot write to " + fileName);
+                        throw new Error('Cannot write to ' + fileName);
                     }
                 });
             },
@@ -284,7 +284,7 @@
                 .then(function(dirEntry){
                     var deferred = $q.defer();
                     var failedToDeleteDirectory = function(error) {
-                        var str = "There was an error deleting the directory: " + directoryName + " " + JSON.stringify(error);
+                        var str = 'There was an error deleting the directory: ' + directoryName + ' ' + JSON.stringify(error);
                         deferred.reject(new Error(str));
                     };
                     dirEntry.removeRecursively(deferred.resolve, failedToDeleteDirectory);
@@ -302,7 +302,7 @@
 
                     var onZipDone = function(returnCode) {
                         if(returnCode !== 0) {
-                            deferred.reject(new Error("Something went wrong during the unzipping of: " + fileName));
+                            deferred.reject(new Error('Something went wrong during the unzipping of: ' + fileName));
                         } else {
                             deferred.resolve();
                         }

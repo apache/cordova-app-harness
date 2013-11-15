@@ -1,14 +1,14 @@
 (function(){
-    "use strict";
+    'use strict';
     /* global myApp */
-    myApp.run(["$q", "AppsService", "ResourcesLoader", "ContextMenuInjectScript", function($q, AppsService, ResourcesLoader, ContextMenuInjectScript){
+    myApp.run(['$q', 'AppsService', 'ResourcesLoader', 'ContextMenuInjectScript', function($q, AppsService, ResourcesLoader, ContextMenuInjectScript){
 
-        var platformId = cordova.require("cordova/platform").id;
+        var platformId = cordova.require('cordova/platform').id;
 
         function copyFile(startUrl, targetLocation){
             /************ Begin Work around for File system bug ************/
-            if(targetLocation.indexOf("file://") === 0) {
-                targetLocation = targetLocation.substring("file://".length);
+            if(targetLocation.indexOf('file://') === 0) {
+                targetLocation = targetLocation.substring('file://'.length);
             }
             /************ End Work around for File system bug **************/
             return ResourcesLoader.xhrGet(startUrl)
@@ -20,12 +20,12 @@
             });
         }
 
-        AppsService.registerPackageHandler("cdvh", {
+        AppsService.registerPackageHandler('cdvh', {
             extractPackageToDirectory : function (appName, fileName, outputDirectory){
                 var dataToAppend = ContextMenuInjectScript.getInjectString(appName);
-                var platformDirectory = outputDirectory + "/" + platformId + "/www/";
-                var cordovaFile = platformDirectory + "cordova.js";
-                var pluginsFile = platformDirectory + "cordova_plugins.js";
+                var platformDirectory = outputDirectory + '/' + platformId + '/www/';
+                var cordovaFile = platformDirectory + 'cordova.js';
+                var pluginsFile = platformDirectory + 'cordova_plugins.js';
 
                 // We need to
                 // 1) Modify the cordova.js file
@@ -39,10 +39,10 @@
                     if(fileExists){
                         return $q.all([
                             ResourcesLoader.appendFileContents(cordovaFile, dataToAppend),
-                            copyFile("app-bundle:///cdvh_files/www/cordova_plugins.js", pluginsFile)
+                            copyFile('app-bundle:///cdvh_files/www/cordova_plugins.js', pluginsFile)
                         ]);
                     } else {
-                        throw new Error("The package does not seem to have the files required for the platform: " + platformId);
+                        throw new Error('The package does not seem to have the files required for the platform: ' + platformId);
                     }
                 });
             }

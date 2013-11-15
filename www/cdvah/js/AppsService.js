@@ -1,7 +1,7 @@
 (function() {
-    "use strict";
+    'use strict';
     /* global myApp */
-    myApp.factory("AppsService", ["$q", "ResourcesLoader", "INSTALL_DIRECTORY", "APPS_JSON", "pluginMetadata", function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, pluginMetadata) {
+    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'pluginMetadata', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, pluginMetadata) {
 
         // Map of type -> installer.
         var _installerFactories = {};
@@ -11,7 +11,8 @@
         function createInstallHandlersFromJson(json) {
             var appList = json.appList || [];
             var ret = [];
-            for (var i = 0, entry; entry = appList[i]; ++i) {
+            for (var i = 0; i < appList.length; i++) {
+                var entry = appList[i];
                 var factory = _installerFactories[entry.appType];
                 var installer = factory.createFromJson(entry.appUrl, entry.appId);
                 installer.lastUpdated = entry.lastUpdated && new Date(entry.lastUpdated);
@@ -49,7 +50,8 @@
             var appsJson = {
                 'appList': []
             };
-            for (var i = 0, installer; installer = _installers[i]; ++i) {
+            for (var i = 0; i < _installers.length; ++i) {
+                var installer = _installers[i];
                 appsJson.appList.push({
                     'appId' : installer.appId,
                     'appType' : installer.type,

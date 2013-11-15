@@ -1,8 +1,8 @@
 (function(){
-    "use strict";
+    'use strict';
 
     /* global myApp */
-    myApp.controller("AddCtrl", ["$q", "notifier", "$location", "$rootScope", "$scope", "$window", "AppsService", function($q, notifier, $location, $rootScope, $scope, $window, AppsService) {
+    myApp.controller('AddCtrl', ['$q', 'notifier', '$location', '$rootScope', '$scope', '$window', 'AppsService', function($q, notifier, $location, $rootScope, $scope, $window, AppsService) {
 
         $rootScope.appTitle = 'Add App';
 
@@ -30,7 +30,7 @@
         };
 
         // True if the optional barcodescanner plugin is installed.
-        $scope.qr_enabled = !!(cordova.plugins && cordova.plugins.barcodeScanner);
+        $scope.qrEnabled = !!(cordova.plugins && cordova.plugins.barcodeScanner);
 
         // Scans a QR code, placing the URL into the currently selected of source and pattern.
         $scope.fetchQR = function() {

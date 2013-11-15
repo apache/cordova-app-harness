@@ -9,7 +9,7 @@
       <label>Enter server URL
           <div><input class="topcoat-text-input" style="width:100%;-webkit-box-sizing:border-box" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off"></div>
       </label>
-          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qr_enabled">QR Code</button>
+          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">QR Code</button>
           <select ng-model="appData.serveTemplateValue" ng-change="selectTemplate()">
               <option value="">Template</option>
               <option value="localhost:8000">localhost</option>
@@ -21,7 +21,7 @@
       <label>Enter URL<br>
           <input class="topcoat-text-input" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off">
       </label>
-          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qr_enabled">Scan QR Code</button><br>
+          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">Scan QR Code</button><br>
     </div>
     <div class="buttons">
         <input type="submit" value="Add" class="topcoat-button--cta"></button>

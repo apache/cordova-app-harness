@@ -1,7 +1,7 @@
 (function() {
-    "use strict";
+    'use strict';
     /* global myApp */
-    myApp.factory("UrlRemap", ['$q', '$window', function($q, $window) {
+    myApp.factory('UrlRemap', ['$q', function($q) {
 
         // URI aliasing : the ability to launch an app in the harness, query the document.location and get the same location as would have been got if you run the app separately
         // Without URI aliasing, document.location in the harness would give something like file:///APP_HARNESS_INSTALLED_APPS_LOCATION/www/index.html
@@ -12,7 +12,7 @@
                 if (succeded){
                     deferred.resolve();
                 } else {
-                    deferred.reject(new Error("Unable to set up uri aliasing"));
+                    deferred.reject(new Error('Unable to set up uri aliasing'));
                 }
             });
             return deferred.promise;
@@ -44,7 +44,8 @@
             aliasUri: aliasUri,
             reset: reset,
             setResetUrl: setResetUrl,
-            injectJsForUrl: injectJsForUrl
+            injectJsForUrl: injectJsForUrl,
+            escapeRegExp: escapeRegExp
         };
 
     }]);

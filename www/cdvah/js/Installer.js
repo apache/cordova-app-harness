@@ -1,24 +1,24 @@
 (function(){
-    "use strict";
+    'use strict';
     /* global myApp */
-    myApp.factory("Installer", ["$q", "UrlRemap", "ResourcesLoader", "ContextMenuInjectScript", function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript) {
+    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'ContextMenuInjectScript', function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript) {
 
         function getAppStartPageFromConfig(configFile) {
             return ResourcesLoader.readFileContents(configFile)
             .then(function(contents) {
                 if(!contents) {
-                    throw new Error("Config file is empty. Unable to find a start page for your app.");
+                    throw new Error('Config file is empty. Unable to find a start page for your app.');
                 } else {
                     var startLocation = 'index.html';
                     var parser = new DOMParser();
-                    var xmlDoc = parser.parseFromString(contents, "text/xml");
-                    var els = xmlDoc.getElementsByTagName("content");
+                    var xmlDoc = parser.parseFromString(contents, 'text/xml');
+                    var els = xmlDoc.getElementsByTagName('content');
 
                     if(els.length > 0) {
-                        // go through all "content" elements looking for the "src" attribute in reverse order
+                        // go through all 'content' elements looking for the 'src' attribute in reverse order
                         for(var i = els.length - 1; i >= 0; i--) {
                             var el = els[i];
-                            var srcValue = el.getAttribute("src");
+                            var srcValue = el.getAttribute('src');
                             if (srcValue) {
                                 startLocation = srcValue;
                                 break;
@@ -104,7 +104,7 @@
                 // The work-around (using loadData:) breaks history.back().
                 // So, for file:// start pages, we just point to the install location.
                 if (cordova.platformId == 'ios') {
-                    startLocation = startLocation.replace(harnessDir, installUrl + '/www')
+                    startLocation = startLocation.replace(harnessDir, installUrl + '/www');
                 }
 
                 // Inject the context menu script for all pages except the harness menu.

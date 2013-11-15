@@ -1,14 +1,14 @@
 (function(){
-    "use strict";
+    'use strict';
     /* global myApp */
-    myApp.run(["$q", "AppsService", "ResourcesLoader", "ContextMenuInjectScript", function($q, AppsService, ResourcesLoader, ContextMenuInjectScript){
+    myApp.run(['$q', 'AppsService', 'ResourcesLoader', 'ContextMenuInjectScript', function($q, AppsService, ResourcesLoader, ContextMenuInjectScript){
 
-        var platformId = cordova.require("cordova/platform").id;
+        var platformId = cordova.require('cordova/platform').id;
 
         function copyFile(startUrl, targetLocation){
             /************ Begin Work around for File system bug ************/
-            if(targetLocation.indexOf("file://") === 0) {
-                targetLocation = targetLocation.substring("file://".length);
+            if(targetLocation.indexOf('file://') === 0) {
+                targetLocation = targetLocation.substring('file://'.length);
             }
             /************ End Work around for File system bug **************/
             return ResourcesLoader.xhrGet(startUrl)
@@ -20,13 +20,13 @@
             });
         }
 
-        AppsService.registerPackageHandler("crx", {
+        AppsService.registerPackageHandler('crx', {
             extractPackageToDirectory : function (appName, fileName, outputDirectory){
                 console.log('extracting the crx');
                 var dataToAppend = ContextMenuInjectScript.getInjectString(appName);
-                var platformDirectory = outputDirectory + "/" + platformId + "/";
-                var platformWWWDirectory = platformDirectory + "www/";
-                var cordovaFile = platformWWWDirectory + "cordova.js";
+                var platformDirectory = outputDirectory + '/' + platformId + '/';
+                var platformWWWDirectory = platformDirectory + 'www/';
+                var cordovaFile = platformWWWDirectory + 'cordova.js';
 
                 // We need to
                 // 1) Copy over the files required to convert a crx to a normal web app
@@ -39,18 +39,18 @@
                     }
 
                     var copies = [
-                        copyFile("app-bundle:///cordova.js", cordovaFile),
-                        copyFile("app-bundle:///crx_files/config." + platformId + ".xml", platformDirectory + "config.xml"),
-                        copyFile("app-bundle:///cordova_plugins.js", platformWWWDirectory + "cordova_plugins.js"),
-                        copyFile("app-bundle:///chromeapp.html", platformWWWDirectory + "chromeapp.html"),
-                        copyFile("app-bundle:///chromeappstyles.css", platformWWWDirectory + "chromeappstyles.css"),
-                        copyFile("app-bundle:///chromebgpage.html", platformWWWDirectory + "chromebgpage.html"),
-                        copyFile("app-bundle:///cdvah_js/ContextMenu.js", platformWWWDirectory + "ContextMenu.js")
+                        copyFile('app-bundle:///cordova.js', cordovaFile),
+                        copyFile('app-bundle:///crx_files/config.' + platformId + '.xml', platformDirectory + 'config.xml'),
+                        copyFile('app-bundle:///cordova_plugins.js', platformWWWDirectory + 'cordova_plugins.js'),
+                        copyFile('app-bundle:///chromeapp.html', platformWWWDirectory + 'chromeapp.html'),
+                        copyFile('app-bundle:///chromeappstyles.css', platformWWWDirectory + 'chromeappstyles.css'),
+                        copyFile('app-bundle:///chromebgpage.html', platformWWWDirectory + 'chromebgpage.html'),
+                        copyFile('app-bundle:///cdvah_js/ContextMenu.js', platformWWWDirectory + 'ContextMenu.js')
                     ];
 
                     for(var i = 0; i < plugins.length; i++) {
                         console.log('copying ' + plugins[i].file);
-                        copies.push(copyFile("app-bundle:///" + plugins[i].file, platformWWWDirectory + plugins[i].file));
+                        copies.push(copyFile('app-bundle:///' + plugins[i].file, platformWWWDirectory + plugins[i].file));
                     }
 
                     return $q.all(copies);
