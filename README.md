@@ -62,6 +62,7 @@ The manual way:
 ## Major Unimplemented In-App Menu Features
 * Inject a JSConsole script tag
 * JSHybugger support
+* Simulator-friendly menu gesture (shake gesture?)
 
 ## Test by using `cordova serve`
 * Go to Cordova project of the app you want to test in a terminal and run.
