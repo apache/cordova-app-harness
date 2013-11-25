@@ -164,17 +164,17 @@ static NSMutableArray* gRerouteParams = nil;
 
 - (void)issueNotFoundResponse {
     NSURL* url = [[self request] URL];
-    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
+    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{ @"Access-Control-Allow-Origin": @"*" }];
     [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
     [[self client] URLProtocolDidFinishLoading:self];
 }
 
-- (void)issueNSURLResponseForUrl:(NSURL*)url {
+- (void)issueNSURLResponseForUrl:(NSURL*)url origUrl:(NSURL*)origUrl {
     if ([[url scheme] isEqualToString:@"file"]) {
         NSString* path = [url path];
         FILE* fp = fopen([path UTF8String], "r");
         if (fp) {
-            NSURLResponse *response = [[NSURLResponse alloc] initWithURL:url MIMEType:@"text/html" expectedContentLength:-1 textEncodingName:@"utf8"];//[[NSHTTPURLResponse alloc] initWithURL:url statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
+            NSURLResponse *response = [[NSURLResponse alloc] initWithURL:origUrl MIMEType:@"text/html" expectedContentLength:-1 textEncodingName:@"utf8"];
             [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
 
             char* buf = malloc(32768);
@@ -212,7 +212,7 @@ static NSMutableArray* gRerouteParams = nil;
 - (void)startLoading {
     NSURLRequest* request = [self request];
     NSString* urlString = [[request URL] absoluteString];
-    
+
     RouteParams* params = [UrlRemapURLProtocol getChosenParams:urlString forInjection:NO];
     NSRange wholeStringRange = NSMakeRange(0, [urlString length]);
     NSString* newUrlString = [params->_replaceRegex stringByReplacingMatchesInString:urlString options:0 range:wholeStringRange withTemplate:params->_replacer];
@@ -222,13 +222,13 @@ static NSMutableArray* gRerouteParams = nil;
     
     // iOS 6+ just gives "Frame load interrupted" when you try and feed it data via a URLProtocol.
     // http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup/19432303
+    NSURL* pageUrl = params->_redirectToReplacedUrl ? newUrl : [request URL];
     if (isTopLevelNavigation) {
-        NSURL* pageUrl = params->_redirectToReplacedUrl ? newUrl : [request URL];
         [self issueTopLevelRedirect:newUrl origURL:pageUrl];
     } else if(params->_redirectToReplacedUrl) {
         [self issueRedirectResponseForUrl:newUrl];
     } else {
-        [self issueNSURLResponseForUrl:newUrl];
+        [self issueNSURLResponseForUrl:newUrl origUrl:pageUrl];
     }
 }
 

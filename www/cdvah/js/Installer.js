@@ -114,8 +114,16 @@
                 // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
                 UrlRemap.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
                 UrlRemap.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
-                var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
-                UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+                if (startLocation.indexOf('chrome-extension://') === 0) {
+                    var pluginsUrl = 'chrome-extension://[^\/]+/plugins/';
+                    UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+                    var chromeExtensionUrl = 'chrome-extension://[^\/]+/(?!!gap_exec)';
+                    // Add the extra mapping for chrome-extension://aaaa... to point to the install location.
+                    UrlRemap.aliasUri('^' + chromeExtensionUrl, '^' + chromeExtensionUrl, installUrl + '/www/', false /* redirect */);
+                } else {
+                    var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
+                    UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+                }
                 // Make any references to www/ point to the app's install location.
                 UrlRemap.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
                 // Set-up app-harness: scheme to point at the harness.
