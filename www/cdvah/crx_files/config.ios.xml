@@ -88,7 +88,6 @@
     <feature name="Zip">
         <param name="ios-package" value="Zip" />
     </feature>
-    <content src="chromeapp.html" />
     <access origin="*" />
     <access origin="chrome-extension://*" />
     <access origin="cdv-app-harness://*" />

@@ -172,7 +172,7 @@
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
-                    if(xhr.status === 200) {
+                    if(xhr.status === 200 || xhr.status === 0) {
                         deferred.resolve(xhr);
                     } else {
                         deferred.reject(new Error('XHR return status: ' + xhr.status + ' for url: ' + url));

@@ -1,8 +1,9 @@
-<form name="addForm" ng-controller="AddCtrl" ng-submit="addApp()">
+<form name="addForm" ng-controller="AddCtrl">
     <label>How to retrieve the app:<br>
         <select ng-model="appData.installerType">
             <option value="serve">cordova serve</option>
             <option value="cdvh">.cdvh file</option>
+            <option value="crx">.crx file</option>
         </select>
     </label>
     <div ng-show="appData.installerType == 'serve'">
@@ -17,14 +18,14 @@
               <option value="KEY.localtunnel.com">LocalTunnel</option>
           </select>
     </div>
-    <div ng-show="appData.installerType == 'cdvh'">
+    <div ng-show="appData.installerType != 'serve'">
       <label>Enter URL<br>
           <input class="topcoat-text-input" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off">
       </label>
           <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">Scan QR Code</button><br>
     </div>
     <div class="buttons">
-        <input type="submit" value="Add" class="topcoat-button--cta"></button>
+        <button ng-click="addApp()" class="topcoat-button--cta">Add</button>
         <a href="#/"><button class="topcoat-button" ng-click="back()">Back</button></a>
     </div>
 </form>

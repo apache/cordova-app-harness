@@ -67,7 +67,12 @@
                 self.installPath = installPath;
                 self.lastUpdated = new Date();
                 self.updatingStatus = null;
-                return getAppPlugins(installPath + '/www/cordova_plugins.js');
+                if (self.type === 'crx') {
+                    // No cordova_plugins.js to read for .crx-based apps.
+                    return $q.when({});
+                } else {
+                    return getAppPlugins(installPath + '/www/cordova_plugins.js');
+                }
             }, null, function(status) {
                 self.updatingStatus = Math.round(status * 100);
             }).then(function(metadata) {
@@ -90,6 +95,8 @@
                 throw new Error('App ' + appId + ' requires an update');
             }
             var configLocation = installPath + '/config.xml';
+
+            var type = this.type;
 
             return getAppStartPageFromConfig(configLocation)
             .then(function(rawStartLocation) {
@@ -115,11 +122,17 @@
                 UrlRemap.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
                 UrlRemap.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
                 if (startLocation.indexOf('chrome-extension://') === 0) {
-                    var pluginsUrl = 'chrome-extension://[^\/]+/plugins/';
+                    var pluginsUrl = 'chrome-extension://[^/]+/plugins/';
                     UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+
+                    var bootstrapUrl = 'chrome-extension://[^/]+/chrome(?:app\\.html|bgpage\\.html|appstyles\\.css)';
+                    UrlRemap.aliasUri('^' + bootstrapUrl, '^chrome-extension://[^/]+/', harnessDir + '/', false /* redirect */);
+
                     var chromeExtensionUrl = 'chrome-extension://[^\/]+/(?!!gap_exec)';
                     // Add the extra mapping for chrome-extension://aaaa... to point to the install location.
-                    UrlRemap.aliasUri('^' + chromeExtensionUrl, '^' + chromeExtensionUrl, installUrl + '/www/', false /* redirect */);
+                    // We want the /www/ for Cordova apps, and no /www/ for CRX apps.
+                    var installSubdir = type == 'crx' ? '/' : '/www/';
+                    UrlRemap.aliasUri('^' + chromeExtensionUrl, '^' + chromeExtensionUrl, installUrl + installSubdir, false /* redirect */);
                 } else {
                     var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
                     UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
