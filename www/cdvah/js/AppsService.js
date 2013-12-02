@@ -17,7 +17,7 @@
                 var installer = factory.createFromJson(entry.appUrl, entry.appId);
                 installer.lastUpdated = entry.lastUpdated && new Date(entry.lastUpdated);
                 installer.installPath = entry.installPath;
-                installer.plugins = entry.plugins;
+                installer.plugins = pluginMetadata.process(entry.plugins);
                 ret.push(installer);
             }
             return ret;
