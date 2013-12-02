@@ -1,7 +1,7 @@
 (function() {
     'use strict';
     /* global myApp */
-    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'pluginMetadata', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, pluginMetadata) {
+    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'PluginMetadata', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, PluginMetadata) {
 
         // Map of type -> installer.
         var _installerFactories = {};
@@ -17,7 +17,7 @@
                 var installer = factory.createFromJson(entry.appUrl, entry.appId);
                 installer.lastUpdated = entry.lastUpdated && new Date(entry.lastUpdated);
                 installer.installPath = entry.installPath;
-                installer.plugins = pluginMetadata.process(entry.plugins);
+                installer.plugins = PluginMetadata.process(entry.plugins);
                 ret.push(installer);
             }
             return ret;
@@ -58,7 +58,7 @@
                     'appUrl' : installer.url,
                     'lastUpdated': installer.lastUpdated && +installer.lastUpdated,
                     'installPath': installer.installPath,
-                    'plugins': installer.plugins
+                    'plugins': installer.plugins.raw
                 });
             }
 

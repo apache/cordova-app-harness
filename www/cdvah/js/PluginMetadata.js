@@ -1,7 +1,7 @@
 (function() {
     'use strict';
     /* global myApp */
-    myApp.factory('pluginMetadata', function() {
+    myApp.factory('PluginMetadata', function() {
         var harnessPlugins = cordova.require('cordova/plugin_list').metadata;
 
         // Returns -1, (a > b), 0 (a = b), or 1 (a < b).
@@ -23,11 +23,17 @@
             // Returns an object with plugin matching data.
             process: function(childPlugins) {
                 var results = {
+                    raw: childPlugins,
                     matched: [],
                     missing: [],
                     newer: [], // Those dependencies which are newer in the child than the harness.
                     older: []  // And those which are older in the child than the harness.
                 };
+
+                if (!childPlugins) {
+                    results.raw = {};
+                    return results;
+                }
 
                 Object.keys(childPlugins).forEach(function(plugin) {
                     if (!harnessPlugins[plugin]) {
@@ -46,6 +52,8 @@
                         }
                     }
                 });
+
+                return results;
             }
         };
     });

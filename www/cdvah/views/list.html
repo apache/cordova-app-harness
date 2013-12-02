@@ -6,6 +6,7 @@
             <div>{{app.url}}</div>
             <div ng-show="app.updatingStatus === null">Last updated: {{app.lastUpdated || 'never'}}</div>
             <div ng-show="app.updatingStatus !== null">Update in progress: {{app.updatingStatus}}%</div>
+            <div>Plugins: {{ app.plugins.missing.length }} missing, {{ app.plugins.newer.length + app.plugins.older.length }} differ</div>
             <div>{{ app.plugins }}</div>
             <button ng-click="launchApp(app)">Launch</button>
             <button ng-click="updateApp(app)">Update</button>

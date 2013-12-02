@@ -1,7 +1,7 @@
 (function(){
     'use strict';
     /* global myApp */
-    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'ContextMenuInjectScript', function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript) {
+    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'ContextMenuInjectScript', 'PluginMetadata', function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript, PluginMetadata) {
 
         function getAppStartPageFromConfig(configFile) {
             return ResourcesLoader.readFileContents(configFile)
@@ -76,7 +76,7 @@
             }, null, function(status) {
                 self.updatingStatus = Math.round(status * 100);
             }).then(function(metadata) {
-                self.plugins = metadata;
+                self.plugins = PluginMetadata.process(metadata);
             });
         };
 
