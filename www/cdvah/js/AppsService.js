@@ -94,6 +94,15 @@
                 });
             },
 
+            editApp : function(oldId, installer) {
+                _installers.forEach(function(inst, i) {
+                    if (inst.appId == oldId) {
+                        _installers.splice(i, 1, installer);
+                    }
+                });
+                return writeAppsJson();
+            },
+
             uninstallApp : function(installer) {
                 return installer.deleteFiles()
                 .then(function() {
@@ -111,6 +120,7 @@
                 return installer.updateApp(installPath)
                 .then(writeAppsJson);
             },
+
 
             registerInstallerFactory : function(installerFactory) {
                 _installerFactories[installerFactory.type] = installerFactory;

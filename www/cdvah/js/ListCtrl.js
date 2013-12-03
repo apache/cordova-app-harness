@@ -87,6 +87,11 @@
             }
         };
 
+        $scope.editApp = function(app, event) {
+            event.stopPropagation();
+            $location.path('/edit/' + app.appId);
+        };
+
         $scope.showDetails = function(index) {
             $location.path('/details/' + index);
         };

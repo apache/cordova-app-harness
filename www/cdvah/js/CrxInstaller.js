@@ -1,7 +1,7 @@
 (function(){
     'use strict';
     /* global myApp */
-    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', function($q, Installer, AppsService, ResourcesLoader){
+    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'UrlCleanup', function($q, Installer, AppsService, ResourcesLoader, UrlCleanup){
 
         var platformId = cordova.require('cordova/platform').id;
 
@@ -38,10 +38,7 @@
         AppsService.registerInstallerFactory({
             type: 'crx',
             createFromUrl: function(url) {
-                // Clean up the URL.
-                if (!/^https?:/.test(url)) {
-                    url = 'http://' + url;
-                }
+                url = UrlCleanup(url);
 
                 // TODO: Fix the missing appId, somehow.
                 return $q.when(new CrxInstaller(url, 'New Chrome App'));

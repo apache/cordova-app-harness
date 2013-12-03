@@ -2,31 +2,82 @@
     'use strict';
 
     /* global myApp */
-    myApp.controller('AddCtrl', ['$q', 'notifier', '$location', '$rootScope', '$scope', '$window', 'AppsService', function($q, notifier, $location, $rootScope, $scope, $window, AppsService) {
+    myApp.controller('AddCtrl', ['$q', 'notifier', '$location', '$rootScope', '$scope', '$window', '$routeParams', 'AppsService', 'UrlCleanup', function($q, notifier, $location, $rootScope, $scope, $window, $routeParams, AppsService, UrlCleanup) {
+        $scope.editing = $routeParams.appId;
+        var editingApp;
 
-        $rootScope.appTitle = 'Add App';
+        $rootScope.appTitle = $scope.editing ? 'Edit App' : 'Add App';
 
-        $scope.appData = {
-            appUrl : '',
-            installerType: 'serve'
-        };
+        if ($scope.editing) {
+            AppsService.getAppList().then(function(appList) {
+                appList.forEach(function(app) {
+                    if (app.appId == $scope.editing) {
+                        editingApp = app;
+                        $scope.editingApp = app;
+                        $scope.appData = {
+                            appId: app.appId,
+                            appUrl: app.url,
+                            installerType: app.type
+                        };
+                    }
+                });
+                if (!$scope.appData) {
+                    var err = 'Could not find app to edit';
+                    console.error(err);
+                    notifier.error(err);
+                }
+            });
+        } else {
+            $scope.appData = {
+                appUrl : '',
+                installerType: 'serve'
+            };
+        }
 
         $scope.selectTemplate = function() {
             $scope.appData.appUrl = $scope.appData.serveTemplateValue;
         };
 
         $scope.addApp = function() {
-            var serviceCall = AppsService.addApp($scope.appData.installerType, $scope.appData.appUrl);
+            if ($scope.editing) {
+                // Update the app, write them out, and return to the list.
+                // We deliberately disallow changing the type, since that wouldn't work at all.
+                var oldUrl = editingApp.url;
+                editingApp.appId = $scope.appData.appId;
+                editingApp.url = UrlCleanup($scope.appData.appUrl);
+                var urlChanged = oldUrl != editingApp.url;
+                var p = AppsService.editApp($scope.editing, editingApp).then(function() {
+                    console.log('App edited');
+                    notifier.success('App edited');
+                    $location.path('/');
+                });
 
-            serviceCall.then(function(handler) {
-                console.log('App Added');
-                notifier.success('App Added');
-                $location.path('/');
-                return AppsService.updateApp(handler);
-            }, function(error) {
-                console.error(error);
-                notifier.error('Unable to add application because: ' + error.message);
-            });
+                if (urlChanged) {
+                    p.then(function() {
+                        // If the URL changed, trigger an update.
+                        return AppsService.updateApp(editingApp);
+                    }).then(function() {
+                        console.log('Updated app due to URL change');
+                        notifier.success('Updated app due to URL change');
+                    }, function(err) {
+                        var msg = 'Failed to update app: ' + err.message;
+                        console.error(msg);
+                        notifier.error(msg);
+                    });
+                }
+            } else {
+                var serviceCall = AppsService.addApp($scope.appData.installerType, $scope.appData.appUrl);
+
+                serviceCall.then(function(handler) {
+                    console.log('App Added');
+                    notifier.success('App Added');
+                    $location.path('/');
+                    return AppsService.updateApp(handler);
+                }, function(error) {
+                    console.error(error);
+                    notifier.error('Unable to add application because: ' + error.message);
+                });
+            }
         };
 
         // True if the optional barcodescanner plugin is installed.

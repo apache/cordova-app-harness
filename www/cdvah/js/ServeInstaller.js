@@ -4,9 +4,7 @@
     var ASSET_MANIFEST_PATH = 'installmanifest.json';
 
     /* global myApp */
-    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', function($q, Installer, AppsService, ResourcesLoader) {
-        var platformId = cordova.platformId;
-
+    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'UrlCleanup', function($q, Installer, AppsService, ResourcesLoader, UrlCleanup) {
         function ServeInstaller(url, appId) {
             Installer.call(this, url, appId);
             // Asset manifest is a cache of what files have been downloaded along with their etags.
@@ -101,7 +99,7 @@
             .then(function(meta) {
                 self._cachedProjectJson = meta.projectJson;
                 self._cachedConfigXml = meta.configXml;
-                self.appId = meta.appId;
+                self.appId = self.appId || meta.appId;
                 var wwwPath = self._cachedProjectJson['wwwPath'];
                 var files = self._cachedProjectJson['wwwFileList'];
                 files = files.filter(function(f) {
@@ -143,10 +141,7 @@
 
         function createFromUrl(url) {
             // Strip platform and trailing slash if they exist.
-            url = url.replace(/\/$/, '').replace(new RegExp(platformId + '$'), '').replace(/\/$/, '');
-            if (!/^http:/.test(url)) {
-                url = 'http://' + url;
-            }
+            url = UrlCleanup(url);
             // Fetch config.xml.
             return fetchMetaServeData(url)
             .then(function(meta) {

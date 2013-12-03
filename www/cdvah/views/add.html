@@ -1,5 +1,8 @@
 <form name="addForm" ng-controller="AddCtrl">
-    <label>How to retrieve the app:<br>
+    <label ng-show="editing">App name<br />
+        <div><input type="text" class="topcoat-text-input" ng-model="appData.appId" autocorrect="off" autocapitalize="on" /></div>
+    </label>
+    <label ng-show="!editing">How to retrieve the app:<br>
         <select ng-model="appData.installerType">
             <option value="serve">cordova serve</option>
             <option value="cdvh">.cdvh file</option>
@@ -25,7 +28,8 @@
           <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">Scan QR Code</button><br>
     </div>
     <div class="buttons">
-        <button ng-click="addApp()" class="topcoat-button--cta">Add</button>
+        <button ng-click="addApp()" class="topcoat-button--cta">{{ editing ? 'Edit' : 'Add' }}</button>
         <a href="#/"><button class="topcoat-button" ng-click="back()">Back</button></a>
     </div>
 </form>
+
