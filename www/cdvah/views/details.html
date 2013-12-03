@@ -1,0 +1,38 @@
+<h2>{{ app.appId }}</h2>
+<div>{{app.url}}</div>
+<div>Last updated: {{app.lastUpdated || 'never'}}</div>
+
+<div class="topcoat-list__container">
+    <h3 class="topcoat-list__header">Missing Plugins: {{ app.plugins.missing.length }}</h3>
+    <ul class="topcoat-list">
+        <li class="topcoat-list__item" ng-repeat="plugin in app.plugins.missing">
+            <div><strong>{{ plugin.id }}</strong>: {{ plugin.version }}</div>
+        </li>
+    </ul>
+</div>
+
+<div class="topcoat-list__container">
+    <h3 class="topcoat-list__header">Older Plugins: {{ app.plugins.older.length }}</h3>
+    <ul class="topcoat-list">
+        <li class="topcoat-list__item" ng-repeat="plugin in app.plugins.older">
+            <div><strong>{{ plugin.id }}</strong></div>
+            <div>App wants {{ plugin.versions.child }}</div>
+            <div>Harness provides {{ plugin.versions.harness }}</div>
+        </li>
+    </ul>
+</div>
+
+<div class="topcoat-list__container">
+    <h3 class="topcoat-list__header">Newer Plugins: {{ app.plugins.newer.length }}</h3>
+    <ul class="topcoat-list">
+        <li class="topcoat-list__item" ng-repeat="plugin in app.plugins.newer">
+            <div><strong>{{ plugin.id }}</strong></div>
+            <div>App wants {{ plugin.versions.child }}</div>
+            <div>Harness provides {{ plugin.versions.harness }}</div>
+        </li>
+    </ul>
+</div>
+<br />
+<div class="buttons">
+    <a href="#/"><button class="topcoat-button">Back</button></a>
+</div>

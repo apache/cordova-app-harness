@@ -11,6 +11,10 @@ myApp.config(['$routeProvider', function($routeProvider){
         templateUrl: 'views/add.html',
         controller: 'AddCtrl'
     });
+    $routeProvider.when('/details/:index', {
+        templateUrl: 'views/details.html',
+        controller: 'DetailsCtrl'
+    });
 }]);
 
 // foo

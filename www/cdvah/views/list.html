@@ -1,16 +1,16 @@
 <div class="topcoat-list__container">
     <h3 class="topcoat-list__header">Installed Apps</h3>
     <ul class="topcoat-list">
-        <li class="topcoat-list__item" ng-repeat="app in appList">
+        <li class="topcoat-list__item" ng-repeat="app in appList" ng-click="showDetails($index)">
             <div>{{app.appId}}</div>
             <div>{{app.url}}</div>
             <div ng-show="app.updatingStatus === null">Last updated: {{app.lastUpdated || 'never'}}</div>
             <div ng-show="app.updatingStatus !== null">Update in progress: {{app.updatingStatus}}%</div>
-            <div>Plugins: {{ app.plugins.missing.length }} missing, {{ app.plugins.newer.length + app.plugins.older.length }} differ</div>
-            <div>{{ app.plugins }}</div>
-            <button ng-click="launchApp(app)">Launch</button>
-            <button ng-click="updateApp(app)">Update</button>
-            <button ng-click="removeApp(app)">Remove</button>
+            <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length > 0">Plugins: {{ app.plugins.missing.length }} missing, {{ app.plugins.newer.length + app.plugins.older.length }} differ</div>
+            <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length == 0">Plugins: OK</div>
+            <button ng-click="launchApp(app, $event)">Launch</button>
+            <button ng-click="updateApp(app, $event)">Update</button>
+            <button ng-click="removeApp(app, $event)">Remove</button>
         </li>
     </ul>
 </div>

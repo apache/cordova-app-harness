@@ -52,7 +52,8 @@
             });
         };
 
-        $scope.launchApp = function(app){
+        $scope.launchApp = function(app, event){
+            event.stopPropagation();
             return AppsService.launchApp(app)
             .then(null, function(error){
                 console.error('Error during loading of app ' + app.appId + ': ' + error);
@@ -60,7 +61,8 @@
             });
         };
 
-        $scope.updateApp = function(app) {
+        $scope.updateApp = function(app, event) {
+            event.stopPropagation();
             return AppsService.updateApp(app)
             .then(function(){
                 notifier.success('Updated successfully');
@@ -71,7 +73,8 @@
             });
         };
 
-        $scope.removeApp = function(app) {
+        $scope.removeApp = function(app, event) {
+            event.stopPropagation();
             var shouldUninstall = confirm('Are you sure you want to uninstall ' + app.appId + '?');
             if(shouldUninstall) {
                 return AppsService.uninstallApp(app)
@@ -82,6 +85,10 @@
                     notifier.error('' + error);
                 });
             }
+        };
+
+        $scope.showDetails = function(index) {
+            $location.path('/details/' + index);
         };
 
         initialise();
