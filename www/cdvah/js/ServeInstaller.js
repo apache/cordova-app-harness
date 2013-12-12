@@ -5,6 +5,8 @@
 
     /* global myApp */
     myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'UrlCleanup', function($q, Installer, AppsService, ResourcesLoader, UrlCleanup) {
+        var platformId = cordova.require('cordova/platform').id;
+
         function ServeInstaller(url, appId) {
             Installer.call(this, url, appId);
             // Asset manifest is a cache of what files have been downloaded along with their etags.
@@ -54,7 +56,7 @@
                 if (!/:(\d)/.test(url)) {
                     var newUrl = url.replace(/(.*?\/\/[^\/]*)/, '$1:8000');
                     if (newUrl != url) {
-                        return fetchMetaServeData(url);
+                        return fetchMetaServeData(newUrl);
                     }
                 }
                 deferred.reject(e);
