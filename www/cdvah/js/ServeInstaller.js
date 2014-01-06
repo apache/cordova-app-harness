@@ -1,5 +1,5 @@
 (function(){
-    "use strict";
+    'use strict';
 
     var ASSET_MANIFEST_PATH = 'installmanifest.json';
 
@@ -32,12 +32,12 @@
                 deferred.resolve();
             });
             return deferred.promise;
-        }
+        };
 
         ServeInstaller.prototype._writeAssetManifest = function() {
             var stringContents = JSON.stringify(this._assetManifest);
             return ResourcesLoader.writeFileContents(this.installPath + '/' + ASSET_MANIFEST_PATH, stringContents);
-        }
+        };
 
         function fetchMetaServeData(url) {
             var deferred = $q.defer();
@@ -72,7 +72,6 @@
 
         // TODO: update should be more atomic. Maybe download to a new directory?
         ServeInstaller.prototype.doUpdateApp = function(installPath) {
-          console.log('update requested');
             if (this._assetManifest) {
                 return this._doUpdateAppForReal(installPath);
             }
@@ -88,13 +87,13 @@
             // Write the asset manifest to disk at most every 2 seconds.
             var assetManifestDirty = 0; // 0 = false, 1 = true, 2 = terminate interval.
             var intervalId = setInterval(function() {
-               if (assetManifestDirty) {
-                   if (assetManifestDirty == 2) {
-                       clearInterval(intervalId);
-                   }
-                   self._writeAssetManifest();
-                   assetManifestDirty = 0;
-               }
+                if (assetManifestDirty) {
+                    if (assetManifestDirty == 2) {
+                        clearInterval(intervalId);
+                    }
+                    self._writeAssetManifest();
+                    assetManifestDirty = 0;
+                }
             }, 2000);
 
             fetchMetaServeData(this.url)
@@ -102,12 +101,12 @@
                 self._cachedProjectJson = meta.projectJson;
                 self._cachedConfigXml = meta.configXml;
                 self.appId = self.appId || meta.appId;
-                var wwwPath = self._cachedProjectJson['wwwPath'];
-                var files = self._cachedProjectJson['wwwFileList'];
+                var wwwPath = self._cachedProjectJson.wwwPath;
+                var files = self._cachedProjectJson.wwwFileList;
                 files = files.filter(function(f) {
                     // Don't download cordova.js or plugins. We want to use the version bundled with the harness.
-                    var isPlugin = /\/cordova(?:_plugins)?.js$|^\/plugins\//.exec(f['path']);
-                    var haveAlready = self._assetManifest[f['path']] == f['etag'];
+                    var isPlugin = /\/cordova(?:_plugins)?.js$|^\/plugins\//.exec(f.path);
+                    var haveAlready = self._assetManifest[f.path] == f.etag;
                     return (!isPlugin && !haveAlready);
                 });
                 console.log('Number of files to fetch: ' + files.length);
@@ -116,7 +115,7 @@
                 deferred.notify((i + 1) / totalFiles);
                 function downloadNext() {
                     if (i > 0) {
-                        self._assetManifest[files[i - 1]['path']] = files[i - 1]['etag'];
+                        self._assetManifest[files[i - 1].path] = files[i - 1].etag;
                         assetManifestDirty = 1;
                     }
                     if (!files[i]) {
@@ -126,8 +125,8 @@
                     }
                     deferred.notify((i + 1) / totalFiles);
 
-                    var sourceUrl = self.url + wwwPath + files[i]['path'];
-                    var destPath = installPath + '/www' + files[i]['path'];
+                    var sourceUrl = self.url + wwwPath + files[i].path;
+                    var destPath = installPath + '/www' + files[i].path;
                     console.log(destPath);
                     i += 1;
                     return ResourcesLoader.downloadFromUrl(sourceUrl, destPath).then(downloadNext);
