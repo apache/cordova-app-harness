@@ -32,6 +32,7 @@
         }
 
         function getAppPlugins(cordovaPluginsFile) {
+            console.log('Reading plugins from: ' + cordovaPluginsFile);
             return ResourcesLoader.readFileContents(cordovaPluginsFile)
             .then(function(contents) {
                 if (!contents) {
