@@ -78,7 +78,7 @@
         <param name="ios-package" value="ChromeExtensionURLs" />
         <param name="onload" value="true" />
     </feature>
-    <content src="chrome-extension://ohgfbmefaoadakchflddcopcmphnlcba/chromeapp.html" />
+    <content src="plugins/org.chromium.bootstrap/chromeapp.html" />
     <feature name="ChromeSocket">
         <param name="ios-package" value="ChromeSocket" />
     </feature>

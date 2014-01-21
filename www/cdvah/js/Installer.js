@@ -121,24 +121,22 @@
                 // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
                 UrlRemap.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
                 UrlRemap.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
-                if (startLocation.indexOf('chrome-extension://') === 0) {
+
+                // We want the /www/ for Cordova apps, and no /www/ for CRX apps.
+                var installSubdir = type == 'crx' ? '/' : '/www/';
+                if (startLocation.indexOf('chromeapp.html') >= 0) {
                     var pluginsUrl = 'chrome-extension://[^/]+/plugins/';
                     UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
 
-                    var bootstrapUrl = 'chrome-extension://[^/]+/chrome(?:app\\.html|bgpage\\.html|appstyles\\.css)';
-                    UrlRemap.aliasUri('^' + bootstrapUrl, '^chrome-extension://[^/]+/', harnessDir + '/', false /* redirect */);
-
                     var chromeExtensionUrl = 'chrome-extension://[^\/]+/(?!!gap_exec)';
                     // Add the extra mapping for chrome-extension://aaaa... to point to the install location.
-                    // We want the /www/ for Cordova apps, and no /www/ for CRX apps.
-                    var installSubdir = type == 'crx' ? '/' : '/www/';
                     UrlRemap.aliasUri('^' + chromeExtensionUrl, '^' + chromeExtensionUrl, installUrl + installSubdir, false /* redirect */);
                 } else {
                     var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
                     UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
                 }
                 // Make any references to www/ point to the app's install location.
-                UrlRemap.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + '/www', false /* redirect */);
+                UrlRemap.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + installSubdir, false /* redirect */);
                 // Set-up app-harness: scheme to point at the harness.
                 UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true);
                 return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false)
