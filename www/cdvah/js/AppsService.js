@@ -84,8 +84,9 @@
 
             addApp : function(installerType, appUrl) {
                 var installerFactory = _installerFactories[installerType];
-                return installerFactory.createFromUrl(appUrl)
-                .then(function(installer) {
+                return initHandlers().then(function() {
+                  return installerFactory.createFromUrl(appUrl);
+                }).then(function(installer) {
                     _installers.push(installer);
                     return writeAppsJson()
                     .then(function() {

@@ -105,7 +105,8 @@
                 var files = self._cachedProjectJson.wwwFileList;
                 files = files.filter(function(f) {
                     // Don't download cordova.js or plugins. We want to use the version bundled with the harness.
-                    var isPlugin = /\/cordova(?:_plugins)?.js$|^\/plugins\//.exec(f.path);
+                    // Do download cordova_plugins.js, since we need that to compare plugins with the harness.
+                    var isPlugin = /\/cordova\.js$|^\/plugins\//.exec(f.path);
                     var haveAlready = self._assetManifest[f.path] == f.etag;
                     return (!isPlugin && !haveAlready);
                 });
