@@ -6,8 +6,12 @@
         var rootDir;
 
         function initialiseFileSystem() {
-            // HACK: Need to discuss better way to get the root entry.
-            return $q.when(rootDir = new $window.DirectoryEntry('/', '/'));
+            var d = $q.defer();
+            $window.resolveLocalFileSystemURL('file:///', function(entry) {
+                rootDir = entry;
+                d.resolve(entry);
+            }, d.reject);
+            return d.promise;
         }
 
         //promise returns full path to downloaded file
