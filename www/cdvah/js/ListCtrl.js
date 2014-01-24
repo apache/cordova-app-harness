@@ -21,7 +21,7 @@
                             notifier.error('' + e);
                         });
                     } else if (action == 'update') {
-                        // updating may take a while so we show the apps list like we normally do
+                        // Updating may take a while so we show the apps list like we normally do
                         return AppsService.updateApp(activeApp)
                         .then(function() {
                             return AppsService.launchApp(activeApp);
@@ -99,63 +99,65 @@
 
         initialise();
 
-        appharness.push.listening(function(res) {
-            $scope.listening = res;
-            $scope.$apply();
-        }, notifier.error);
-
-        appharness.push.pending(function(obj) {
-            console.log('Return from pending: ' + obj);
-            if (obj && obj.type && obj.type === 'serve') {
-                AppsService.getAppList().then(function(list) {
-                    console.log(list);
-                    var matches = list && list.filter(function(x) { return x.appId == obj.name; });
-                    var promise;
-                    if (list && matches.length > 0) {
-                        // App exists.
-                        var app = matches[0];
-                        app.url = obj.url;
-                        promise = $q.when(app);
-                    } else {
-                        // New app.
-                        var handler;
-                        promise = AppsService.addApp(obj.type, obj.url).then(function(h) {
-                            handler = h;
-                            var msg = 'Added new app ' + handler.appId + ' from push';
-                            console.log(msg);
-                            notifier.success(msg);
-                        }).then(function() {
-                            // Reload so the app is visible while it's updating (below).
-                            return $scope.loadAppsList().then(function() {
-                                return handler;
-                            });
-                        });
-                    }
-
-                    var theApp;
-                    promise.then(function(app) {
-                        theApp = app;
-                        return AppsService.updateApp(app);
-                    }).then(function() {
-                        notifier.success('Updated ' + theApp.appId + ' due to remote push.');
-                        return $scope.loadAppsList();
-                    }).done(function() {
-                        $scope.launchApp(theApp, { stopPropagation: function() { } });
-                    }, function(err) {
-                        var msg = 'Failed to update ' + app.appId + ': ' + err;
-                        console.error(msg);
-                        notifier.error(msg);
-                    });
-                });
-            }
-        });
-
-        $scope.listen = function() {
-            appharness.push.listen(function() {
-                $scope.listening = true;
+        if (appharness && appharness.push) {
+            appharness.push.listening(function(res) {
+                $scope.listening = res;
                 $scope.$apply();
             }, notifier.error);
-        };
+
+            appharness.push.pending(function(obj) {
+                console.log('Return from pending: ' + obj);
+                if (obj && obj.type && obj.type === 'serve') {
+                    AppsService.getAppList().then(function(list) {
+                        console.log(list);
+                        var matches = list && list.filter(function(x) { return x.appId == obj.name; });
+                        var promise;
+                        if (list && matches.length > 0) {
+                            // App exists.
+                            var app = matches[0];
+                            app.url = obj.url;
+                            promise = $q.when(app);
+                        } else {
+                            // New app.
+                            var handler;
+                            promise = AppsService.addApp(obj.type, obj.url).then(function(h) {
+                                handler = h;
+                                var msg = 'Added new app ' + handler.appId + ' from push';
+                                console.log(msg);
+                                notifier.success(msg);
+                            }).then(function() {
+                                // Reload so the app is visible while it's updating (below).
+                                return $scope.loadAppsList().then(function() {
+                                    return handler;
+                                });
+                            });
+                        }
+
+                        var theApp;
+                        promise.then(function(app) {
+                            theApp = app;
+                            return AppsService.updateApp(app);
+                        }).then(function() {
+                            notifier.success('Updated ' + theApp.appId + ' due to remote push.');
+                            return $scope.loadAppsList();
+                        }).then(function() {
+                            return $scope.launchApp(theApp, { stopPropagation: function() { } });
+                        }).done(null, function(err) {
+                            var msg = 'Failed to update ' + app.appId + ': ' + err;
+                            console.error(msg);
+                            notifier.error(msg);
+                        });
+                    });
+                }
+            });
+
+            $scope.listen = function() {
+                appharness.push.listen(function() {
+                    $scope.listening = true;
+                    $scope.$apply();
+                }, notifier.error);
+            };
+        }
     }]);
 })();
 
