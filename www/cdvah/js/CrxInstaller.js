@@ -19,8 +19,9 @@
             var xhr;
             var self = this;
 
-            var baseName = self.url.match(/\/([^\/]*)$/)[1];
-            var crxFile = installPath.replace(/\/$/, '') + '/' + baseName;
+            // The filename doesn't matter, but it needs to end with .crx for the zip plugin to unpack
+            // it properly. So we always set the filename to package.crx.
+            var crxFile = installPath.replace(/\/$/, '') + '/package.crx';
 
             return ResourcesLoader.downloadFromUrl(this.url, crxFile).then(function(destination) {
                 return ResourcesLoader.extractZipFile(crxFile, installPath);
