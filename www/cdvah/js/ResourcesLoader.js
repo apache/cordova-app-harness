@@ -306,7 +306,7 @@
 
                     var onZipDone = function(returnCode) {
                         if(returnCode !== 0) {
-                            deferred.reject(new Error('Something went wrong during the unzipping of: ' + fileName));
+                            deferred.reject(new Error('Failed to unzip! Bad URL?'));
                         } else {
                             deferred.resolve();
                         }
