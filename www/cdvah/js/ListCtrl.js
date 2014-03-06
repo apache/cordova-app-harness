@@ -99,7 +99,7 @@
 
         initialise();
 
-        if (appharness && appharness.push) {
+        if (window.appharness && appharness.push) {
             appharness.push.listening(function(res) {
                 $scope.listening = res;
                 $scope.$apply();
