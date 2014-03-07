@@ -27,4 +27,5 @@ if ! which jshint; then
   exit 1
 fi
 echo "Running jsHint"
+cd $(dirname "$0")
 jshint www/ --exclude www/cdvah/js/libs --verbose --show-non-errors
