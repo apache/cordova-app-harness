@@ -35,6 +35,7 @@ public class UrlRemap extends CordovaPlugin {
         Pattern replaceRegex;
         String replacer;
         boolean redirectToReplacedUrl;
+        boolean allowFurtherRemapping;
         String jsToInject;
     }
 
@@ -50,6 +51,7 @@ public class UrlRemap extends CordovaPlugin {
             params.replaceRegex = Pattern.compile(args.getString(1));
             params.replacer = args.getString(2);
             params.redirectToReplacedUrl = args.getBoolean(3);
+            params.allowFurtherRemapping = args.getBoolean(4);
             rerouteParams.add(params);
         } else if ("clearAllAliases".equals(action)) {
             resetMappings();
@@ -81,7 +83,7 @@ public class UrlRemap extends CordovaPlugin {
         }
         return null;
     }
-    
+
     @Override
     public boolean onOverrideUrlLoading(String url) {
         if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(url).find()) {
@@ -96,7 +98,7 @@ public class UrlRemap extends CordovaPlugin {
             if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(newUrl).find()) {
                 resetMappings();
             }
-            
+
             webView.loadUrl(newUrl);
             return true;
         }
@@ -122,7 +124,11 @@ public class UrlRemap extends CordovaPlugin {
         RouteParams params = getChosenParams(uriAsString, false);
         if (params != null && !params.redirectToReplacedUrl) {
             String newUrl = params.replaceRegex.matcher(uriAsString).replaceFirst(params.replacer);
-            return Uri.parse(newUrl);
+            Uri ret = Uri.parse(newUrl);
+            if (params.allowFurtherRemapping) {
+                ret = webView.getResourceApi().remapUri(ret);
+            }
+            return ret;
         }
         return null;
     }

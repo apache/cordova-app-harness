@@ -19,15 +19,15 @@
 */
 var exec = cordova.require('cordova/exec');
 
-exports.addAlias = function(sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl, callback) {
+exports.addAlias = function(sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl, allowFurtherRemapping, callback) {
     var win = callback && function() {
         callback(true);
     };
     var fail = callback && function(error) {
-        console.error("UrlRemap error: " + error);
+        console.error('UrlRemap error: ' + error);
         callback(false);
     };
-    exec(win, fail, 'UrlRemap', 'addAlias', [sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl]);
+    exec(win, fail, 'UrlRemap', 'addAlias', [sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl, allowFurtherRemapping]);
 };
 
 exports.setResetUrl = function(urlRegex, callback) {
