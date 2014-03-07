@@ -1,35 +1,37 @@
 <form name="addForm" ng-controller="AddCtrl">
+  <div>
     <label ng-show="editing">App name<br />
-        <div><input type="text" class="topcoat-text-input" ng-model="appData.appId" autocorrect="off" autocapitalize="on" /></div>
+        <div><input type="text" class="topcoat-text-input" ng-model="appData.appId" autocapitalize="on" /></div>
     </label>
+  </div>
+  <div>
     <label ng-show="!editing">How to retrieve the app:<br>
         <select ng-model="appData.installerType">
             <option value="serve">cordova serve</option>
-            <option value="cdvh">.cdvh file</option>
             <option value="crx">.crx file</option>
         </select>
     </label>
-    <div ng-show="appData.installerType == 'serve'">
-      <label>Enter server URL
-          <div><input class="topcoat-text-input" style="width:100%;-webkit-box-sizing:border-box" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off"></div>
-      </label>
-          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">QR Code</button>
-          <select ng-model="appData.serveTemplateValue" ng-change="selectTemplate()">
-              <option value="">Template</option>
-              <option value="localhost:8000">localhost</option>
-              <option value="KEY.t.proxylocal.com">ProxyLocal</option>
-              <option value="KEY.localtunnel.com">LocalTunnel</option>
-          </select>
-    </div>
-    <div ng-show="appData.installerType != 'serve'">
-      <label>Enter URL<br>
-          <input class="topcoat-text-input" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off">
-      </label>
-          <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">Scan QR Code</button><br>
-    </div>
-    <div class="buttons">
-        <button ng-click="addApp()" class="topcoat-button--cta">{{ editing ? 'Edit' : 'Add' }}</button>
-        <a href="#/"><button class="topcoat-button" ng-click="back()">Back</button></a>
-    </div>
+  </div>
+  <div>
+    <label>Enter URL
+        <div><input class="topcoat-text-input" style="width:100%;-webkit-box-sizing:border-box" type="text" ng-model="appData.appUrl" autocorrect="off" autocapitalize="off"></div>
+    </label>
+  </div>
+  <div>
+    <button class="topcoat-button" ng-click="fetchQR(appData, 'appUrl')" ng-show="qrEnabled">QR Code</button>
+  </div>
+  <div>
+    <select ng-model="appData.serveTemplateValue" ng-change="selectTemplate()">
+        <option value="">Template</option>
+        <option value="goo.gl/">goo.gl</option>
+        <option value="localhost:8000">localhost</option>
+        <option value="KEY.t.proxylocal.com">ProxyLocal</option>
+        <option value="KEY.localtunnel.com">LocalTunnel</option>
+    </select>
+  </div>
+  <div class="buttons">
+      <button ng-click="addApp()" class="topcoat-button--cta">{{ editing ? 'Edit' : 'Add' }}</button>
+      <a href="#/"><button class="topcoat-button" ng-click="back()">Back</button></a>
+  </div>
 </form>
 
