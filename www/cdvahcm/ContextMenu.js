@@ -1,3 +1,5 @@
+/* global __cordovaAppHarnessData */
+/* jshint -W069 */
 (function () {
     var contextMenuIframeEl = null;
 
@@ -9,17 +11,17 @@
     }
 
     function setupIframe(){
-        var contextHTMLUrl = "app-harness:///cdvahcm/contextMenu.html";
-        var el = document.createElement("iframe");
+        var contextHTMLUrl = 'app-harness:///cdvahcm/contextMenu.html';
+        var el = document.createElement('iframe');
         contextMenuIframeEl = el;
         el.src = contextHTMLUrl;
         el.style.cssText = 'position: fixed; left: 0; top: 0; z-index: 2000; width: 100%; height: 100%; border: none; display:none';
         el.onload = function() {
-            el.contentWindow.postMessage("AppHarnessAppName:" + __cordovaAppHarnessData['appName'], "*");
+            el.contentWindow.postMessage('AppHarnessAppName:' + __cordovaAppHarnessData['appName'], '*');
         };
         document.body.appendChild(el);
         // Setup the listeners to toggle the context menu
-        document.addEventListener("touchmove", function (event) {
+        document.addEventListener('touchmove', function (event) {
             if (event.touches.length >= 3) {
                 el.style.display = '';
             }
@@ -27,17 +29,17 @@
     }
 
     function onContextMenuUpdateClicked(){
-        window.location = "app-harness:///cdvah/index.html#/?action=update&appIndex=" + __cordovaAppHarnessData['appIndex'];
+        window.location = 'app-harness:///cdvah/index.html#/?action=update&appIndex=' + __cordovaAppHarnessData['appIndex'];
     }
     function onContextMenuRestartClicked(){
-        window.location = "app-harness:///cdvah/index.html#/?action=restart&appIndex=" + __cordovaAppHarnessData['appIndex'];
+        window.location = 'app-harness:///cdvah/index.html#/?action=restart&appIndex=' + __cordovaAppHarnessData['appIndex'];
     }
     var firebugFirstOpen = true;
     function onContextMenuFirebugClicked(){
         try {
             if(firebugFirstOpen){
-                console.warn("Note that messages logged to the console at the app startup may not be visible here.");
-                console.warn("Do not use the close button on Firebug. Your console logs will be cleared. Use minimize instead.");
+                console.warn('Note that messages logged to the console at the app startup may not be visible here.');
+                console.warn('Do not use the close button on Firebug. Your console logs will be cleared. Use minimize instead.');
                 firebugFirstOpen = false;
             }
             window.Firebug.chrome.open();
@@ -48,42 +50,42 @@
             // Then FirebugLite is loaded into the page again
             // This hack should be revisited when FirebugLite moves from version 1.4
             // Either the hack won't be needed anymore or the hack should be checked too see if it still works.
-            var el = document.getElementById("FirebugLite");
+            var el = document.getElementById('FirebugLite');
             if(el) {
-                el.setAttribute("id", "");
+                el.setAttribute('id', '');
             }
             delete console.firebuglite;
             loadFirebug(true);
         }
     }
     function onContextMenuMainMenuClicked(){
-        window.location = "app-harness:///cdvah/index.html";
+        window.location = 'app-harness:///cdvah/index.html';
     }
     function onContextMenuHideClicked(){
-        contextMenuIframeEl.style.display = "none";
+        contextMenuIframeEl.style.display = 'none';
     }
     function onContextMenuWeinreNameChanged(newName){
-        var el = document.createElement("script");
-        el.setAttribute("src", "http://debug.phonegap.com/target/target-script-min.js#" + newName);
+        var el = document.createElement('script');
+        el.setAttribute('src', 'http://debug.phonegap.com/target/target-script-min.js#' + newName);
         document.head.appendChild(el);
     }
 
     var messageHandler = {
-        "ContextMenuUpdate" : onContextMenuUpdateClicked,
-        "ContextMenuRestart" : onContextMenuRestartClicked,
-        "ContextMenuFirebug" : onContextMenuFirebugClicked,
-        "ContextMenuMainMenu" : onContextMenuMainMenuClicked,
-        "ContextMenuHide" : onContextMenuHideClicked,
-        "ContextMenuWeinre" : onContextMenuWeinreNameChanged
+        'ContextMenuUpdate' : onContextMenuUpdateClicked,
+        'ContextMenuRestart' : onContextMenuRestartClicked,
+        'ContextMenuFirebug' : onContextMenuFirebugClicked,
+        'ContextMenuMainMenu' : onContextMenuMainMenuClicked,
+        'ContextMenuHide' : onContextMenuHideClicked,
+        'ContextMenuWeinre' : onContextMenuWeinreNameChanged
     };
     function setupIframeMessaging(){
-        window.addEventListener("message", function(e){
+        window.addEventListener('message', function(e){
             if (!e || !e.data || typeof e.data !== 'string') {
                 return;
             }
 
             var messageParts = [ e.data ];
-            var loc = e.data.indexOf(":");
+            var loc = e.data.indexOf(':');
             if(loc !== -1){
                 messageParts = [ e.data.substring(0, loc),
                     e.data.substring(loc + 1)
@@ -96,18 +98,18 @@
     }
 
     function loadFirebug(startOpened){
-        var el = document.createElement("script");
-        el.setAttribute("id", "FirebugLite");
-        el.setAttribute("src", "https://getfirebug.com/firebug-lite-beta.js");
-        el.setAttribute("FirebugLite", "4");
-        el.innerHTML = el.innerHTML = "{ debug : false, startOpened : "  + startOpened + ", showIconWhenHidden : false, saveCommandLineHistory : true, saveCookies : false }";
+        var el = document.createElement('script');
+        el.setAttribute('id', 'FirebugLite');
+        el.setAttribute('src', 'https://getfirebug.com/firebug-lite-beta.js');
+        el.setAttribute('FirebugLite', '4');
+        el.innerHTML = el.innerHTML = '{ debug : false, startOpened : '  + startOpened + ', showIconWhenHidden : false, saveCommandLineHistory : true, saveCookies : false }';
         document.head.appendChild(el);
     }
 
     // FirebugLite doesn't catch errors from window.onerror like desktop browser's dev tools do. So we add it manually.
     function attachErrorListener(){
         window.onerror = function(msg, url, line) {
-            console.error("Error: " + msg + " on line: " +  line + " in file: " + url);
+            console.error('Error: ' + msg + ' on line: ' +  line + ' in file: ' + url);
         };
     }
 
