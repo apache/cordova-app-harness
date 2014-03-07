@@ -21,5 +21,10 @@
 # USAGE
 #   ./checkjs
 #
+
+if ! which jshint; then
+  echo "jshint not installed. Install it with: npm install -g jshint"
+  exit 1
+fi
 echo "Running jsHint"
-jshint www/cdvah_js/ --verbose --show-non-errors
+jshint www/ --exclude www/cdvah/js/libs --verbose --show-non-errors
