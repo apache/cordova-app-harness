@@ -5,21 +5,6 @@
 
         var platformId = cordova.require('cordova/platform').id;
 
-        function copyFile(startUrl, targetLocation){
-            /************ Begin Work around for File system bug ************/
-            if(targetLocation.indexOf('file://') === 0) {
-                targetLocation = targetLocation.substring('file://'.length);
-            }
-            /************ End Work around for File system bug **************/
-            return ResourcesLoader.xhrGet(startUrl)
-            .then(function(xhr){
-                return ResourcesLoader.ensureDirectoryExists(targetLocation)
-                .then(function(){
-                    return ResourcesLoader.writeFileContents(targetLocation, xhr.responseText);
-                });
-            });
-        }
-
         AppsService.registerPackageHandler('cdvh', {
             extractPackageToDirectory : function (appName, fileName, outputDirectory){
                 var dataToAppend = ContextMenuInjectScript.getInjectString(appName);
@@ -39,7 +24,7 @@
                     if(fileExists){
                         return $q.all([
                             ResourcesLoader.appendFileContents(cordovaFile, dataToAppend),
-                            copyFile('app-bundle:///cdvh_files/www/cordova_plugins.js', pluginsFile)
+                            ResourcesLoader.downloadFromUrl('app-bundle:///cdvh_files/www/cordova_plugins.js', pluginsFile)
                         ]);
                     } else {
                         throw new Error('The package does not seem to have the files required for the platform: ' + platformId);

@@ -85,7 +85,7 @@
             addApp : function(installerType, appUrl) {
                 var installerFactory = _installerFactories[installerType];
                 return initHandlers().then(function() {
-                  return installerFactory.createFromUrl(appUrl);
+                    return installerFactory.createFromUrl(appUrl);
                 }).then(function(installer) {
                     _installers.push(installer);
                     return writeAppsJson()
@@ -117,7 +117,7 @@
             },
 
             updateApp : function(installer){
-                var installPath = INSTALL_DIRECTORY + '/' + installer.appId;
+                var installPath = INSTALL_DIRECTORY + '/' + encodeURIComponent(installer.appId);
                 return installer.updateApp(installPath)
                 .then(writeAppsJson);
             },

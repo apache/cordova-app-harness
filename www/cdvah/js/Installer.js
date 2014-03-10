@@ -98,8 +98,6 @@
             }
             var configLocation = installPath + '/config.xml';
 
-            var type = this.type;
-
             return getAppStartPageFromConfig(configLocation)
             .then(function(rawStartLocation) {
                 var urlutil = cordova.require('cordova/urlutil');
@@ -108,42 +106,36 @@
                 var installUrl = urlutil.makeAbsolute(installPath);
                 var injectString = ContextMenuInjectScript.getInjectString(appId, appIndex);
                 var startLocation = urlutil.makeAbsolute(rawStartLocation).replace('/cdvah/', '/');
-                // On iOS, file:// URLs can't be re-routed via an NSURLProtocol for top-level navications.
-                // http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup
-                // The work-around (using loadData:) breaks history.back().
-                // So, for file:// start pages, we just point to the install location.
-                if (cordova.platformId == 'ios') {
-                    startLocation = startLocation.replace(harnessDir, installUrl + '/www');
-                }
+                var useNativeStartLocation = cordova.platformId == 'ios';
 
-                // Inject the context menu script for all pages except the harness menu.
-                UrlRemap.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
-                // Allow navigations back to the menu.
-                UrlRemap.setResetUrl('^' + harnessUrl);
-                // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
-                UrlRemap.aliasUri('/cordova\\.js.*', '.+', harnessDir + '/cordova.js', false /* redirect */);
-                UrlRemap.aliasUri('/cordova_plugins\\.js.*', '.+', harnessDir + '/cordova_plugins.js', false /* redirect */);
+                // Use toNativeURL() so that scheme is file:/ instead of cdvfile:/ (file: has special access).
+                return ResourcesLoader.toNativeURL(installUrl)
+                .then(function(nativeInstallUrl) {
+                    nativeInstallUrl = nativeInstallUrl.replace(/\/$/, '');
+                    // Point right at the dest. location on iOS.
+                    if (useNativeStartLocation) {
+                        startLocation = startLocation.replace(harnessDir, nativeInstallUrl + '/www');
+                    }
 
-                // We want the /www/ for Cordova apps, and no /www/ for CRX apps.
-                var installSubdir = type == 'crx' ? '/' : '/www/';
-                if (startLocation.indexOf('chromeapp.html') >= 0) {
-                    var pluginsUrl = 'chrome-extension://[^/]+/plugins/';
-                    UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
+                    // Inject the context menu script for all pages except the harness menu.
+                    UrlRemap.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
+                    // Allow navigations back to the menu.
+                    UrlRemap.setResetUrl('^' + harnessUrl);
+                    // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
+                    UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
+                    UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova_plugins\\.js.*', '.+', 'app-harness:///cordova_plugins.js', false /* redirect */, true /* allowFurtherRemapping */);
+                    UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
 
-                    var chromeExtensionUrl = 'chrome-extension://[^\/]+/(?!!gap_exec)';
-                    // Add the extra mapping for chrome-extension://aaaa... to point to the install location.
-                    UrlRemap.aliasUri('^' + chromeExtensionUrl, '^' + chromeExtensionUrl, installUrl + installSubdir, false /* redirect */);
-                } else {
-                    var pluginsUrl = startLocation.replace(/\/www\/.*/, '/www/plugins/');
-                    UrlRemap.aliasUri('^' + pluginsUrl, '^' + pluginsUrl, harnessDir + '/plugins/', false /* redirect */);
-                }
-                // Make any references to www/ point to the app's install location.
-                UrlRemap.aliasUri('^' + harnessDir, '^' + harnessDir, installUrl + installSubdir, false /* redirect */);
-                // Set-up app-harness: scheme to point at the harness.
-                UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true);
-                return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false)
-                .then(function() {
-                    return startLocation;
+                    // Make any references to www/ point to the app's install location.
+                    var harnessPrefixPattern = '^' + harnessDir.replace('file:///', 'file://.*?/');
+                    UrlRemap.aliasUri(harnessPrefixPattern, harnessPrefixPattern, nativeInstallUrl + '/www', false /* redirect */, true /* allowFurtherRemapping */);
+
+                    // Set-up app-harness: scheme to point at the harness.
+                    UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true, false);
+                    return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false, false)
+                    .then(function() {
+                        return startLocation;
+                    });
                 });
             });
         };

@@ -4,7 +4,9 @@
     /* global appIndexPlaceHolder */
     myApp.factory('ContextMenuInjectScript', [ function () {
         var toInject = function() {
-            if (window.__cordovaAppHarnessData) return; // Short-circuit if I've run on this page before.
+            if (window.__cordovaAppHarnessData) {
+                return; // Short-circuit if I've run on this page before.
+            }
             console.log('Menu script injected.');
             var contextScript = document.createElement('script');
             contextScript.setAttribute('src', 'app-harness:///cdvahcm/ContextMenu.js');

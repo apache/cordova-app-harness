@@ -4,7 +4,7 @@
     var ASSET_MANIFEST_PATH = 'installmanifest.json';
 
     /* global myApp */
-    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'UrlCleanup', function($q, Installer, AppsService, ResourcesLoader, UrlCleanup) {
+    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'urlCleanup', function($q, Installer, AppsService, ResourcesLoader, urlCleanup) {
         var platformId = cordova.require('cordova/platform').id;
 
         function ServeInstaller(url, appId) {
@@ -47,9 +47,10 @@
                 configXml: null,
                 appId: null
             };
-            ResourcesLoader.xhrGet(url + '/' + platformId + '/project.json')
-            .then(function(xhr) {
-                ret.projectJson = JSON.parse(xhr.responseText);
+            var projectJsonUrl = url + '/' + platformId + '/project.json';
+            ResourcesLoader.xhrGet(projectJsonUrl, true)
+            .then(function(data) {
+                ret.projectJson = data;
                 return ResourcesLoader.xhrGet(url + ret.projectJson.configPath);
             }, function(e) {
                 // If there was no :8000, try again with one appended.
@@ -61,12 +62,13 @@
                 }
                 deferred.reject(e);
             })
-            .then(function(xhr) {
-                ret.configXml = xhr.responseText;
+            .then(function(data) {
+                ret.configXml = data;
                 var configXml = new DOMParser().parseFromString(ret.configXml, 'text/xml');
                 ret.appId = configXml.firstChild.getAttribute('id');
-                deferred.resolve(ret);
-            }, deferred.reject);
+                return ret;
+            })
+            .then(deferred.resolve, deferred.reject);
             return deferred.promise;
         }
 
@@ -133,10 +135,7 @@
                     i += 1;
                     return ResourcesLoader.downloadFromUrl(sourceUrl, destPath).then(downloadNext);
                 }
-                return ResourcesLoader.ensureDirectoryExists(installPath + '/config.xml')
-                .then(function() {
-                    return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml);
-                })
+                return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml)
                 .then(downloadNext);
             });
             return deferred.promise;
@@ -144,7 +143,7 @@
 
         function createFromUrl(url) {
             // Strip platform and trailing slash if they exist.
-            url = UrlCleanup(url);
+            url = urlCleanup(url);
             // Fetch config.xml.
             return fetchMetaServeData(url)
             .then(function(meta) {

@@ -68,7 +68,7 @@
             .then(function(){
                 notifier.success('Updated successfully');
                 console.log('successfully updated');
-            }, function(error){
+            }, function(error) {
                 console.error('Error during updating of app ' + app.appId + ': ' + error);
                 notifier.error('' + error);
             });

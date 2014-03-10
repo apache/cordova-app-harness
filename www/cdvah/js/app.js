@@ -21,22 +21,20 @@ myApp.config(['$routeProvider', function($routeProvider){
     });
 }]);
 
-// foo
+myApp.factory('urlCleanup', function() {
+    return function(url) {
+        url = url.replace(/\/$/, '').replace(new RegExp(cordova.platformId + '$'), '').replace(/\/$/, '');
+        if (!/^(file|http|https)+:/.test(url)) {
+            url = 'http://' + url;
+        }
+        return url;
+    };
+});
+
 document.addEventListener('deviceready', function() {
     cordova.filesystem.getDataDirectory(false, function(dirEntry) {
-        var path = dirEntry.fullPath;
-        myApp.value('INSTALL_DIRECTORY', path + '/apps');
-        myApp.value('APPS_JSON', path + '/apps.json');
-
-        myApp.factory('UrlCleanup', function() {
-            return function(url) {
-                url = url.replace(/\/$/, '').replace(new RegExp(cordova.platformId + '$'), '').replace(/\/$/, '');
-                if (!/^[a-z]+:/.test(url)) {
-                    url = 'http://' + url;
-                }
-                return url;
-            };
-        });
+        myApp.value('INSTALL_DIRECTORY', dirEntry.toURL() + 'apps');
+        myApp.value('APPS_JSON', dirEntry.toURL() + 'apps.json');
 
         angular.bootstrap(document, ['CordovaAppHarness']);
     });

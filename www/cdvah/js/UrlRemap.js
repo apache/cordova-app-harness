@@ -6,9 +6,9 @@
         // URI aliasing : the ability to launch an app in the harness, query the document.location and get the same location as would have been got if you run the app separately
         // Without URI aliasing, document.location in the harness would give something like file:///APP_HARNESS_INSTALLED_APPS_LOCATION/www/index.html
 
-        function aliasUri(sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl){
+        function aliasUri(sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl, allowFurtherRemapping) {
             var deferred = $q.defer();
-            cordova.plugins.urlremap.addAlias(sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl, function(succeded) {
+            cordova.plugins.urlremap.addAlias(sourceUriMatchRegex, sourceUriReplaceRegex, replaceString, redirectToReplacedUrl, !!allowFurtherRemapping, function(succeded) {
                 if (succeded){
                     deferred.resolve();
                 } else {

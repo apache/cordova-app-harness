@@ -2,7 +2,7 @@
     'use strict';
 
     /* global myApp */
-    myApp.controller('AddCtrl', ['$q', 'notifier', '$location', '$rootScope', '$scope', '$window', '$routeParams', 'AppsService', 'UrlCleanup', function($q, notifier, $location, $rootScope, $scope, $window, $routeParams, AppsService, UrlCleanup) {
+    myApp.controller('AddCtrl', ['$q', 'notifier', '$location', '$rootScope', '$scope', '$window', '$routeParams', 'AppsService', 'urlCleanup', function($q, notifier, $location, $rootScope, $scope, $window, $routeParams, AppsService, urlCleanup) {
         $scope.editing = $routeParams.appId;
         var editingApp;
 
@@ -44,7 +44,7 @@
                 // We deliberately disallow changing the type, since that wouldn't work at all.
                 var oldUrl = editingApp.url;
                 editingApp.appId = $scope.appData.appId;
-                editingApp.url = UrlCleanup($scope.appData.appUrl);
+                editingApp.url = urlCleanup($scope.appData.appUrl);
                 var urlChanged = oldUrl != editingApp.url;
                 var p = AppsService.editApp($scope.editing, editingApp).then(function() {
                     console.log('App edited');
