@@ -13,7 +13,8 @@
 
         CrxInstaller.prototype.type = 'crx';
 
-        CrxInstaller.prototype.doUpdateApp = function(installPath) {
+        CrxInstaller.prototype.doUpdateApp = function() {
+            var installPath = this.installPath;
             var platformConfig = location.pathname.replace(/\/[^\/]*$/, '/crx_files/config.' + platformId + '.xml');
             var targetConfig = installPath + '/config.xml';
             var xhr;

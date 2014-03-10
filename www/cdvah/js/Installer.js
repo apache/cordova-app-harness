@@ -63,9 +63,9 @@
         Installer.prototype.updateApp = function(installPath) {
             var self = this;
             this.updatingStatus = 0;
-            return this.doUpdateApp(installPath)
+            this.installPath = installPath;
+            return this.doUpdateApp()
             .then(function() {
-                self.installPath = installPath;
                 self.lastUpdated = new Date();
                 self.updatingStatus = null;
                 if (self.type === 'crx') {

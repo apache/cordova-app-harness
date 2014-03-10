@@ -71,17 +71,18 @@
         }
 
         // TODO: update should be more atomic. Maybe download to a new directory?
-        ServeInstaller.prototype.doUpdateApp = function(installPath) {
+        ServeInstaller.prototype.doUpdateApp = function() {
             if (this._assetManifest) {
-                return this._doUpdateAppForReal(installPath);
+                return this._doUpdateAppForReal();
             }
             var me = this;
             return this._readAssetManifest().then(function() {
-                return me._doUpdateAppForReal(installPath);
+                return me._doUpdateAppForReal();
             });
         };
 
-        ServeInstaller.prototype._doUpdateAppForReal = function(installPath) {
+        ServeInstaller.prototype._doUpdateAppForReal = function() {
+            var installPath = this.installPath;
             var deferred = $q.defer();
             var self = this;
             // Write the asset manifest to disk at most every 2 seconds.
