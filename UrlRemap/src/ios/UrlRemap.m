@@ -242,7 +242,7 @@ static NSString* mimeTypeForPath(NSString* path) {
 @implementation UrlRemapURLProtocol
 
 + (BOOL)canInitWithRequest:(NSURLRequest*)request {
-    if ([request valueForHTTPHeaderField:@"fo"] != nil) {
+    if ([request valueForHTTPHeaderField:@"url-remap-ignore"] != nil) {
         return NO;
     }
     NSURL* url = [request URL];
@@ -266,8 +266,9 @@ static NSString* mimeTypeForPath(NSString* path) {
 - (void)issueRedirectResponseToURL:(NSURL*)dest {
     NSMutableURLRequest* req = [[self request] mutableCopy];
     [req setURL:dest];
-    [req setValue:@"FOO" forHTTPHeaderField:@"fo"];
+    [req setValue:@"1" forHTTPHeaderField:@"url-remap-ignore"];
 
+    // Responses get cached regardless of if we specify Cache-Control here.
     NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:[[self request] URL] statusCode:302 HTTPVersion:@"HTTP/1.1" headerFields:@{ @"Location": [dest absoluteString] }];
 
     [[self client] URLProtocol:self wasRedirectedToRequest:req redirectResponse:response];
