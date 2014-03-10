@@ -67,7 +67,6 @@
             return this.doUpdateApp()
             .then(function() {
                 self.lastUpdated = new Date();
-                self.updatingStatus = null;
                 if (self.type === 'crx') {
                     // No cordova_plugins.js to read for .crx-based apps.
                     return $q.when({});
@@ -78,6 +77,8 @@
                 self.updatingStatus = Math.round(status * 100);
             }).then(function(metadata) {
                 self.plugins = PluginMetadata.process(metadata);
+            }).finally(function() {
+                self.updatingStatus = null;
             });
         };
 
