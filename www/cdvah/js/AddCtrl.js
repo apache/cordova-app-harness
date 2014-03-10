@@ -29,7 +29,7 @@
             });
         } else {
             $scope.appData = {
-                appUrl : '',
+                appUrl: '',
                 installerType: 'serve'
             };
         }
@@ -53,7 +53,7 @@
                 });
 
                 if (urlChanged) {
-                    p.then(function() {
+                    return p.then(function() {
                         // If the URL changed, trigger an update.
                         return AppsService.updateApp(editingApp);
                     }).then(function() {
@@ -65,19 +65,18 @@
                         notifier.error(msg);
                     });
                 }
-            } else {
-                var serviceCall = AppsService.addApp($scope.appData.installerType, $scope.appData.appUrl);
-
-                serviceCall.then(function(handler) {
-                    console.log('App Added');
-                    notifier.success('App Added');
-                    $location.path('/');
-                    return AppsService.updateApp(handler);
-                }, function(error) {
-                    console.error(error);
-                    notifier.error('Unable to add application because: ' + error.message);
-                });
+                return p;
             }
+            return AppsService.addApp($scope.appData.installerType, $scope.appData.appUrl)
+            .then(function(handler) {
+                console.log('App Added');
+                notifier.success('App Added');
+                $location.path('/');
+                return AppsService.updateApp(handler);
+            }, function(error) {
+                console.error(error);
+                notifier.error('Unable to add application because: ' + error.message);
+            });
         };
 
         // True if the optional barcodescanner plugin is installed.
