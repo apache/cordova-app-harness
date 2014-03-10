@@ -21,11 +21,22 @@
 #import <Cordova/CDVPlugin.h>
 
 // Tricky things:
-// 1. iOS 6+ gives "Frame load interrupted" when you try to handle a top-frame load with a NSURLProtocol.
-//   http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup/19432303/
-//   To work around this, we detect the nav in shouldOverrideLoadWithRequest and change it into a [UIWebView loadData] call,
-// 2. iOS 6+ also has issues with using a NSURLProtocol to load iframes.
-//   To work around this, we do a 302 redirect instead.
+// With file:// URLs:
+//   1. iOS 6+ gives "Frame load interrupted" when you try to handle a top-frame load with a NSURLProtocol.
+//     http://stackoverflow.com/questions/12058203/using-a-custom-nsurlprotocol-on-ios-for-file-urls-causes-frame-load-interrup/19432303/
+//     To work around this, there are two options:
+//     a) Handle it in shouldOverrideLoadWithRequest and change it into a [UIWebView loadData] call.
+//     b) Use a NSURLProtocol and serve a redirect (crazily, this works).
+//     - We do b) since a) breaks browser history.
+//   2. iOS 6+ also has issues with using a NSURLProtocol to load iframes. (error -999)
+//     To work around this, we use a redirect as well.
+//   Note: We can detect frame loads by recording them in shouldOverrideLoadWithRequest.
+// For non-file: URLs:
+//   1. Redirects to other schemes are not followed for iframe loads.
+//     - We work around this by using a 200 response when the scheme changes (works only for non-file: -> file:).
+// Not sure if applies only to file://
+//   1. Synchronous XHRs fail with error -111 when if we don't respond to them synchronously.
+//     - This came up when we were using NSURLProtocol to sub-load resources (we not longer do this).
 
 
 @class RouteParams;
@@ -48,9 +59,7 @@ static NSString* mimeTypeForPath(NSString* path) {
 @interface UrlRemap : CDVPlugin {
   @package
     RouteParams* _resetUrlParams;
-    BOOL _giveFreePassToNextLoad;
     NSMutableArray* _rerouteParams;
-    NSMutableSet* _frameUris;
 }
 
 - (void)addAlias:(CDVInvokedUrlCommand*)command;
@@ -89,9 +98,7 @@ static NSString* mimeTypeForPath(NSString* path) {
 
 @end
 
-@interface UrlRemapURLProtocol : NSURLProtocol {
-    NSURLConnection* _activeConnection;
-}
+@interface UrlRemapURLProtocol : NSURLProtocol
 @end
 
 
@@ -113,11 +120,17 @@ static NSString* mimeTypeForPath(NSString* path) {
 }
 
 - (void)pluginInitialize {
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pageDidLoad) name:CDVPageDidLoadNotification object:self.webView];
+    if (gPlugin == nil) {
+        [NSURLProtocol registerClass:[UrlRemapURLProtocol class]];
+    }
     gPlugin = self;
-    [NSURLProtocol registerClass:[UrlRemapURLProtocol class]];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pageDidLoad) name:CDVPageDidLoadNotification object:self.webView];
+
     _rerouteParams = [[NSMutableArray alloc] init];
-    _frameUris = [[NSMutableSet alloc] init];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void)pageDidLoad {
@@ -131,41 +144,37 @@ static NSString* mimeTypeForPath(NSString* path) {
 }
 
 - (BOOL)shouldOverrideLoadWithRequest:(NSURLRequest*)request navigationType:(UIWebViewNavigationType)navigationType {
-    NSURL* url = [request URL];
-    BOOL isTopLevelNavigation = [url isEqual:request.mainDocumentURL];
-    if (isTopLevelNavigation) {
-        RouteParams* params = nil;
-        @synchronized (self) {
-            // Prevents infinite loop from the loadData call below.
-            if (_giveFreePassToNextLoad) {
-                _giveFreePassToNextLoad = NO;
-                return NO;
-            }
-            if (_resetUrlParams != nil) {
-                if ([_resetUrlParams matches:[url absoluteString]]) {
-                    [_rerouteParams removeAllObjects];
+    NSURL* newUrl = [request URL];
+    RouteParams* lastParams = nil;
+    BOOL isTopLevelNavigation = [newUrl isEqual:request.mainDocumentURL];
+    @synchronized (self) {
+        if (isTopLevelNavigation) {
+            RouteParams* params = nil;
+            int count = 0;
+            do {
+                if (_resetUrlParams != nil) {
+                    if ([_resetUrlParams matches:[newUrl absoluteString]]) {
+                        [_rerouteParams removeAllObjects];
+                        break;
+                    }
                 }
+
+                params = [self getChosenParams:newUrl forInjection:NO];
+                if (params != nil) {
+                    lastParams = params;
+                    count++;
+                    newUrl = [params applyReplacement:newUrl];
+                }
+                if (count == 10) {
+                    NSLog(@"Hit infinite redirect in UrlRemap!");
+                    break;
+                }
+            } while (params != nil && params->_allowFurtherRemapping);
+
+            if (lastParams != nil && lastParams->_redirectToReplacedUrl) {
+                [self.webView loadRequest:[NSURLRequest requestWithURL:newUrl]];
+                return YES;
             }
-            params = [self getChosenParams:url forInjection:NO];
-        }
-        // For top-level navigations where we need to do a sub-resource load.
-        if (params != nil) {
-            NSURL* newUrl = [params applyReplacement:url];
-            // Note: Using loadData: clears the browser history stack. e.g. history.back() doesn't work.
-            NSData* body = nil;
-            if (params->_allowFurtherRemapping) {
-                body = [NSData dataWithContentsOfURL:newUrl];
-            } else {
-                body = [NSData dataWithContentsOfFile:[newUrl path]];
-            }
-            _giveFreePassToNextLoad = YES;
-            [self.webView loadData:body MIMEType:@"text/html" textEncodingName:@"utf8" baseURL:url];
-            return YES;
-        }
-    } else {
-        RouteParams* params = [self getChosenParams:url forInjection:NO];
-        if (params != nil) {
-            [_frameUris addObject:url];
         }
     }
 
@@ -254,7 +263,7 @@ static NSString* mimeTypeForPath(NSString* path) {
     [[self client] URLProtocolDidFinishLoading:self];
 }
 
-- (void)issueRedirectToURL:(NSURL*)dest {
+- (void)issueRedirectResponseToURL:(NSURL*)dest {
     NSMutableURLRequest* req = [[self request] mutableCopy];
     [req setURL:dest];
     [req setValue:@"FOO" forHTTPHeaderField:@"fo"];
@@ -262,7 +271,6 @@ static NSString* mimeTypeForPath(NSString* path) {
     NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:[[self request] URL] statusCode:302 HTTPVersion:@"HTTP/1.1" headerFields:@{ @"Location": [dest absoluteString] }];
 
     [[self client] URLProtocol:self wasRedirectedToRequest:req redirectResponse:response];
-    //[[self client] URLProtocolDidFinishLoading:self];
 }
 
 - (void)issueDirectResponseForFileUrl:(NSURL*)url {
@@ -303,87 +311,45 @@ static NSString* mimeTypeForPath(NSString* path) {
     }
 }
 
-- (void)doLoadURL:(NSURL*)url {
-    NSMutableURLRequest* req = [[self request] mutableCopy];
-    [req setURL:url];
-    _activeConnection = [[NSURLConnection alloc] initWithRequest:req delegate:self];
-}
-
 - (void)startLoading {
-    NSURLRequest* request = [self request];
-    int action = 0;
-    NSURL* newUrl = nil;
-
-    @synchronized (gPlugin) {
-        RouteParams* params = [gPlugin getChosenParams:[request URL] forInjection:NO];
-
-        // Race condition where params are cleared between canInit and startLoading.
-        if (params == nil) {
-            [self issueNotFoundResponse];
-            return;
-        }
-        newUrl = [params applyReplacement:[request URL]];
-
-        BOOL isTopLevelNavigation = [request.URL isEqual:request.mainDocumentURL];
-
-        if (isTopLevelNavigation) {
-            NSLog(@"Uh oh! Unexpected Top-Level Resource Request in UrlRemap.");
-        } else if (params->_redirectToReplacedUrl) {
-            // Note: we could support this, but Android can't.
-            NSLog(@"Uh oh! UrlRemap doesn't currently support redirectToReplacedUrl (plus these should be top-level navs).");
-        } else if ([gPlugin->_frameUris containsObject:[request URL]]) {
-            // Frame loads must use redirects for iOS to be happy.
-            int count = 0;
-            // This further remapping doesn't play well with extern NSURLProtocols. Hopefully that's okay.
-            while (params != nil && params->_allowFurtherRemapping) {
-                params = [gPlugin getChosenParams:newUrl forInjection:NO];
-                if (params != nil) {
-                    newUrl = [params applyReplacement:newUrl];
-                }
-                if (++count > 10) {
-                    NSLog(@"Hit infinite redirect in UrlRemap!");
-                    break;
-                }
+    NSURL* newUrl = [[self request] URL];
+    int count = 0;
+    NSString* startScheme = [newUrl scheme];
+    if ([[newUrl absoluteString] hasPrefix:@"app-h"]) {
+        count = 0;
+    }
+    UrlRemap* plugin = gPlugin;
+    @synchronized (plugin) {
+        RouteParams* params = nil;
+        do {
+            params = [plugin getChosenParams:newUrl forInjection:NO];
+            if (params != nil) {
+                count++;
+                newUrl = [params applyReplacement:newUrl];
             }
-            action = 1;
-        } else if (params->_allowFurtherRemapping) {
-            action = 2;
-        } else {
-            action = 3;
-        }
+            if (count == 10) {
+                NSLog(@"Hit infinite redirect in UrlRemap!");
+                break;
+            }
+        } while (params != nil && params->_allowFurtherRemapping);
+
     }
-    switch (action) {
-        case 1: [self issueRedirectToURL:newUrl]; break;
-        case 2: [self doLoadURL:newUrl]; break;
-        case 3: [self issueDirectResponseForFileUrl:newUrl]; break;
+    // Race condition where params are cleared between canInit and startLoading.
+    if (count == 0) {
+        [self issueNotFoundResponse];
+    } else if (![startScheme isEqualToString:[newUrl scheme]]) {
+        // Redirect won't be allowed for iframes if the scheme switches. E.g. from app-harness: -> file:
+        [self issueDirectResponseForFileUrl:newUrl];
+    } else {
+        [self issueRedirectResponseToURL:newUrl];
     }
 }
 
-- (void)stopLoading {
-    [_activeConnection cancel];
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
-    // NOTE: response's URL is wrong here since it's the actual URL's response. Doesn't seem to hurt for now...
-    NSURLResponse* resp = [[NSURLResponse alloc] initWithURL:[self.request URL] MIMEType:[response MIMEType] expectedContentLength:[response expectedContentLength] textEncodingName:[response textEncodingName]];
-    [[self client] URLProtocol:self didReceiveResponse:resp cacheStoragePolicy:NSURLCacheStorageNotAllowed];
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    [[self client] URLProtocol:self didLoadData:data];
-}
+- (void)stopLoading {}
 
 - (NSCachedURLResponse *)connection:(NSURLConnection *)connection
                   willCacheResponse:(NSCachedURLResponse*)cachedResponse {
     return nil;
-}
-
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    [[self client] URLProtocolDidFinishLoading:self];
-}
-
-- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    [[self client] URLProtocol:self didFailWithError:error];
 }
 
 @end
