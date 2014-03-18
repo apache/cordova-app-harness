@@ -105,6 +105,11 @@
                 $scope.$apply();
             }, notifier.error);
 
+            appharness.push.getListenAddress(function(value) {
+                $scope.ipAddress = value;
+                $scope.$apply();
+            });
+
             appharness.push.pending(function(obj) {
                 console.log('Return from pending: ' + obj);
                 if (obj && obj.type) {

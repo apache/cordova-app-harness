@@ -23,6 +23,6 @@
 
 <div class="listen" ng-show="listening !== undefined">
     <button class="topcoat-button" ng-show="!listening" ng-click="listen()">Start listening</button>
-    <strong ng-show="listening">Listening</strong>
+    <div ng-show="listening">Listening. IP=<strong>{{ipAddress}}</strong></div>
 </div>
 
