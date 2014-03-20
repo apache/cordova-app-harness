@@ -21,8 +21,7 @@
     <button class="topcoat-button" ng-click="loadAppsList()">Reload</button>
 </div>
 
-<div class="listen" ng-show="listening !== undefined">
-    <button class="topcoat-button" ng-show="!listening" ng-click="listen()">Start listening</button>
-    <div ng-show="listening">Listening. IP=<strong>{{ipAddress}}</strong></div>
+<div class="listen" ng-show="listening">
+    Listening. IP = <strong>{{ipAddress}}</strong>
 </div>
 
