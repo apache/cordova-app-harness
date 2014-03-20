@@ -37,6 +37,7 @@ set +x
 echo Installing plugins.
 "$CORDOVA" plugin add\
     "$AH_PATH/UrlRemap" \
+    "$AH_PATH/CacheClear" \
     org.apache.cordova.file \
     org.apache.cordova.file-transfer \
     org.apache.cordova.device \

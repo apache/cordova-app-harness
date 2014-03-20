@@ -1,6 +1,6 @@
 (function(){
     'use strict';
-    /* global myApp */
+    /* global myApp, cordova */
     myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'ContextMenuInjectScript', 'PluginMetadata', function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript, PluginMetadata) {
 
         function getAppStartPageFromConfig(configFile) {
@@ -64,6 +64,9 @@
             var self = this;
             this.updatingStatus = 0;
             this.installPath = installPath;
+            // Cache clearing necessary only for Android.
+            cordova.plugins.cacheclear.clearCache();
+
             return this.doUpdateApp()
             .then(function() {
                 self.lastUpdated = new Date();
