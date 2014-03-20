@@ -6,18 +6,25 @@ if [[ $# -eq 0 || "$1" = "--help" ]]; then
     echo '  PLATFORMS="android ios"'
     echo '  CORDOVA="path/to/cordova"'
     echo '  PLUGIN_SEARCH_PATH="path1:path2:path3"'
+    echo '  APP_ID="org.apache.AppHarness"'
+    echo '  APP_NAME="CordovaAppHarness"'
     exit 1
 fi
 
 CORDOVA="${CORDOVA-cordova}"
 PLATFORMS="${PLATFORMS-android}"
+APP_ID=${APP_ID-org.apache.appharness}
+APP_NAME=${APP_NAME-CordovaAppHarness}
 DIR_NAME="${1}"
 AH_PATH="$(cd $(dirname $0) && pwd)"
 PLUGIN_SEARCH_PATH="${PLUGIN_SEARCH_PATH-$(dirname "$AH_PATH"):$(dirname "$AH_PATH")/cordova-plugins}"
 
-"$CORDOVA" create "$DIR_NAME" org.apache.appharness CordovaAppHarness --link-to "$AH_PATH/www" || exit 1
+"$CORDOVA" create "$DIR_NAME" "$APP_ID" "$APP_NAME" --link-to "$AH_PATH/www" || exit 1
 cd "$DIR_NAME"
 cp "$AH_PATH/config.xml" . || exit 1
+perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
+perl -i -pe "s/{NAME}/$APP_NAME/g" config.xml || exit 1
+
 
 set -x
 $CORDOVA platform add $PLATFORMS || exit 1
