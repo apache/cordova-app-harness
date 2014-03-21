@@ -84,7 +84,7 @@
                                 return $scope.loadAppsList();
                             }).then(function() {
                                 return $scope.launchApp(theApp, { stopPropagation: function() { } });
-                            }).done(null, function(err) {
+                            }).then(null, function(err) {
                                 var msg = 'Failed to update ' + app.appId + ': ' + err;
                                 console.error(msg);
                                 notifier.error(msg);
