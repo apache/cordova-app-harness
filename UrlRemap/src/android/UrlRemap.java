@@ -70,7 +70,7 @@ public class UrlRemap extends CordovaPlugin {
         return true;
     }
 
-    private void resetMappings() {
+    public void resetMappings() {
         resetUrlParams = null;
         rerouteParams.clear();
     }
