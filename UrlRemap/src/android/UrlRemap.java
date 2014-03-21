@@ -99,7 +99,7 @@ public class UrlRemap extends CordovaPlugin {
                 resetMappings();
             }
 
-            webView.loadUrl(newUrl);
+            webView.loadUrlIntoView(newUrl, false);
             return true;
         }
         return false;
