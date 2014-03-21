@@ -35,7 +35,7 @@
 
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="CacheClear">
-        <param name="android-package" value="org.apache.cordova.urlremap.CacheClear"/>
+        <param name="android-package" value="org.apache.cordova.cacheclear.CacheClear"/>
       </feature>
     </config-file>
   </platform>
