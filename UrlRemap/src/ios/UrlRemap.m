@@ -258,7 +258,7 @@ static NSString* mimeTypeForPath(NSString* path) {
 
 - (void)issueNotFoundResponse {
     NSURL* url = [[self request] URL];
-    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{}];
+    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:@{@"Cache-Control": @"no-cache"}];
     [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
     [[self client] URLProtocolDidFinishLoading:self];
 }
@@ -268,8 +268,7 @@ static NSString* mimeTypeForPath(NSString* path) {
     [req setURL:dest];
     [req setValue:@"1" forHTTPHeaderField:@"url-remap-ignore"];
 
-    // Responses get cached regardless of if we specify Cache-Control here.
-    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:[[self request] URL] statusCode:302 HTTPVersion:@"HTTP/1.1" headerFields:@{ @"Location": [dest absoluteString] }];
+    NSURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:[[self request] URL] statusCode:302 HTTPVersion:@"HTTP/1.1" headerFields:@{ @"Location": [dest absoluteString], @"Cache-Control": @"no-cache" }];
 
     [[self client] URLProtocol:self wasRedirectedToRequest:req redirectResponse:response];
 }
