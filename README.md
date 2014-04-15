@@ -5,7 +5,11 @@ An App that can download and run Cordova apps.
 
 Primary Goals:
 * Super-fast edit &amp; refresh workflow
+  * E.g. have a `grunt watch` that pushes every time a file changes
+  * E.g. have `livereload`-type functionality for CSS & images
 * Test on devices without needing platform SDKs
+  * E.g. develop for iOS on a Windows machine
+  * Non-goal: Release to iOS from Windows
 
 ## Building the App Harness
 
@@ -27,7 +31,6 @@ The manual way:
 
     * `org.apache.cordova.UrlRemap` (exists in the `UrlRemap` directory)
     * `org.apache.cordova.file`
-    * `org.apache.cordova.file-extras` (exists in cordova-labs right now)
     * `org.apache.cordova.file-transfer`
     * `com.phonegap.plugins.barcodescanner` (optional - adds barcode scanning)
 
@@ -41,19 +44,10 @@ The manual way:
 1. Add any plugins that your apps might need.
 
 ## Features
-* Install and test multiple applications.
-* In-App Menu to switch between installed apps.
-* Firebug Lite and Weinre support for debugging.
+* Install and launch via `cordova serve`
+* Three-finger swipe to return to main menu
 
-## Major Unimplemented Installer Features
-* Editing of URLs in the app list
-* Incremental updates of `cordova serve` URLs (instead of re-downloading existing files)
-* Install from `.crx` files
-* Install from `.cdvh` files (created via packapp script)
-* Detecting when an app requires a plugin that the harness doesn't have
-* Detect version mismatches of app vs harness (report as warnings)
-
-## Major Unimplemented Launcher Features
+## Major Unimplemented Features
 * Applying app settings (DisallowOverscroll, etc)
 * Applying app splashscreen
 * Applying app's whitelist
@@ -75,5 +69,5 @@ The manual way:
 ## Running an app in the harness
 * Click launch on the installed app
 * See if the app looks as expected
-* Use a 3 finger tap to access the app menu while testing your app.
+* Use a 3 finger swipe to access the app menu while testing your app.
 * The context menu that pops up allows you to return to the main screen, restart or update the app, open a Firebug console on the device, or set up remote debugging using Weinre.
