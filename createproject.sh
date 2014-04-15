@@ -42,7 +42,6 @@ echo Installing plugins.
     org.apache.cordova.file-transfer \
     org.apache.cordova.device \
     org.chromium.zip \
-    org.apache.cordova.file-system-roots \
     --searchpath="$PLUGIN_SEARCH_PATH"
 
 # org.apache.cordova.device isn't used directly, but is convenient to test mobilespec.
