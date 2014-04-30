@@ -40,23 +40,28 @@
         }
 
         function dirName(path) {
-            return path.replace(/\/[^\/]+$/, '/');
+            return path.replace(/\/[^\/]+\/?$/, '/');
         }
 
         function baseName(path) {
-            return path.replace(/.*\//, '');
+            return path.replace(/\/$/, '').replace(/.*\//, '');
         }
 
-        function ensureDirectoryExists(url) {
-            var m = /(cdvfile:\/\/.*?\/.*?\/)(.*)/.exec(url);
-            var rootDir = m[1];
-            var segments = m[2].split('/');
-
-            return segments.reduce(function(p, seg) {
-                return !seg ? p : p.then(function(parentDirEntry) {
-                    return getDirectoryPromisified(parentDirEntry, seg, {create: true});
+        function ensureDirectoryExists(targetUrl) {
+            function helper(url) {
+                return resolveURL(url)
+                .then(null, function() {
+                    var parentUrl = dirName(url);
+                    if (parentUrl == url) {
+                        throw new Error('No root filesystem for: ' + targetUrl);
+                    }
+                    return helper(parentUrl)
+                    .then(function(entry) {
+                        return getDirectoryPromisified(entry, baseName(url), {create: true});
+                    });
                 });
-            }, resolveURL(rootDir));
+            }
+            return helper(targetUrl);
         }
 
         function createFileEntry(url) {
