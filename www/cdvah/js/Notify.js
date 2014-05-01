@@ -23,9 +23,17 @@
     myApp.factory('notifier', ['$rootScope', function($rootScope) {
         return {
             success: function(msg) {
+                console.log(msg);
                 $rootScope.notification = { message: msg, type: 'success' };
             },
             error: function(msg) {
+                if (typeof(msg) == 'object') {
+                    msg = msg.message || msg;
+                }
+                if (msg && typeof msg != 'string') {
+                    msg = JSON.stringify(msg);
+                }
+                console.error(msg);
                 $rootScope.notification = { message: msg, type: 'error' };
             }
         };
