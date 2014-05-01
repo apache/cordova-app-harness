@@ -17,7 +17,7 @@ APP_ID=${APP_ID-org.apache.appharness}
 APP_NAME=${APP_NAME-CordovaAppHarness}
 DIR_NAME="${1}"
 AH_PATH="$(cd $(dirname $0) && pwd)"
-PLUGIN_SEARCH_PATH="${PLUGIN_SEARCH_PATH-$(dirname "$AH_PATH"):$(dirname "$AH_PATH")/cordova-plugins}"
+PLUGIN_SEARCH_PATH="${PLUGIN_SEARCH_PATH}:$(dirname "$AH_PATH"):$(dirname "$AH_PATH")/cordova-plugins"
 
 "$CORDOVA" create "$DIR_NAME" "$APP_ID" "$APP_NAME" --link-to "$AH_PATH/www" || exit 1
 cd "$DIR_NAME"
