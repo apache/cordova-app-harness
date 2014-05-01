@@ -144,6 +144,18 @@
                 return writeToFile(url, contents, true /* append */);
             },
 
+            moveFile: function(fromUrl, toUrl) {
+                return resolveURL(fromUrl)
+                .then(function(fromEntry) {
+                    return ensureDirectoryExists(dirName(toUrl))
+                    .then(function(destEntry) {
+                        var deferred = $q.defer();
+                        fromEntry.moveTo(destEntry, baseName(toUrl), deferred.reslove, deferred.reject);
+                        return deferred;
+                    });
+                });
+            },
+
             deleteDirectory: function(url) {
                 return resolveURL(url)
                 .then(function(dirEntry) {

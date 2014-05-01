@@ -31,24 +31,6 @@
             });
         }
 
-        function getAppPlugins(cordovaPluginsFile) {
-            console.log('Reading plugins from: ' + cordovaPluginsFile);
-            return ResourcesLoader.readFileContents(cordovaPluginsFile)
-            .then(function(contents) {
-                if (!contents) {
-                    throw new Error('cordova_plugins.js file is empty. Something has gone wrong with "cordova prepare".');
-                }
-
-                // Extract the JSON data from inside the JS file.
-                // It's between two magic comments created by Plugman.
-                var startIndex = contents.indexOf('TOP OF METADATA') + 16;
-                var endIndex = contents.indexOf('// BOTTOM OF METADATA');
-                var target = contents.substring(startIndex, endIndex);
-                var metadata = JSON.parse(target);
-                return metadata;
-            });
-        }
-
         function Installer(url, appId) {
             this.url = url;
             this.appId = appId || '';
@@ -70,19 +52,25 @@
             return this.doUpdateApp()
             .then(function() {
                 self.lastUpdated = new Date();
-                if (self.type === 'crx') {
-                    // No cordova_plugins.js to read for .crx-based apps.
-                    return $q.when({});
-                } else {
-                    return getAppPlugins(installPath + '/www/cordova_plugins.js');
-                }
+                return self.getPluginMetadata();
             }, null, function(status) {
                 self.updatingStatus = Math.round(status * 100);
             }).then(function(metadata) {
                 self.plugins = PluginMetadata.process(metadata);
+                var pluginIds = Object.keys(metadata);
+                var newPluginsFileData = PluginMetadata.createNewPluginListFile(pluginIds);
+                return ResourcesLoader.writeFileContents(installPath + '/www/cordova_plugins.js', newPluginsFileData);
             }).finally(function() {
                 self.updatingStatus = null;
             });
+        };
+
+        Installer.prototype.doUpdateApp = function() {
+            throw new Error('Installer ' + this.type + ' failed to implement doUpdateApp.');
+        };
+
+        Installer.prototype.getPluginMetadata = function() {
+            throw new Error('Installer ' + this.type + ' failed to implement getPluginMetadata.');
         };
 
         Installer.prototype.deleteFiles = function() {
@@ -124,9 +112,8 @@
                     UrlRemap.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
                     // Allow navigations back to the menu.
                     UrlRemap.setResetUrl('^' + harnessUrl);
-                    // Override cordova.js, cordova_plugins.js, and www/plugins to point at bundled plugins.
+                    // Override cordova.js, and www/plugins to point at bundled plugins.
                     UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
-                    UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova_plugins\\.js.*', '.+', 'app-harness:///cordova_plugins.js', false /* redirect */, true /* allowFurtherRemapping */);
                     UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
 
                     // Make any references to www/ point to the app's install location.

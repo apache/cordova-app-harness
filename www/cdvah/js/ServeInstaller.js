@@ -4,7 +4,7 @@
     var ASSET_MANIFEST_PATH = 'installmanifest.json';
 
     /* global myApp */
-    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'urlCleanup', function($q, Installer, AppsService, ResourcesLoader, urlCleanup) {
+    myApp.run(['$q', 'Installer', 'AppsService', 'ResourcesLoader', 'urlCleanup', 'PluginMetadata', function($q, Installer, AppsService, ResourcesLoader, urlCleanup, PluginMetadata) {
         var platformId = cordova.require('cordova/platform').id;
 
         function ServeInstaller(url, appId) {
@@ -71,7 +71,6 @@
             .then(deferred.resolve, deferred.reject);
             return deferred.promise;
         }
-
         // TODO: update should be more atomic. Maybe download to a new directory?
         ServeInstaller.prototype.doUpdateApp = function() {
             if (this._assetManifest) {
@@ -83,8 +82,9 @@
             });
         };
 
-        ServeInstaller.prototype._doUpdateAppForReal = function() {
+        ServeInstaller.prototype._bulkDownload = function(files) {
             var installPath = this.installPath;
+            var wwwPath = this._cachedProjectJson.wwwPath;
             var deferred = $q.defer();
             var self = this;
             // Write the asset manifest to disk at most every 2 seconds.
@@ -99,12 +99,43 @@
                 }
             }, 2000);
 
-            fetchMetaServeData(this.url)
+            console.log('Number of files to fetch: ' + files.length);
+            var i = 0;
+            var totalFiles = files.length + 1; // + 1 for the updateAppMeta.
+            deferred.notify((i + 1) / totalFiles);
+            function downloadNext() {
+                if (i > 0) {
+                    self._assetManifest[files[i - 1].path] = files[i - 1].etag;
+                    assetManifestDirty = 1;
+                }
+                if (!files[i]) {
+                    assetManifestDirty = 2;
+                    deferred.resolve();
+                    return;
+                }
+                deferred.notify((i + 1) / totalFiles);
+
+                var sourceUrl = self.url + wwwPath + files[i].path;
+                var destPath = installPath + '/www' + files[i].path;
+                if (files[i].path == '/cordova_plugins.js') {
+                    destPath = installPath + '/orig-cordova_plugins.js';
+                }
+                console.log(destPath);
+                i += 1;
+                return ResourcesLoader.downloadFromUrl(sourceUrl, destPath).then(downloadNext);
+            }
+            downloadNext();
+        };
+
+        ServeInstaller.prototype._doUpdateAppForReal = function() {
+            var installPath = this.installPath;
+            var self = this;
+
+            return fetchMetaServeData(this.url)
             .then(function(meta) {
                 self._cachedProjectJson = meta.projectJson;
                 self._cachedConfigXml = meta.configXml;
                 self.appId = self.appId || meta.appId;
-                var wwwPath = self._cachedProjectJson.wwwPath;
                 var files = self._cachedProjectJson.wwwFileList;
                 files = files.filter(function(f) {
                     // Don't download cordova.js or plugins. We want to use the version bundled with the harness.
@@ -113,32 +144,18 @@
                     var haveAlready = self._assetManifest[f.path] == f.etag;
                     return (!isPlugin && !haveAlready);
                 });
-                console.log('Number of files to fetch: ' + files.length);
-                var i = 0;
-                var totalFiles = files.length + 1; // + 1 for the updateAppMeta.
-                deferred.notify((i + 1) / totalFiles);
-                function downloadNext() {
-                    if (i > 0) {
-                        self._assetManifest[files[i - 1].path] = files[i - 1].etag;
-                        assetManifestDirty = 1;
-                    }
-                    if (!files[i]) {
-                        assetManifestDirty = 2;
-                        deferred.resolve();
-                        return;
-                    }
-                    deferred.notify((i + 1) / totalFiles);
-
-                    var sourceUrl = self.url + wwwPath + files[i].path;
-                    var destPath = installPath + '/www' + files[i].path;
-                    console.log(destPath);
-                    i += 1;
-                    return ResourcesLoader.downloadFromUrl(sourceUrl, destPath).then(downloadNext);
-                }
                 return ResourcesLoader.writeFileContents(installPath + '/config.xml', self._cachedConfigXml)
-                .then(downloadNext);
+                .then(function() {
+                    return self._bulkDownload(files);
+                });
             });
-            return deferred.promise;
+        };
+
+        ServeInstaller.prototype.getPluginMetadata = function() {
+            return ResourcesLoader.readFileContents(this.installPath + '/orig-cordova_plugins.js')
+            .then(function(contents) {
+                return PluginMetadata.extractPluginMetadata(contents);
+            });
         };
 
         function createFromUrl(url) {
