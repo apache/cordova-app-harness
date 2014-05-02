@@ -158,13 +158,13 @@
             });
         };
 
-        function createFromUrl(url) {
+        function createFromUrl(url, opt_appId) {
             // Strip platform and trailing slash if they exist.
             url = urlCleanup(url);
             // Fetch config.xml.
             return fetchMetaServeData(url)
             .then(function(meta) {
-                return new ServeInstaller(meta.url, meta.appId);
+                return new ServeInstaller(meta.url, opt_appId || meta.appId);
             });
         }
 

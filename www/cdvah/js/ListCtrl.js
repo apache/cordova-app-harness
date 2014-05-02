@@ -60,7 +60,7 @@
                             } else {
                                 // New app.
                                 var handler;
-                                promise = AppsService.addApp(obj.type, obj.url).then(function(h) {
+                                promise = AppsService.addApp(obj.type, obj.url, obj.name).then(function(h) {
                                     handler = h;
                                     var msg = 'Added new app ' + handler.appId + ' from push';
                                     notifier.success(msg);

@@ -108,11 +108,9 @@
 
         AppsService.registerInstallerFactory({
             type: 'crx',
-            createFromUrl: function(url) {
+            createFromUrl: function(url, opt_appId) {
                 url = urlCleanup(url);
-
-                // TODO: Fix the missing appId, somehow.
-                return $q.when(new CrxInstaller(url, 'New Chrome App'));
+                return $q.when(new CrxInstaller(url, opt_appId || 'New Chrome App'));
             },
 
             createFromJson: function(url, appId) {
