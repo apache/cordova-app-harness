@@ -8,6 +8,7 @@ if [[ $# -eq 0 || "$1" = "--help" ]]; then
     echo '  PLUGIN_SEARCH_PATH="path1:path2:path3"'
     echo '  APP_ID="org.apache.AppHarness"'
     echo '  APP_NAME="CordovaAppHarness"'
+    echo '  APP_VERSION="0.0.1"'
     exit 1
 fi
 
@@ -15,6 +16,7 @@ CORDOVA="${CORDOVA-cordova}"
 PLATFORMS="${PLATFORMS-android}"
 APP_ID=${APP_ID-org.apache.appharness}
 APP_NAME=${APP_NAME-CordovaAppHarness}
+APP_VERSION=${APP_VERSION-0.0.1}
 DIR_NAME="${1}"
 AH_PATH="$(cd $(dirname $0) && pwd)"
 PLUGIN_SEARCH_PATH="${PLUGIN_SEARCH_PATH}:$(dirname "$AH_PATH"):$(dirname "$AH_PATH")/cordova-plugins"
@@ -24,6 +26,7 @@ cd "$DIR_NAME"
 cp "$AH_PATH/config.xml" . || exit 1
 perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
 perl -i -pe "s/{NAME}/$APP_NAME/g" config.xml || exit 1
+perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
 
 
 set -x

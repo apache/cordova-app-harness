@@ -17,7 +17,7 @@
   specific language governing permissions and limitations
   under the License.
 -->
-<widget id="{ID}" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="{ID}" version="{VERSION}" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>{NAME}</name>
     <content src="cdvah/index.html" />
     <access origin="*" />
