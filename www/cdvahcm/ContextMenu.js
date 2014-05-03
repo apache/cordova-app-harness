@@ -15,7 +15,7 @@
         var el = document.createElement('iframe');
         contextMenuIframeEl = el;
         el.src = contextHTMLUrl;
-        el.style.cssText = 'position: fixed; left: 0; top: 0; z-index: 2000; width: 100%; height: 100%; border: none; display:none';
+        el.style.cssText = 'position: fixed; left: 0; top: 0; z-index: 90000; width: 100%; height: 100%; border: none; display:none';
         el.onload = function() {
             el.contentWindow.postMessage('AppHarnessAppName:' + __cordovaAppHarnessData['appName'], '*');
         };
