@@ -19,6 +19,6 @@
 */
 var exec = cordova.require('cordova/exec');
 
-exports.clearCache = function() {
-    exec(null, null, 'CacheClear', 'clearCache', []);
+exports.clear = function(win, fail) {
+    exec(win, fail, 'CacheClear', 'clear', []);
 };

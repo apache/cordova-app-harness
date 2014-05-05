@@ -24,8 +24,10 @@
 
 @implementation CacheClear
 
-- (void)clearCache:(CDVInvokedUrlCommand*)command {
+- (void)clear:(CDVInvokedUrlCommand*)command {
     [[NSURLCache sharedURLCache] removeAllCachedResponses];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 @end

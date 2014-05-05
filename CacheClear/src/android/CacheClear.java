@@ -26,9 +26,13 @@ import org.json.JSONException;
 public class CacheClear extends CordovaPlugin {
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
-        if ("cacheClear".equals(action)) {
-            webView.clearCache(true);
-            callbackContext.success();
+        if ("clear".equals(action)) {
+            this.cordova.getActivity().runOnUiThread(new Runnable() {
+                public void run() {
+                    webView.clearCache(true);
+                    callbackContext.success();
+                }
+            });
         } else {
             return false;
         }
