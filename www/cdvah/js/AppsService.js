@@ -82,10 +82,10 @@
                 });
             },
 
-            addApp : function(installerType, appUrl, opt_appId) {
+            addApp : function(installerType, appUrl, /*optional*/ appId) {
                 var installerFactory = _installerFactories[installerType];
                 return initHandlers().then(function() {
-                    return installerFactory.createFromUrl(appUrl, opt_appId);
+                    return installerFactory.createFromUrl(appUrl, appId);
                 }).then(function(installer) {
                     _installers.push(installer);
                     return writeAppsJson()

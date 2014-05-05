@@ -108,9 +108,9 @@
 
         AppsService.registerInstallerFactory({
             type: 'crx',
-            createFromUrl: function(url, opt_appId) {
+            createFromUrl: function(url, /*optional*/appId) {
                 url = urlCleanup(url);
-                return $q.when(new CrxInstaller(url, opt_appId || 'New Chrome App'));
+                return $q.when(new CrxInstaller(url, appId || 'New Chrome App'));
             },
 
             createFromJson: function(url, appId) {
