@@ -46,10 +46,8 @@
                 });
 
                 appharness.push.pending(function(obj) {
-                    console.log('Return from pending: ' + obj);
                     if (obj && obj.type) {
                         AppsService.getAppList().then(function(list) {
-                            console.log(list);
                             var matches = list && list.filter(function(x) { return x.appId == obj.name; });
                             var promise;
                             if (list && matches.length > 0) {
