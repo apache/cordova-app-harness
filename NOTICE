@@ -1,5 +1,14 @@
 Apache Cordova
-Copyright 2012 The Apache Software Foundation
+Copyright 2014 The Apache Software Foundation
 
 This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
+The Apache Software Foundation (http://www.apache.org)
+
+=========================================================================
+==  NOTICE file corresponding to the section 4 d of                    ==
+==  the Apache License, Version 2.0,                                   ==
+=========================================================================
+
+This product includes the NanoHTTP library.
+The NanoHTTPD license is also included in `HarnessPush/src/android/nanohttpd/LICENSE.md`.
+

@@ -1,14 +1,8 @@
 # App Harness Push
 
-Allows pushing updates of apps to the App Harness.
-
-## Installation
-
-    cordova plugin add https://github.com/MobileChromeApps/harness-push.git
+Allows pushing updates of apps to the App Harness via HTTP. Works only for Android for now.
 
 ## Use
-
-**You must** press the "Start Listening" button on the main menu of the App Harness prior to using any of the requests below.
 
 There are currently four kinds of requests you can make:
 
