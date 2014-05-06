@@ -121,47 +121,7 @@ public class Push extends CordovaPlugin {
                 if (typeList != null) type = typeList.get(0);
                 if (type == null) return new Response(Response.Status.BAD_REQUEST, "text/plain", "No push type specified");
 
-                if ("crx".equals(type)) {
-                    // Receive the file that came with the request, and save it under /data/data/my.app.id/push.crx.
-                    try {
-                        Map<String, String> files = new HashMap<String, String>();
-                        session.parseBody(files);
-                        if (!files.containsKey("file")) {
-                            return new Response(Response.Status.BAD_REQUEST, "text/plain", "You must send a file with the form key 'file'.");
-                        }
-                        
-                        // Copy the file out of the ephemeral cache/foo location and into somewhere permanent.
-                        String source = files.get("file");
-                        String target = source.replaceFirst("/cache/", "/crx_cache/") + ".crx";
-                        String dir = target.replaceFirst("/[^/]*$", "");
-                        
-                        File cacheDir = new File(dir);
-                        if (! (cacheDir.mkdir() || cacheDir.isDirectory()))
-                        	return new Response(Response.Status.INTERNAL_ERROR, "text/plain", "Could not create cache directory");
-                        
-                        InputStream in = new FileInputStream(new File(source));
-                        OutputStream out = new FileOutputStream(new File(target));
-                        byte[] buf = new byte[1024];
-                        int len;
-                        while((len = in.read(buf)) > 0) {
-                        	out.write(buf, 0, len);
-                        }
-                        in.close();
-                        out.close();
-                        
-                        // Now prepare the return value for the harness.
-                        String url = "file://" + target;
-                        JSONObject payload = new JSONObject();
-                        payload.put("name", params.get("name").get(0));
-                        payload.put("type", "crx");
-                        payload.put("url", url);
-                        Push.this.latestPush = payload;
-                        Push.this.restartAppHarness();
-                        return new Response(Response.Status.OK, "text/plain", "Push successful");
-                    } catch (Exception e) {
-                        Log.w(LOG_TAG, "Exception while receiving files", e);
-                    }
-                } else if ("serve".equals(type)) {
+                if ("serve".equals(type)) {
                     // Create the latestPush value from the parameters.
                     try {
                         JSONObject payload = new JSONObject();
@@ -175,6 +135,8 @@ public class Push extends CordovaPlugin {
                         Log.w(LOG_TAG, "JSONException while building 'serve' mode push data", je);
                         return new Response(Response.Status.INTERNAL_ERROR, "text/plain", "Error building JSON result");
                     }
+                } else {
+                    Log.w(LOG_TAG, "Unrecognized application type: " + type);
                 }
 
                 return new Response(Response.Status.BAD_REQUEST, "text/plain", "Push type '" + type + "' unknown");

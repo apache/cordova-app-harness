@@ -24,16 +24,6 @@ Make a `POST` request on port 2424 to:
 
 and this will cause the App Harness to return to the main menu, and fetch the app from `cordova serve`.
 
-### Push - `.crx` files
-
-Make a `POST` request on port 2424 to
-
-    /push?type=crx&name=appname
-
-with the file passed as an HTTP form submission, with the key `file`. The following curl line will do it, for example:
-
-    curl -X POST "http://192.168.1.102:2424/push?type=crx&name=myapp" -F "file=@path/to/myapp.crx"
-
 ### Menu - Return to the App Harness menu
 
 Sometimes, especially on emulators, it's hard or impossible to do the three-point touch that triggers the App Harness context menu. Sending a `POST` request on port 2424 to `/menu` will return to the App Harness main menu.
