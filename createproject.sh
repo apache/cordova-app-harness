@@ -20,7 +20,10 @@ APP_VERSION=${APP_VERSION-0.0.1}
 DIR_NAME="${1}"
 AH_PATH="$(cd $(dirname $0) && pwd)"
 extra_search_path="$PLUGIN_SEARCH_PATH"
-PLUGIN_SEARCH_PATH="$(dirname "$AH_PATH"):$(dirname "$AH_PATH")/cordova-plugins"
+PLUGIN_SEARCH_PATH="$(dirname "$AH_PATH")"
+if [[ -d $(dirname "$AH_PATH")/cordova-plugins ]]; then
+    PLUGIN_SEARCH_PATH="$PLUGIN_SEARCH_PATH:$(dirname "$AH_PATH")/cordova-plugins"
+fi
 if [[ -n "$extra_search_path" ]]; then
     PLUGIN_SEARCH_PATH="${extra_search_path}:$PLUGIN_SEARCH_PATH"
 fi
@@ -52,8 +55,10 @@ echo Installing plugins.
     org.chromium.zip \
     org.apache.cordova.file-system-roots \
     --searchpath="$PLUGIN_SEARCH_PATH"
-
 # org.apache.cordova.device isn't used directly, but is convenient to test mobilespec.
+
+# To enable barcode scanning:
+# $CORDOVA plugin add https://github.com/wildabeast/BarcodeScanner.git # Optional
 
 if [[ $? != 0 ]]; then
     echo "Plugin installation failed. Probably you need to set PLUGIN_SEARCH_PATH env variable so that it contains the plugin that failed to install."
@@ -90,9 +95,4 @@ mkdir node_modules
 # TODO: Add an option for installing grunt
 exit 0
 npm install grunt grunt-contrib-watch || exit 1
-
-# $CORDOVA plugin add org.apache.cordova.device # Not used by harness, but used by mobile-spec.
-# $CORDOVA plugin add https://github.com/wildabeast/BarcodeScanner.git # Optional
-
-# cordova plugin add "https://git-wip-us.apache.org/repos/asf/cordova-plugins.git#:file-system-roots"
 
