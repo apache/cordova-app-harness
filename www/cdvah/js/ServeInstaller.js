@@ -40,36 +40,33 @@
         };
 
         function fetchMetaServeData(url) {
-            var deferred = $q.defer();
-            var ret = {
-                url: url,
-                projectJson: null,
-                configXml: null,
-                appId: null
-            };
             var projectJsonUrl = url + '/' + platformId + '/project.json';
-            ResourcesLoader.xhrGet(projectJsonUrl, true)
-            .then(function(data) {
-                ret.projectJson = data;
-                return ResourcesLoader.xhrGet(url + ret.projectJson.configPath);
-            }, function(e) {
+            return ResourcesLoader.xhrGet(projectJsonUrl, true)
+            .then(null, function(e) {
                 // If there was no :8000, try again with one appended.
                 if (!/:(\d)/.test(url)) {
                     var newUrl = url.replace(/(.*?\/\/[^\/]*)/, '$1:8000');
                     if (newUrl != url) {
-                        return fetchMetaServeData(newUrl);
+                        url = newUrl;
+                        projectJsonUrl = url + '/' + platformId + '/project.json';
+                        return ResourcesLoader.xhrGet(projectJsonUrl, true);
                     }
                 }
-                deferred.reject(e);
+                throw e;
             })
-            .then(function(data) {
-                ret.configXml = data;
-                var configXml = new DOMParser().parseFromString(ret.configXml, 'text/xml');
-                ret.appId = configXml.firstChild.getAttribute('id');
-                return ret;
-            })
-            .then(deferred.resolve, deferred.reject);
-            return deferred.promise;
+            .then(function(projectJson) {
+                return ResourcesLoader.xhrGet(url + projectJson.configPath)
+                .then(function(configXmlRaw) {
+                    var configXml = new DOMParser().parseFromString(configXmlRaw, 'text/xml');
+                    var appId = configXml.firstChild.getAttribute('id');
+                    return {
+                        url: url,
+                        projectJson: projectJson,
+                        configXml: configXmlRaw,
+                        appId: appId
+                    };
+                });
+            });
         }
         // TODO: update should be more atomic. Maybe download to a new directory?
         ServeInstaller.prototype.doUpdateApp = function() {
@@ -122,9 +119,10 @@
                 }
                 console.log(destPath);
                 i += 1;
-                return ResourcesLoader.downloadFromUrl(sourceUrl, destPath).then(downloadNext);
+                ResourcesLoader.downloadFromUrl(sourceUrl, destPath).then(downloadNext, deferred.reject);
             }
             downloadNext();
+            return deferred.promise;
         };
 
         ServeInstaller.prototype._doUpdateAppForReal = function() {
