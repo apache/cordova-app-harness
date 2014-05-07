@@ -214,6 +214,7 @@ static NSString* mimeTypeForPath(NSString* path) {
 - (void)clearAllAliases:(CDVInvokedUrlCommand*)command {
     @synchronized (self) {
         [_rerouteParams removeAllObjects];
+        _resetUrlParams = nil;
     }
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];

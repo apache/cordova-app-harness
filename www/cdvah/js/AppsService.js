@@ -1,7 +1,7 @@
 (function() {
     'use strict';
     /* global myApp */
-    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'PluginMetadata', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, PluginMetadata) {
+    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'notifier', 'PluginMetadata', 'AppHarnessUI', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, notifier, PluginMetadata, AppHarnessUI) {
 
         // Map of type -> installer.
         var _installerFactories = {};
@@ -76,9 +76,40 @@
             },
 
             launchApp : function(installer) {
-                return installer.launch(_installers.indexOf(installer))
+                var self = this;
+                return installer.launch()
                 .then(function(launchUrl) {
-                    window.location = launchUrl;
+
+                    AppHarnessUI.setEventHandler(function(eventName) {
+                        console.log('Got event from UI: ' + eventName);
+                        if (eventName == 'showMenu') {
+                            AppHarnessUI.createOverlay('app-harness:///cdvahcm/contextMenu.html');
+                        } else if (eventName == 'hideMenu') {
+                            AppHarnessUI.destroyOverlay();
+                        } else if (eventName == 'updateApp') {
+                            // TODO: Do a background update.
+                            installer.unlaunch();
+                            AppHarnessUI.destroy();
+                            return self.updateApp(installer)
+                            .then(function() {
+                                return self.launchApp(installer);
+                            }).then(null, function(e){
+                                notifier.error(e);
+                            });
+                        } else if (eventName == 'restartApp') {
+                            // TODO: Restart in place?
+                            installer.unlaunch();
+                            AppHarnessUI.destroy();
+                            return self.launchApp(installer)
+                            .then(null, function(e){
+                                notifier.error(e);
+                            });
+                        } else if (eventName == 'quitApp') {
+                            installer.unlaunch();
+                            AppHarnessUI.destroy();
+                        }
+                    });
+                    return AppHarnessUI.create(launchUrl);
                 });
             },
 

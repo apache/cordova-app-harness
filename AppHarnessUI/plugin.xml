@@ -18,36 +18,34 @@
   under the License.
 -->
 <plugin xmlns="http://phonegap.com/ns/plugins/1.0"
-    id="org.apache.cordova.UrlRemap"
-    version="1.0.0">
+    id="org.apache.appharness.AppHarnessUI"
+    version="0.0.1">
   <engines>
     <engine name="cordova" version=">=3.0.0" />
   </engines>
 
-  <name>URL Remapper</name>
+  <name>AppHarnessUI</name>
 
-  <js-module src="urlremap.js" name="UrlRemap">
-    <clobbers target="cordova.plugins.urlremap" />
+  <js-module src="appharnessui.js" name="AppHarnessUI">
+    <clobbers target="cordova.plugins.appharnessui" />
   </js-module>
 
   <platform name="android">
-    <source-file src="src/android/UrlRemap.java" target-dir="src/org/apache/cordova/urlremap" />
+    <source-file src="AppHarnessUI.java" target-dir="src/org/apache/appharness" />
 
-    <config-file target="res/xml/config.xml" parent="/*">
-      <feature name="UrlRemap">
-        <param name="android-package" value="org.apache.cordova.urlremap.UrlRemap"/>
-        <param name="onload" value="true" />
+    <config-file target="config.xml" parent="/*">
+      <feature name="AppHarnessUI">
+        <param name="android-package" value="org.apache.appharness.AppHarnessUI"/>
       </feature>
     </config-file>
   </platform>
 
   <platform name="ios">
-    <source-file src="src/ios/UrlRemap.m" />
+    <source-file src="AppHarnessUI.m" />
 
     <config-file target="config.xml" parent="/*">
-      <feature name="UrlRemap">
-        <param name="ios-package" value="UrlRemap"/>
-        <param name="onload" value="true" />
+      <feature name="AppHarnessUI">
+        <param name="ios-package" value="AppHarnessUI"/>
       </feature>
     </config-file>
   </platform>

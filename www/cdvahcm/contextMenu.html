@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html onclick="parent.postMessage('ContextMenuHide', '*');">
+<html onclick="sendEvent('hideMenu')">
 <head>
     <style>
         body
@@ -41,53 +41,25 @@
             padding-right: 0;
         }
     </style>
-    <script type="text/javascript">
-        var currentWeinreName;
-
-        function updateWeinreName(){
-            var newName = document.getElementById("WeinreName").value;
-            if(newName !== currentWeinreName){
-                var el = document.getElementById("WeinreLink");
-                var newVal = "http://debug.phonegap.com/client/#" + newName;
-                el.href = newVal;
-                el.innerText = newVal;
-                parent.postMessage("ContextMenuWeinre:" + newName, "*");
-                currentWeinreName = newName;
-            }
-        }
-
-        // Set up listener for incoming messages
-        window.addEventListener("message", function(e){
-            if(e.data.indexOf("AppHarnessAppName:") === 0){
-                var appName = e.data.substring("AppHarnessAppName:".length);
-                document.getElementById("WeinreName").value = appName;
-            }
-        } , false);
-    </script>
+    <script src="app-harness:///cordova.js"></script>
 </head>
 <body>
     <p>Tap Anywhere to Close</p>
     <ul>
         <li>
-            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuUpdate', '*');">Update</button>
+            <button class="fullwidthElement" onclick="sendEvent('updateApp')">Update</button>
         </li>
         <li>
-            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuRestart', '*');">Restart</button>
+            <button class="fullwidthElement" onclick="sendEvent('restartApp')">Restart</button>
         </li>
         <li>
-            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuFirebug', '*');">Firebug</button>
-        </li>
-        <li>
-            <label for="WeinreName"><p>Phonegap Weinre</p></label>
-            <br />
-            <input class="halfwidthElement" id="WeinreName" type="text" value="default" onclick="event.stopPropagation();" />
-            <button class="halfwidthElement" onclick="updateWeinreName();">Add PhoneGap Weinre Link</button>
-            <br />
-            <a href="http://debug.phonegap.com/client/#default"><p id="WeinreLink"></p></a>
-        </li>
-        <li>
-            <button class="fullwidthElement" onclick="parent.postMessage('ContextMenuMainMenu', '*');">Back to Main Menu</button>
+            <button class="fullwidthElement" onclick="sendEvent('quitApp')">Back to Main Menu</button>
         </li>
     </ul>
 </body>
+<script>
+  function sendEvent(eventName) {
+      cordova.exec(null, null, 'OverlayPlugin', 'sendEvent', [eventName]);
+  }
+</script>
 </html>

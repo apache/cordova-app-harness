@@ -39,9 +39,9 @@ public class UrlRemap extends CordovaPlugin {
         String jsToInject;
     }
 
-    // Have a default replacement path that redirects app-bundle: uri's to the bundle
-    private RouteParams resetUrlParams;
-    private List<RouteParams> rerouteParams = new ArrayList<RouteParams>();
+    // Shared routing for all webviews.
+    private static RouteParams resetUrlParams;
+    private static List<RouteParams> rerouteParams = new ArrayList<RouteParams>();
 
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {

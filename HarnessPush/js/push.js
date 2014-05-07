@@ -20,10 +20,6 @@ exports.listen = function(win, fail) {
     exec(win, fail, 'HarnessPush', 'listen', []);
 };
 
-exports.listening = function(win, fail) {
-    exec(win, fail, 'HarnessPush', 'listening', []);
-};
-
 exports.pending = function(win, fail) {
     exec(win, fail, 'HarnessPush', 'pending', []);
 };

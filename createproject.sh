@@ -49,6 +49,7 @@ echo Installing plugins.
     "$AH_PATH/UrlRemap" \
     "$AH_PATH/CacheClear" \
     "$AH_PATH/HarnessPush" \
+    "$AH_PATH/AppHarnessUI" \
     org.apache.cordova.file \
     org.apache.cordova.file-transfer \
     org.apache.cordova.device \

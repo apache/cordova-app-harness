@@ -4,22 +4,14 @@
 
 package org.apache.appharness;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.cordova.CallbackContext;
-import org.apache.cordova.Config;
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.urlremap.UrlRemap;
-
+import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,19 +26,16 @@ public class Push extends CordovaPlugin {
     private static final int PORT = 2424;
     
     private PushServer server;
-    private JSONObject latestPush;
-    private boolean listening = false;
+    private boolean listening;
+    private CallbackContext pendingCallbackContext;
 
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
         if ("listen".equals(action)) {
             listen(callbackContext);
             return true;
-        } else if ("listening".equals(action)) {
-            listening(callbackContext);
-            return true;
         } else if ("pending".equals(action)) {
-            pending(callbackContext);
+            pendingCallbackContext = callbackContext;
             return true;
         }
 
@@ -72,16 +61,18 @@ public class Push extends CordovaPlugin {
         }
     }
 
-    private void listening(CallbackContext callbackContext) {
-        callbackContext.success(listening ? 1 : 0);
-    }
-
-    private void pending(CallbackContext callbackContext) {
-        if (latestPush != null) {
-            callbackContext.success(latestPush);
-            latestPush = null;
-        } else {
-            callbackContext.success(0);
+    private void sendMessage(String messageType, JSONObject opts) {
+        if (pendingCallbackContext != null) {
+            JSONObject message = new JSONObject();
+            try {
+                message.put("type", messageType);
+                message.put("extra", opts);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            PluginResult p = new PluginResult(PluginResult.Status.OK, message);
+            p.setKeepCallback(true);
+            pendingCallbackContext.sendPluginResult(p);
         }
     }
     
@@ -90,18 +81,18 @@ public class Push extends CordovaPlugin {
             @SuppressLint("NewApi")
             @Override
             public void run() {
-            	if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-                    webView.loadUrl("javascript:" + toInject);
+                final AppHarnessUI ui = ((AppHarnessUI)webView.pluginManager.getPlugin("AppHarnessUI"));
+                if (ui.getSlave() == null) {
+                    Log.w(LOG_TAG, "Not evaluating JS since no app is active");
                 } else {
-                    webView.evaluateJavascript(toInject, null);
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+                        ui.getSlave().loadUrl("javascript:" + toInject);
+                    } else {
+                        ui.getSlave().evaluateJavascript(toInject, null);
+                    }
                 }
             }
         });
-    }
-
-    private void restartAppHarness() {
-        ((UrlRemap)webView.pluginManager.getPlugin("UrlRemap")).resetMappings();
-        webView.loadUrlIntoView(Config.getStartUrl(), false);
     }
 
     private class PushServer extends NanoHTTPD {
@@ -128,8 +119,7 @@ public class Push extends CordovaPlugin {
                         payload.put("name", params.get("name").get(0));
                         payload.put("type", "serve");
                         payload.put("url", params.get("url").get(0));
-                        Push.this.latestPush = payload;
-                        Push.this.restartAppHarness();
+                        sendMessage("updateApp", payload);
                         return new Response(Response.Status.OK, "text/plain", "Push successful");
                     } catch (JSONException je) {
                         Log.w(LOG_TAG, "JSONException while building 'serve' mode push data", je);
@@ -147,8 +137,8 @@ public class Push extends CordovaPlugin {
                 }
                 return new Response(Response.Status.OK, "text/plain", "Executed successfully");
             } else if (session.getUri().equals("/menu")) {
-            	//injectJS("window.location = 'app-harness:///cdvah/index.html'");
-            	Push.this.restartAppHarness();
+                final AppHarnessUI ui = ((AppHarnessUI)webView.pluginManager.getPlugin("AppHarnessUI"));
+                ui.sendEvent("quitApp");
             	return new Response(Response.Status.OK, "text/plain", "Returning to main menu");
             } else {
                 return new Response(Response.Status.NOT_FOUND, "text/plain", "URI " + String.valueOf(session.getUri()) + " not found");

@@ -1,7 +1,7 @@
 (function(){
     'use strict';
     /* global myApp, cordova */
-    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'ContextMenuInjectScript', 'PluginMetadata', 'CacheClear', function($q, UrlRemap, ResourcesLoader, ContextMenuInjectScript, PluginMetadata, CacheClear) {
+    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'PluginMetadata', 'CacheClear', function($q, UrlRemap, ResourcesLoader, PluginMetadata, CacheClear) {
 
         function getAppStartPageFromConfig(configFile) {
             return ResourcesLoader.readFileContents(configFile)
@@ -82,7 +82,11 @@
             return $q.when();
         };
 
-        Installer.prototype.launch = function(appIndex) {
+        Installer.prototype.unlaunch = function() {
+            return UrlRemap.reset();
+        };
+
+        Installer.prototype.launch = function() {
             var installPath = this.installPath;
             var appId = this.appId;
             if (!installPath) {
@@ -96,7 +100,6 @@
                 var harnessUrl = urlutil.makeAbsolute(location.pathname);
                 var harnessDir = harnessUrl.replace(/\/[^\/]*\/[^\/]*$/, '');
                 var installUrl = urlutil.makeAbsolute(installPath);
-                var injectString = ContextMenuInjectScript.getInjectString(appId, appIndex);
                 var startLocation = urlutil.makeAbsolute(rawStartLocation).replace('/cdvah/', '/');
                 var useNativeStartLocation = cordova.platformId == 'ios';
 
@@ -109,8 +112,6 @@
                         startLocation = startLocation.replace(harnessDir, nativeInstallUrl + '/www');
                     }
 
-                    // Inject the context menu script for all pages except the harness menu.
-                    UrlRemap.injectJsForUrl('^(?!' + harnessUrl + ')', injectString);
                     // Allow navigations back to the menu.
                     UrlRemap.setResetUrl('^' + harnessUrl);
                     // Override cordova.js, and www/plugins to point at bundled plugins.

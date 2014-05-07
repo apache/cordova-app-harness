@@ -8,28 +8,7 @@
 
         function initialise() {
             return $scope.loadAppsList()
-            .then(AppsService.getAppList)
-            .then(function(appList) {
-                var action = $routeParams.action;
-                if (action) {
-                    var appIndex = +$routeParams.appIndex;
-                    var activeApp = appList[appIndex];
-                    if (action == 'restart') {
-                        return AppsService.launchApp(activeApp)
-                        .then(null, function(e){
-                            notifier.error(e);
-                        });
-                    } else if (action == 'update') {
-                        // Updating may take a while so we show the apps list like we normally do
-                        return AppsService.updateApp(activeApp)
-                        .then(function() {
-                            return AppsService.launchApp(activeApp);
-                        }).then(null, function(e){
-                            notifier.error(e);
-                        });
-                    }
-                }
-            }).then(function() {
+            .then(function() {
                 if (!window.appharness || !appharness.push) {
                     return;
                 }
@@ -45,20 +24,22 @@
                     $scope.$apply();
                 });
 
-                appharness.push.pending(function(obj) {
-                    if (obj && obj.type) {
+                appharness.push.pending(function(e) {
+                    var type = e.type;
+                    var extra = e.extra;
+                    if (type == 'updateApp') {
                         AppsService.getAppList().then(function(list) {
-                            var matches = list && list.filter(function(x) { return x.appId == obj.name; });
+                            var matches = list && list.filter(function(x) { return x.appId == extra.name; });
                             var promise;
                             if (list && matches.length > 0) {
                                 // App exists.
                                 var app = matches[0];
-                                app.url = obj.url;
+                                app.url = extra.url;
                                 promise = $q.when(app);
                             } else {
                                 // New app.
                                 var handler;
-                                promise = AppsService.addApp(obj.type, obj.url, obj.name).then(function(h) {
+                                promise = AppsService.addApp(extra.type, extra.url, extra.name).then(function(h) {
                                     handler = h;
                                     var msg = 'Added new app ' + handler.appId + ' from push';
                                     notifier.success(msg);
@@ -70,15 +51,12 @@
                                 });
                             }
 
-                            var theApp;
-                            promise.then(function(app) {
-                                theApp = app;
-                                return AppsService.updateApp(app);
-                            }).then(function() {
-                                notifier.success('Updated ' + theApp.appId + ' due to remote push.');
-                                return $scope.loadAppsList();
-                            }).then(function() {
-                                return $scope.launchApp(theApp, { stopPropagation: function() { } });
+                            promise.then(function(theApp) {
+                                return AppsService.updateApp(theApp)
+                                .then(function() {
+                                    notifier.success('Updated ' + theApp.appId + ' due to remote push.');
+                                    return $scope.launchApp(theApp, { stopPropagation: function() { } });
+                                })
                             }).then(null, function(err) {
                                 notifier.error(err);
                             });

@@ -19,6 +19,6 @@
 -->
 <widget id="{ID}" version="{VERSION}" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>{NAME}</name>
-    <content src="cdvah/index.html" />
+    <content src="cdvah/harnessmenu.html" />
     <access origin="*" />
 </widget>
