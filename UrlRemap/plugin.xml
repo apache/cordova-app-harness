@@ -47,7 +47,7 @@
     <config-file target="config.xml" parent="/*">
       <feature name="UrlRemap">
         <param name="ios-package" value="UrlRemap"/>
-        <param name="onload" value="true" />
+        <!-- Don't load onload until the plugin is re-worked to share params with other instances -->
       </feature>
     </config-file>
   </platform>
