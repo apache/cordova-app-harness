@@ -42,3 +42,7 @@ exports.destroyOverlay = function(win) {
     exec(win, null, 'AppHarnessUI', 'destroyOverlay', []);
 };
 
+exports.evalJs = function(code, win) {
+    exec(win, null, 'AppHarnessUI', 'evalJs', [code]);
+};
+

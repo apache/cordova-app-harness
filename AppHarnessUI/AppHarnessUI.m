@@ -111,6 +111,17 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:_eventsCallbackId];
 }
 
+- (void)evalJs:(CDVInvokedUrlCommand*)command {
+    NSString* code = [command argumentAtIndex:0];
+    if (_slaveCordovaViewController == nil) {
+        NSLog(@"AppHarnessUI.evalJs: Not evaluating JS since no app is active.");
+    } else {
+        [_slaveCordovaViewController.webView stringByEvaluatingJavaScriptFromString:code];
+    }
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
 - (void)create:(CDVInvokedUrlCommand*)command {
     NSString* url = [command argumentAtIndex:0];
     if (_slaveCordovaViewController == nil) {

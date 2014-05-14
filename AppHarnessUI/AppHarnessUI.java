@@ -31,7 +31,9 @@ import org.apache.cordova.PluginEntry;
 import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -81,6 +83,13 @@ public class AppHarnessUI extends CordovaPlugin {
                     destroyOverlay(callbackContext);
                 }
             });
+        } else if ("evalJs".equals(action)) {
+            final String code = args.getString(0);
+            this.cordova.getActivity().runOnUiThread(new Runnable() {
+                public void run() {
+                    evalJs(code, callbackContext);
+                }
+            });
         } else if ("events".equals(action)) {
             eventsCallback = callbackContext;
         } else {
@@ -93,6 +102,20 @@ public class AppHarnessUI extends CordovaPlugin {
         PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName);
         pluginResult.setKeepCallback(true);
         eventsCallback.sendPluginResult(pluginResult );
+    }
+
+    @SuppressLint("NewApi")
+    private void evalJs(String code, CallbackContext callbackContext) {
+        if (slaveWebView == null) {
+            Log.w(LOG_TAG, "Not evaluating JS since no app is active");
+        } else {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+                slaveWebView.loadUrl("javascript:" + code);
+            } else {
+                slaveWebView.evaluateJavascript(code, null);
+            }
+        }
+        callbackContext.success();
     }
 
     private void create(String url, CallbackContext callbackContext) {

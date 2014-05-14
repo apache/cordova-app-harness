@@ -25,6 +25,11 @@
             },
             setEventHandler: function(f) {
                 cordova.plugins.appharnessui.onEvent = f;
+            },
+            evalJs: function(code) {
+                var deferred = $q.defer();
+                cordova.plugins.appharnessui.evalJs(code, deferred.resolve);
+                return deferred.promise;
             }
         };
     }]);
