@@ -21,6 +21,7 @@
 
     //relaxing
     "eqnull":true,
+    "sub":true,
 
     //environment
     "browser": true,
