@@ -25,14 +25,6 @@ myApp.config(['$routeProvider', function($routeProvider){
         templateUrl: 'views/list.html',
         controller: 'ListCtrl'
     });
-    $routeProvider.when('/add', {
-        templateUrl: 'views/add.html',
-        controller: 'AddCtrl'
-    });
-    $routeProvider.when('/edit/:appId', {
-        templateUrl: 'views/add.html',
-        controller: 'AddCtrl'
-    });
     $routeProvider.when('/details/:index', {
         templateUrl: 'views/details.html',
         controller: 'DetailsCtrl'

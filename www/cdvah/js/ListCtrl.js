@@ -66,16 +66,6 @@
             });
         };
 
-        $scope.updateApp = function(app, event) {
-            event.stopPropagation();
-            return AppsService.updateApp(app)
-            .then(function(){
-                notifier.success('Updated successfully');
-            }, function(error) {
-                notifier.error(error);
-            });
-        };
-
         $scope.removeApp = function(app, event) {
             event.stopPropagation();
             var shouldUninstall = confirm('Are you sure you want to uninstall ' + app.appId + '?');
@@ -85,11 +75,6 @@
                     notifier.error(error);
                 });
             }
-        };
-
-        $scope.editApp = function(app, event) {
-            event.stopPropagation();
-            $location.path('/edit/' + app.appId);
         };
 
         $scope.showDetails = function(index) {

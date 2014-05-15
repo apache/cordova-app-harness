@@ -16,6 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+.listen {
+    padding: 2px 20px;
+}
+
+.plugin-list-item {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+}
+
 .buttons {
     margin: 15px;
 }

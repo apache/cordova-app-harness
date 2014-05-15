@@ -16,29 +16,28 @@
   specific language governing permissions and limitations
   under the License.
 -->
-<div class="topcoat-list__container">
-    <h3 class="topcoat-list__header">Installed Apps</h3>
-    <ul class="topcoat-list">
-        <li class="topcoat-list__item" ng-repeat="app in appList" ng-click="showDetails($index)">
-            <div>{{app.appId}}</div>
-            <div>{{app.url}}</div>
-            <div ng-show="app.updatingStatus === null">Last updated: {{app.lastUpdated || 'never'}}</div>
-            <div ng-show="app.updatingStatus !== null">Update in progress: {{app.updatingStatus}}%</div>
-            <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length > 0">Plugins: {{ app.plugins.missing.length }} missing, {{ app.plugins.newer.length + app.plugins.older.length }} differ</div>
-            <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length == 0">Plugins: OK</div>
-            <button ng-click="launchApp(app, $event)">Launch</button>
-            <button ng-click="updateApp(app, $event)">Update</button>
-            <button ng-click="removeApp(app, $event)">Remove</button>
-            <button ng-click="editApp(app, $event)">Edit</button>
-        </li>
-    </ul>
-</div>
-<br />
-<div class="buttons">
-    <a href="#/add"><button class="topcoat-button--cta">Add app</button></a>
-</div>
-
 <div class="listen">
     Listening. IP = <strong>{{ipAddress}}</strong>
 </div>
+<div class="topcoat-list__container">
+    <h3 class="topcoat-list__header">Installed Apps</h3>
+    <ul class="topcoat-list">
+        <li class="topcoat-list__item" ng-repeat="app in appList">
+            <div>{{app.appId}}</div>
+            <div ng-show="app.updatingStatus === null">Last updated: {{app.lastUpdated || 'never'}}</div>
+            <div ng-show="app.updatingStatus !== null">Update in progress: {{app.updatingStatus}}%</div>
+            <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length > 0">
+                Plugins:
+                <span style="color:#c00" ng-show="app.plugins.missing.length">{{ app.plugins.missing.length }} missing</span><span ng-show="app.plugins.missing.length && (app.plugins.older.length || app.plugins.newer.length)">, </span>
+                <span style="color:#822" ng-show="app.plugins.older.length">{{ app.plugins.older.length }} outdated<span><span ng-show="app.plugins.older.length && app.plugins.newer.length">, </span>
+                <span ng-show="app.plugins.newer.length">{{ app.plugins.newer.length }} newer</span>
+            </div>
+            <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length == 0">Plugins: OK</div>
+            <button ng-click="launchApp(app, $event)">Launch</button>
+            <button ng-click="removeApp(app, $event)">Remove</button>
+            <button ng-click="showDetails($index)">Details</button>
+        </li>
+    </ul>
+</div>
+
 

@@ -153,7 +153,7 @@
 
         function getListenAddress() {
             if (listenAddress) {
-                return listenAddress;
+                return $q.when(listenAddress);
             }
             var deferred = $q.defer();
             chrome.socket.getNetworkList(function(interfaces) {
