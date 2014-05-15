@@ -1,72 +1,29 @@
 (function(){
     'use strict';
     /* global myApp */
-    /* global appharness */
-    myApp.controller('ListCtrl', ['$location', 'notifier', '$rootScope', '$scope', '$routeParams', '$q', 'AppsService', function ($location, notifier, $rootScope, $scope, $routeParams, $q, AppsService) {
+    myApp.controller('ListCtrl', ['$location', 'notifier', '$rootScope', '$scope', '$routeParams', '$q', 'AppsService', 'HarnessServer', function ($location, notifier, $rootScope, $scope, $routeParams, $q, AppsService, HarnessServer) {
         $scope.appList = [];
         $rootScope.appTitle = document.title;
 
         function initialise() {
-            return $scope.loadAppsList()
+            $scope.$on('$destroy', function() {
+                AppsService.onAppListChange = null;
+            });
+            AppsService.onAppListChange = loadAppsList;
+            return loadAppsList()
             .then(function() {
-                if (!window.appharness || !appharness.push) {
-                    return;
-                }
-
-                // listen is a no-op if already listening.
-                appharness.push.listen(function() {
-                    $scope.listening = true;
-                    $scope.$apply();
-                }, notifier.error);
-
-                appharness.push.getListenAddress(function(value) {
+                return HarnessServer.start();
+            }).then(function() {
+                return HarnessServer.getListenAddress()
+                .then(function(value) {
                     $scope.ipAddress = value;
-                    $scope.$apply();
                 });
-
-                appharness.push.pending(function(e) {
-                    var type = e.type;
-                    var extra = e.extra;
-                    if (type == 'updateApp') {
-                        AppsService.getAppList().then(function(list) {
-                            var matches = list && list.filter(function(x) { return x.appId == extra.name; });
-                            var promise;
-                            if (list && matches.length > 0) {
-                                // App exists.
-                                var app = matches[0];
-                                app.url = extra.url;
-                                promise = $q.when(app);
-                            } else {
-                                // New app.
-                                var handler;
-                                promise = AppsService.addApp(extra.type, extra.url, extra.name).then(function(h) {
-                                    handler = h;
-                                    var msg = 'Added new app ' + handler.appId + ' from push';
-                                    notifier.success(msg);
-                                }).then(function() {
-                                    // Reload so the app is visible while it's updating (below).
-                                    return $scope.loadAppsList().then(function() {
-                                        return handler;
-                                    });
-                                });
-                            }
-
-                            promise.then(function(theApp) {
-                                return AppsService.updateApp(theApp)
-                                .then(function() {
-                                    notifier.success('Updated ' + theApp.appId + ' due to remote push.');
-                                    return $scope.launchApp(theApp, { stopPropagation: function() { } });
-                                })
-                            }).then(null, function(err) {
-                                notifier.error(err);
-                            });
-                        });
-                    }
-                });
+            }, function() {
+                $scope.ipAddress = 'Failed to start server';
             });
         }
 
-        $scope.loadAppsList = function() {
+        function loadAppsList() {
             return AppsService.getAppList()
             .then(function(newAppsList){
                 newAppsList.sort(function(a, b){
@@ -81,7 +38,7 @@
             }, function(error){
                 notifier.error(error);
             });
-        };
+        }
 
         $scope.launchApp = function(app, event){
             event.stopPropagation();
@@ -106,9 +63,7 @@
             var shouldUninstall = confirm('Are you sure you want to uninstall ' + app.appId + '?');
             if(shouldUninstall) {
                 return AppsService.uninstallApp(app)
-                .then(function() {
-                    return $scope.loadAppsList();
-                }, function(error) {
+                .then(null, function(error) {
                     notifier.error(error);
                 });
             }
@@ -123,8 +78,7 @@
             $location.path('/details/' + index);
         };
 
-        initialise();
-
+        return initialise();
     }]);
 })();
 

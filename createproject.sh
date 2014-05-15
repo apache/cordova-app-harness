@@ -1,6 +1,7 @@
 #!/bin/bash
 
 if [[ $# -eq 0 || "$1" = "--help" ]]; then
+    echo "Use this script to create an Cordova App Harness project"
     echo "Usage: $0 NewDirName"
     echo 'Options via variables:'
     echo '  PLATFORMS="android ios"'
@@ -48,11 +49,11 @@ echo Installing plugins.
 "$CORDOVA" plugin add\
     "$AH_PATH/UrlRemap" \
     "$AH_PATH/CacheClear" \
-    "$AH_PATH/HarnessPush" \
     "$AH_PATH/AppHarnessUI" \
     org.apache.cordova.file \
     org.apache.cordova.file-transfer \
     org.apache.cordova.device \
+    org.chromium.socket \
     org.chromium.zip \
     org.apache.cordova.file-system-roots \
     --searchpath="$PLUGIN_SEARCH_PATH"

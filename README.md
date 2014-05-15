@@ -71,3 +71,41 @@ The manual way:
 * See if the app looks as expected
 * Use a 3 finger swipe to access the app menu while testing your app.
 * The context menu that pops up allows you to return to the main screen, restart or update the app, open a Firebug console on the device, or set up remote debugging using Weinre.
+
+# Harness Server
+
+A server runs within the app that enables remote control functionality.
+
+## Port Forwarding (Android)
+
+If you are not on the same network, you can use adb to port forward:
+
+    adb forward tcp:2424 tcp:2424
+
+## Commands
+
+### /push
+
+Add or update an app's settings, and then update & launch:
+
+    curl -X POST http://$IP_ADDRESS:2424/push?type=serve&name=com.example.YourApp&url=http://$SERVE_HOST_ADDRESS:8000
+
+
+### /menu
+
+Return to main menu:
+
+    curl -X POST http://$IP_ADDRESS:2424/menu
+
+### /exec
+
+Executes a JS snippet:
+
+    curl -X POST http://$IP_ADDRESS:2424/exec?code='alert(1)'
+
+### /info
+
+Returns JSON of server info / app state
+
+    curl http://$IP_ADDRESS:2424/info
+

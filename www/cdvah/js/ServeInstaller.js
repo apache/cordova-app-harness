@@ -42,7 +42,7 @@
         function fetchMetaServeData(url) {
             var projectJsonUrl = url + '/' + platformId + '/project.json';
             return ResourcesLoader.xhrGet(projectJsonUrl, true)
-            .then(null, function(e) {
+            .then(null, function() {
                 // If there was no :8000, try again with one appended.
                 if (!/:(\d)/.test(url)) {
                     var newUrl = url.replace(/(.*?\/\/[^\/]*)/, '$1:8000');
@@ -52,7 +52,7 @@
                         return ResourcesLoader.xhrGet(projectJsonUrl, true);
                     }
                 }
-                throw e;
+                throw new Error('Could not reach server at: ' + url);
             })
             .then(function(projectJson) {
                 return ResourcesLoader.xhrGet(url + projectJson.configPath)

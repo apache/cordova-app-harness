@@ -7,6 +7,8 @@
         var _installerFactories = {};
         // Array of installer objects.
         var _installers = null;
+        // The app that is currently running.
+        var activeInstaller = null;
 
         function createInstallHandlersFromJson(json) {
             var appList = json.appList || [];
@@ -46,7 +48,7 @@
             });
         }
 
-        function writeAppsJson() {
+        function createAppsJson() {
             var appsJson = {
                 'appList': []
             };
@@ -61,12 +63,37 @@
                     'plugins': installer.plugins.raw
                 });
             }
+            return appsJson;
+        }
 
-            var stringContents = JSON.stringify(appsJson);
+        function writeAppsJson() {
+            if (AppsService.onAppListChange) {
+                AppsService.onAppListChange();
+            }
+            var appsJson = createAppsJson();
+            var stringContents = JSON.stringify(appsJson, null, 4);
             return ResourcesLoader.writeFileContents(APPS_JSON, stringContents);
         }
 
-        return {
+        AppHarnessUI.setEventHandler(function(eventName) {
+            console.log('Got event from UI: ' + eventName);
+            if (eventName == 'showMenu') {
+                AppHarnessUI.createOverlay('app-harness:///cdvahcm/contextMenu.html');
+            } else if (eventName == 'hideMenu') {
+                AppHarnessUI.destroyOverlay();
+            } else if (eventName == 'updateApp') {
+                AppsService.updateAndLaunchApp(activeInstaller)
+                .then(null, notifier.error);
+            } else if (eventName == 'restartApp') {
+                // TODO: Restart in place?
+                AppsService.launchApp(activeInstaller)
+                .then(null, notifier.error);
+            } else if (eventName == 'quitApp') {
+                AppsService.quitApp();
+            }
+        });
+
+        var AppsService = {
             // return promise with the array of apps
             getAppList : function() {
                 return initHandlers()
@@ -75,40 +102,25 @@
                 });
             },
 
-            launchApp : function(installer) {
-                var self = this;
-                return installer.launch()
-                .then(function(launchUrl) {
+            getAppListAsJson : function() {
+                return createAppsJson();
+            },
 
-                    AppHarnessUI.setEventHandler(function(eventName) {
-                        console.log('Got event from UI: ' + eventName);
-                        if (eventName == 'showMenu') {
-                            AppHarnessUI.createOverlay('app-harness:///cdvahcm/contextMenu.html');
-                        } else if (eventName == 'hideMenu') {
-                            AppHarnessUI.destroyOverlay();
-                        } else if (eventName == 'updateApp') {
-                            // TODO: Do a background update.
-                            installer.unlaunch();
-                            AppHarnessUI.destroy();
-                            return self.updateApp(installer)
-                            .then(function() {
-                                return self.launchApp(installer);
-                            }).then(null, function(e){
-                                notifier.error(e);
-                            });
-                        } else if (eventName == 'restartApp') {
-                            // TODO: Restart in place?
-                            installer.unlaunch();
-                            AppHarnessUI.destroy();
-                            return self.launchApp(installer)
-                            .then(null, function(e){
-                                notifier.error(e);
-                            });
-                        } else if (eventName == 'quitApp') {
-                            installer.unlaunch();
-                            AppHarnessUI.destroy();
-                        }
-                    });
+            quitApp : function() {
+                if (activeInstaller) {
+                    activeInstaller.unlaunch();
+                    AppHarnessUI.destroy();
+                    activeInstaller = null;
+                }
+                return $q.when();
+            },
+
+            launchApp : function(installer) {
+                return AppsService.quitApp()
+                .then(function() {
+                    activeInstaller = installer;
+                    return installer.launch();
+                }).then(function(launchUrl) {
                     return AppHarnessUI.create(launchUrl);
                 });
             },
@@ -153,10 +165,21 @@
                 .then(writeAppsJson);
             },
 
+            updateAndLaunchApp : function(installer) {
+                return AppsService.quitApp()
+                .then(function() {
+                    return AppsService.updateApp(installer);
+                }).then(function() {
+                    return AppsService.launchApp(installer);
+                });
+            },
 
             registerInstallerFactory : function(installerFactory) {
                 _installerFactories[installerFactory.type] = installerFactory;
-            }
+            },
+
+            onAppListChange: null
         };
+        return AppsService;
     }]);
 })();
