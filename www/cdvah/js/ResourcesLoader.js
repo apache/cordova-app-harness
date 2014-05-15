@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    myApp.factory('ResourcesLoader', ['$q', '$window', '$http', function($q, $window, $http) {
+    myApp.factory('ResourcesLoader', ['$q', '$window', '$http', 'TEMP_DIR', function($q, $window, $http, TEMP_DIR) {
         function resolveURL(url) {
             var d = $q.defer();
             $window.resolveLocalFileSystemURL(url, d.resolve, d.reject);
@@ -64,41 +64,50 @@
             return helper(targetUrl);
         }
 
-        function createFileEntry(url) {
+        function createFileWriter(url, append) {
             var rootUrl = dirName(url);
             return ensureDirectoryExists(rootUrl)
             .then(function(dirEntry) {
                 var path = decodeURI(baseName(url));
                 return getFilePromisified(dirEntry, path, {create: true});
+            }).then(function(fileEntry) {
+                var deferred = $q.defer();
+                function gotWriter(writer) {
+                    if (!append && writer.length > 0) {
+                        writer.onwrite = function() {
+                            if (writer.length === 0) {
+                                writer.onwriteend = null;
+                                writer.onerror = null;
+                                deferred.resolve(writer);
+                            }
+                        };
+                        writer.onerror = deferred.reject;
+                        writer.truncate(0);
+                    } else {
+                        deferred.resolve(writer);
+                    }
+                }
+                fileEntry.createWriter(gotWriter, deferred.reject);
+                return deferred.promise;
             });
         }
 
         function writeToFile(url, contents, append) {
-            return createFileEntry(url)
-            .then(function(fileEntry){
+            return createFileWriter(url, append)
+            .then(function(writer) {
                 var deferred = $q.defer();
-
-                var errorGettingFileWriter = function(error) {
-                    var str = 'There was an error writing the file.' + JSON.stringify(error);
-                    deferred.reject(new Error(str));
-                };
-
-                var gotFileWriter = function(writer) {
-                    writer.onwrite = deferred.resolve;
-                    writer.onerror = function(evt) {
-                        deferred.reject(new Error(evt));
-                    };
-                    if(append){
-                        writer.seek(writer.length);
-                    }
-                    writer.write(contents);
-                };
-                fileEntry.createWriter(gotFileWriter, errorGettingFileWriter);
+                writer.onwrite = deferred.resolve;
+                writer.onerror = deferred.reject;
+                writer.write(contents);
                 return deferred.promise;
             });
         }
 
         return {
+            createTmpFileUrl: function(extension) {
+                return TEMP_DIR + Math.floor(Math.random()* 100000000) + (extension || '');
+            },
+
             doesFileExist: function(url){
                 return resolveURL(url).then(function() { return true; }, function() { return false; });
             },
@@ -135,6 +144,8 @@
                     return response.data;
                 });
             },
+
+            createFileWriter: createFileWriter,
 
             writeFileContents: function(url, contents) {
                 return writeToFile(url, contents, false /* append */);
