@@ -96,7 +96,7 @@
         AppHarnessUI.setEventHandler(function(eventName) {
             console.log('Got event from UI: ' + eventName);
             if (eventName == 'showMenu') {
-                AppHarnessUI.createOverlay('app-harness:///cdvahcm/contextMenu.html');
+                AppHarnessUI.createOverlay();
             } else if (eventName == 'hideMenu') {
                 AppHarnessUI.destroyOverlay();
             } else if (eventName == 'updateApp') {

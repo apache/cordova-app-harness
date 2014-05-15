@@ -51,6 +51,10 @@ If you are not on the same network, you can use adb to port forward:
 
     adb forward tcp:2424 tcp:2424
 
+And also use Chrome DevTool's [Reverse Port Forwarding](https://developers.google.com/chrome-developer-tools/docs/remote-debugging#reverse-port-forwarding):
+
+    Map 8000 -> localhost:8000
+
 ## Commands
 
 ### /push
@@ -61,7 +65,7 @@ Add or update an app's settings, and then update & launch:
 
 ### /menu
 
-Return to main menu:
+Show in-app overlay menu.
 
     curl -X POST http://$IP_ADDRESS:2424/menu
 

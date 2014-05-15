@@ -31,9 +31,9 @@
                 cordova.plugins.appharnessui.destroy(deferred.resolve);
                 return deferred.promise;
             },
-            createOverlay: function(url) {
+            createOverlay: function() {
                 var deferred = $q.defer();
-                cordova.plugins.appharnessui.createOverlay(url, deferred.resolve);
+                cordova.plugins.appharnessui.createOverlay('app-harness:///cdvahcm/contextMenu.html', deferred.resolve);
                 return deferred.promise;
             },
             destroyOverlay: function() {
