@@ -130,8 +130,6 @@
                         startLocation = startLocation.replace(harnessDir, nativeInstallUrl + '/www');
                     }
 
-                    // Allow navigations back to the menu.
-                    UrlRemap.setResetUrl('^' + harnessUrl);
                     // Override cordova.js, and www/plugins to point at bundled plugins.
                     UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
                     UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
