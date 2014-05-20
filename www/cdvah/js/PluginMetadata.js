@@ -46,7 +46,7 @@
 
                 // Extract the JSON data from inside the JS file.
                 // It's between two magic comments created by Plugman.
-                var startIndex = pluginListFileContents.indexOf('TOP OF METADATA') + 16;
+                var startIndex = pluginListFileContents.indexOf('TOP OF METADATA') + 15;
                 var endIndex = pluginListFileContents.indexOf('// BOTTOM OF METADATA');
                 var target = pluginListFileContents.substring(startIndex, endIndex);
                 var metadata = JSON.parse(target);

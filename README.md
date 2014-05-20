@@ -57,27 +57,57 @@ And also use Chrome DevTool's [Reverse Port Forwarding](https://developers.googl
 
 ## Commands
 
-### /push
-
-Add or update an app's settings, and then update & launch:
-
-    curl -X POST http://$IP_ADDRESS:2424/push?type=serve&name=com.example.YourApp&url=http://$SERVE_HOST_ADDRESS:8000
-
 ### /menu
 
 Show in-app overlay menu.
 
-    curl -X POST http://$IP_ADDRESS:2424/menu
+    curl -v -X POST "http://$IP_ADDRESS:2424/menu"
 
 ### /exec
 
 Executes a JS snippet:
 
-    curl -X POST http://$IP_ADDRESS:2424/exec?code='alert(1)'
+    curl -v -X POST "http://$IP_ADDRESS:2424/exec?code='alert(1)'"
+
+### /launch
+
+Starts the app with the given ID (or the first app if none is given).
+
+    curl -v -X POST "http://$IP_ADDRESS:2424/launch?appId=a.b.c"
 
 ### /info
 
 Returns JSON of server info / app state
 
-    curl http://$IP_ADDRESS:2424/info
+    curl -v "http://$IP_ADDRESS:2424/info"
 
+### /assetmanifest
+
+Returns JSON of the asset manifest for the given app ID (or the first app if none is given).
+
+    curl -v "http://$IP_ADDRESS:2424/assetmanifest?appId=a.b.c"
+
+### /prepupdate
+
+Tell the interface that an update is in progress for the given app ID (or the first app if none is given).
+
+    echo '{"transferSize": 100}' | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/prepupdate?app=foo"
+
+### /deletefiles
+
+Deletes a set of files within the given app ID (or the first app if none is given).
+
+    echo '{"paths":["www/index.html"]}' | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/deletefiles?appId=a.b.c"
+
+### /putfile
+
+Updates a single file within the given app ID (or the first app if none is given).
+
+    cat file | curl -v -X PUT -d @- "http://$IP_ADDRESS:2424/assetmanifest?appId=a.b.c&path=www/index.html&etag=1234"
+
+### /deleteapp
+
+Deletes the app with the given ID (or the first app if none is given).
+
+    curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?appId=a.b.c"
+    curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?all=true" # Delete all apps.

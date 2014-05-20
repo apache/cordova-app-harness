@@ -18,108 +18,125 @@
 */
 (function(){
     'use strict';
+
     /* global myApp, cordova */
-    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'PluginMetadata', 'CacheClear', function($q, UrlRemap, ResourcesLoader, PluginMetadata, CacheClear) {
+    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'PluginMetadata', 'CacheClear', 'DirectoryManager', function($q, UrlRemap, ResourcesLoader, PluginMetadata, CacheClear, DirectoryManager) {
+        var platformId = cordova.require('cordova/platform').id;
 
-        function getAppStartPageFromConfig(configFile) {
-            return ResourcesLoader.readFileContents(configFile)
-            .then(function(contents) {
-                if(!contents) {
-                    throw new Error('Config file is empty. Unable to find a start page for your app.');
-                } else {
-                    var startLocation = 'index.html';
-                    var parser = new DOMParser();
-                    var xmlDoc = parser.parseFromString(contents, 'text/xml');
-                    var els = xmlDoc.getElementsByTagName('content');
-
-                    if(els.length > 0) {
-                        // go through all 'content' elements looking for the 'src' attribute in reverse order
-                        for(var i = els.length - 1; i >= 0; i--) {
-                            var el = els[i];
-                            var srcValue = el.getAttribute('src');
-                            if (srcValue) {
-                                startLocation = srcValue;
-                                break;
-                            }
-                        }
-                    }
-
-                    return startLocation;
-                }
-            });
-        }
-
-        function Installer(url, appId) {
-            this.url = url;
-            this.appId = appId || '';
+        function Installer(installPath) {
             this.updatingStatus = null;
             this.lastUpdated = null;
-            this.installPath = null;
-            this.plugins = {};
+            // Asset manifest is a cache of what files have been downloaded along with their etags.
+            this.directoryManager = new DirectoryManager(installPath);
+            this.appId = null; // Read from config.xml
+            this.appName = null; // Read from config.xml
+            this.startPage = null; // Read from config.xml
+            this.plugins = {}; // Read from orig-cordova_plugins.js
         }
 
-        Installer.prototype.type = '';
+        Installer.type = 'cordova';
+        Installer.prototype.type = 'cordova';
 
-        Installer.prototype.updateApp = function(installPath) {
-            var self = this;
-            this.updatingStatus = 0;
-            this.installPath = installPath;
-            // Cache clearing necessary only for Android.
-            return CacheClear.clear()
+        Installer.createNew = function(installPath, /* optional */ appId) {
+            var ret = new Installer(installPath);
+            ret.appId = appId;
+            return ret.directoryManager.getAssetManifest()
             .then(function() {
-                return self.doUpdateApp();
-            })
-            .then(function() {
-                self.lastUpdated = new Date();
-                return self.getPluginMetadata();
-            }, null, function(status) {
-                self.updatingStatus = Math.round(status * 100);
-            }).then(function(metadata) {
-                self.plugins = PluginMetadata.process(metadata);
-                var pluginIds = Object.keys(metadata);
-                var newPluginsFileData = PluginMetadata.createNewPluginListFile(pluginIds);
-                return ResourcesLoader.writeFileContents(installPath + '/www/cordova_plugins.js', newPluginsFileData);
-            }).finally(function() {
-                self.updatingStatus = null;
+                return ret;
             });
         };
 
-        Installer.prototype.doUpdateApp = function() {
-            throw new Error('Installer ' + this.type + ' failed to implement doUpdateApp.');
+        Installer.createFromJson = function(json) {
+            var ret = new Installer(json['installPath']);
+            ret.lastUpdated = json['lastUpdated'] && new Date(json['lastUpdated']);
+            ret.appId = json['appId'];
+            return ret.directoryManager.getAssetManifest()
+            .then(function() {
+                return ret.readCordovaPluginsFile();
+            }).then(function() {
+                return ret.readConfigXml();
+            }).then(function() {
+                return ret;
+            }, function(e) {
+                console.warn('Deleting broken app: ' + json['installPath']);
+                ResourcesLoader.delete(json['installPath']);
+                throw e;
+            });
+        };
+
+        Installer.prototype.toDiskJson = function() {
+            return {
+                'appType' : this.type,
+                'appId' : this.appId,
+                'lastUpdated': this.lastUpdated && +this.lastUpdated,
+                'installPath': this.directoryManager.rootURL
+            };
+        };
+
+        Installer.prototype.readCordovaPluginsFile = function(force) {
+            var self = this;
+            return this.directoryManager.getAssetManifest()
+            .then(function(assetManifest) {
+                if (!force && assetManifest['orig-cordova_plugins.js'] == assetManifest['www/cordova_plugins.js']) {
+                    return null;
+                }
+                return self.getPluginMetadata()
+                .then(function(metadata) {
+                    self.plugins = PluginMetadata.process(metadata);
+                    var pluginIds = Object.keys(metadata);
+                    var newPluginsFileData = PluginMetadata.createNewPluginListFile(pluginIds);
+                    return self.directoryManager.writeFile(newPluginsFileData, 'www/cordova_plugins.js', assetManifest['orig-cordova_plugins.js']);
+                });
+            });
+        };
+
+        Installer.prototype.readConfigXml = function() {
+            var self = this;
+            return ResourcesLoader.readFileContents(this.directoryManager.rootURL + 'config.xml')
+            .then(function(configStr) {
+                function lastEl(els) {
+                    return els[els.length - 1];
+                }
+                var xmlDoc = new DOMParser().parseFromString(configStr, 'text/xml');
+                self.appId = xmlDoc.firstChild.getAttribute('id');
+                var el = lastEl(xmlDoc.getElementsByTagName('content'));
+                self.startPage = el ? el.getAttribute('src') : 'index.html';
+                el = lastEl(xmlDoc.getElementsByTagName('name'));
+                self.appName = el ? el.nodeValue : 'Unnamed';
+            });
         };
 
         Installer.prototype.getPluginMetadata = function() {
-            throw new Error('Installer ' + this.type + ' failed to implement getPluginMetadata.');
+            return ResourcesLoader.readFileContents(this.directoryManager.rootURL + 'orig-cordova_plugins.js')
+            .then(function(contents) {
+                return PluginMetadata.extractPluginMetadata(contents);
+            });
         };
 
         Installer.prototype.deleteFiles = function() {
             this.lastUpdated = null;
-            if (this.installPath) {
-                return ResourcesLoader.deleteDirectory(this.installPath);
-            }
-            return $q.when();
+            return this.directoryManager.deleteAll();
         };
 
         Installer.prototype.unlaunch = function() {
             return UrlRemap.reset();
         };
 
-        Installer.prototype.launch = function() {
-            var installPath = this.installPath;
-            var appId = this.appId;
-            if (!installPath) {
-                throw new Error('App ' + appId + ' requires an update');
-            }
-            var configLocation = installPath + '/config.xml';
+        Installer.prototype._prepareForLaunch = function() {
+            // Cache clearing necessary only for Android.
+            return CacheClear.clear();
+        };
 
-            return getAppStartPageFromConfig(configLocation)
-            .then(function(rawStartLocation) {
+        Installer.prototype.launch = function() {
+            var self = this;
+            return $q.when(this._prepareForLaunch())
+            .then(function() {
                 var urlutil = cordova.require('cordova/urlutil');
                 var harnessUrl = urlutil.makeAbsolute(location.pathname);
                 var harnessDir = harnessUrl.replace(/\/[^\/]*\/[^\/]*$/, '');
-                var installUrl = urlutil.makeAbsolute(installPath);
-                var startLocation = urlutil.makeAbsolute(rawStartLocation).replace('/cdvah/', '/');
-                var useNativeStartLocation = cordova.platformId == 'ios';
+                var installUrl = self.directoryManager.rootURL;
+                var startLocation = urlutil.makeAbsolute(self.startPage).replace('/cdvah/', '/');
+                var useNativeStartLocation = platformId == 'ios';
 
                 // Use toNativeURL() so that scheme is file:/ instead of cdvfile:/ (file: has special access).
                 return ResourcesLoader.toNativeURL(installUrl)
@@ -147,6 +164,11 @@
                 });
             });
         };
+
         return Installer;
     }]);
+    myApp.run(['Installer', 'AppsService', function(Installer, AppsService) {
+        AppsService.registerInstallerFactory(Installer);
+    }]);
 })();
+

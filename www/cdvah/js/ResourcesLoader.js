@@ -179,8 +179,8 @@
                     return ensureDirectoryExists(dirName(toUrl))
                     .then(function(destEntry) {
                         var deferred = $q.defer();
-                        fromEntry.moveTo(destEntry, baseName(toUrl), deferred.reslove, deferred.reject);
-                        return deferred;
+                        fromEntry.moveTo(destEntry, baseName(toUrl), deferred.resolve, deferred.reject);
+                        return deferred.promise;
                     });
                 });
             },

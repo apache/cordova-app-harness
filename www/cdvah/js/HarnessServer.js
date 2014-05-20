@@ -28,17 +28,15 @@
         function ensureMethodDecorator(method, func) {
             return function(req, resp) {
                 if (req.method != method) {
-                    resp.sendTextResponse(405, 'Method Not Allowed\n');
-                } else {
-                    func(req, resp);
+                    return resp.sendTextResponse(405, 'Method Not Allowed\n');
                 }
+                return func(req, resp);
             };
         }
 
         function pipeRequestToFile(req, destUrl) {
-            var outerDeferred = $q.defer();
             var writer = null;
-            req.onData = function(arrayBuffer) {
+            function handleChunk(arrayBuffer) {
                 var ret = $q.when();
                 if (writer == null) {
                    ret = ResourcesLoader.createFileWriter(destUrl)
@@ -46,48 +44,22 @@
                        writer = w;
                    });
                 }
-                return ret
-                .then(function() {
+                return ret.then(function() {
                     var deferred = $q.defer();
                     writer.onwrite = deferred.resolve;
-                    writer.onerror = deferred.reject;
+                    writer.onerror = function() {
+                      deferred.reject(writer.error);
+                    };
                     writer.write(arrayBuffer);
                     return deferred.promise;
                 })
                 .then(function() {
-                    if (req.bytesRemaining === 0) {
-                        outerDeferred.resolve();
+                    if (req.bytesRemaining > 0) {
+                        return req.readChunk().then(handleChunk);
                     }
-                }, outerDeferred.reject);
-            };
-            return outerDeferred.promise;
-        }
-
-        function handlePush(req, resp) {
-            var type = req.getQueryParam('type');
-            var name = req.getQueryParam('name');
-            var url = req.getQueryParam('url');
-            if (!(type && name)) {
-                resp.sendTextResponse(400, 'Missing required query params type=' + type + ' name=' + name + '\n');
-                return;
-            }
-            var ret = $q.when();
-            return ret.then(function() {
-                if (!url) {
-                    resp.sendTextResponse(400, 'Missing required query param "url"\n');
-                    return;
-                }
-                return AppHarnessUI.destroy()
-                .then(function() {
-                    return updateApp(type, name, url);
-                }).then(function() {
-                    notifier.success('Updated ' + name + ' from remote push.');
-                    resp.sendTextResponse(200, '');
-                }, function(e) {
-                    notifier.error(e);
-                    resp.sendTextResponse(500, e + '\n');
                 });
-            });
+            }
+            return req.readChunk().then(handleChunk);
         }
 
         function handleExec(req, resp) {
@@ -103,6 +75,139 @@
             return AppHarnessUI.createOverlay();
         }
 
+        function handleLaunch(req, resp) {
+            var appId = req.getQueryParam('appId');
+            return AppsService.getAppById(appId)
+            .then(function(app) {
+                if (app) {
+                    return AppsService.launchApp(app)
+                    .then(function() {
+                        return resp.sendTextResponse(200, '');
+                    });
+                }
+                return resp.sendTextResponse(412, 'No apps available for launch\n');
+            });
+        }
+
+        function handleAssetManifest(req, resp) {
+            var appId = req.getQueryParam('appId');
+            return AppsService.getAppById(appId)
+            .then(function(app) {
+                if (app) {
+                    return app.directoryManager.getAssetManifest();
+                }
+                return null;
+            }).then(function(assetManifest) {
+                resp.sendJsonResponse({
+                    'assetManifest': assetManifest
+                });
+            });
+        }
+
+        function handlePrepUpdate(req, resp) {
+            var appId = req.getQueryParam('appId');
+            var appType = req.getQueryParam('appType') || 'cordova';
+            return AppsService.getAppById(appId, appType)
+            .then(function(app) {
+                return req.readAsJson()
+                .then(function(requestJson) {
+                    app.updatingStatus = 0;
+                    app.updateBytesTotal = +requestJson['transferSize'];
+                    app.updateBytesSoFar = 0;
+                    return resp.sendTextResponse(200, '');
+                });
+            });
+        }
+
+        function handleDeleteFiles(req, resp) {
+            var appId = req.getQueryParam('appId');
+            var appType = req.getQueryParam('appType') || 'cordova';
+            return AppsService.getAppById(appId, appType)
+            .then(function(app) {
+                return req.readAsJson()
+                .then(function(requestJson) {
+                    var paths = requestJson['paths'];
+                    for (var i = 0; i < paths.length; ++i) {
+                        app.directoryManager.deleteFile(paths[i]);
+                    }
+                    return resp.sendTextResponse(200, '');
+                });
+            });
+        }
+
+        function handleDeleteApp(req, resp) {
+            var appId = req.getQueryParam('appId');
+            var all = req.getQueryParam('all');
+            var ret;
+            if (all) {
+                ret = AppsService.uninstallAllApps();
+            } else {
+                ret = AppsService.getAppById(appId)
+                .then(function(app) {
+                    if (app) {
+                        return AppsService.uninstallApp(app);
+                    }
+                });
+            }
+            return ret.then(function() {
+                return resp.sendTextResponse(200, '');
+            });
+        }
+
+        function handlePutFile(req, resp) {
+            var appId = req.getQueryParam('appId');
+            var appType = req.getQueryParam('appType') || 'cordova';
+            var path = req.getQueryParam('path');
+            var etag = req.getQueryParam('etag');
+            if (!path || !etag) {
+                throw new Error('Request is missing path or etag query params');
+            }
+            return AppsService.getAppById(appId, appType)
+            .then(function(app) {
+                var tmpUrl = ResourcesLoader.createTmpFileUrl();
+                return pipeRequestToFile(req, tmpUrl)
+                .then(function() {
+                    var ret = $q.when();
+                    if (path == 'www/cordova_plugins.js') {
+                        path = 'orig-cordova_plugins.js';
+                    }
+                    if (path == 'www/config.xml') {
+                        ret = ret.then(function() {
+                          return ResourcesLoader.downloadFromUrl(tmpUrl, tmpUrl + '-2');
+                        });
+                    }
+                    ret = ret.then(function() {
+                        return app.directoryManager.addFile(tmpUrl, path, etag);
+                    });
+                    if (path == 'www/config.xml') {
+                        ret = ret.then(function() {
+                            return app.directoryManager.addFile(tmpUrl + '-2', 'config.xml', etag);
+                        });
+                    }
+                    if (path == 'config.xml' || path == 'www/config.xml') {
+                        ret = ret.then(function() {
+                            return app.readConfigXml();
+                        });
+                    } else if (path == 'orig-cordova_plugins.js') {
+                        ret = ret.then(function() {
+                            return app.readCordovaPluginsFile();
+                        });
+                    }
+                    return ret;
+                })
+                .then(function() {
+                    app.updateBytesSoFar += +req.headers['content-length'];
+                    app.updatingStatus = app.updateBytesTotal / app.updateBytesSoFar;
+                    if (app.updatingStatus === 1) {
+                        app.updatingStatus = null;
+                        app.lastUpdated = new Date();
+                        notifier.success('Update complete.');
+                    }
+                    return resp.sendTextResponse(200, '');
+                });
+            });
+        }
+
         function handleInfo(req, resp) {
             var json = {
                 'platform': cordova.platformId,
@@ -114,40 +219,20 @@
             resp.sendJsonResponse(json);
         }
 
-        function updateApp(type, name, url) {
-            return AppsService.getAppList()
-            .then(function(list) {
-                var matches = list && list.filter(function(x) { return x.appId == name; });
-                var promise;
-                if (list && matches.length > 0) {
-                    // App exists.
-                    var app = matches[0];
-                    app.url = url;
-                    promise = $q.when(app);
-                } else {
-                    // New app.
-                    promise = AppsService.addApp(type, url, name).then(function(handler) {
-                        var msg = 'Added new app ' + handler.appId + ' from push';
-                        notifier.success(msg);
-                        return handler;
-                    });
-                }
-
-                return promise.then(function(theApp) {
-                    return AppsService.updateAndLaunchApp(theApp);
-                });
-            });
-        }
-
         function start() {
             if (server) {
                 return;
             }
-            server = HttpServer.create()
-                .addRoute('/push', ensureMethodDecorator('POST', handlePush))
+            server = new HttpServer()
                 .addRoute('/exec', ensureMethodDecorator('POST', handleExec))
                 .addRoute('/menu', ensureMethodDecorator('POST', handleMenu))
-                .addRoute('/info', ensureMethodDecorator('GET', handleInfo));
+                .addRoute('/launch', ensureMethodDecorator('POST', handleLaunch))
+                .addRoute('/info', ensureMethodDecorator('GET', handleInfo))
+                .addRoute('/assetmanifest', ensureMethodDecorator('GET', handleAssetManifest))
+                .addRoute('/prepupdate', ensureMethodDecorator('POST', handlePrepUpdate))
+                .addRoute('/deletefiles', ensureMethodDecorator('POST', handleDeleteFiles))
+                .addRoute('/deleteapp', ensureMethodDecorator('POST', handleDeleteApp))
+                .addRoute('/putfile', ensureMethodDecorator('PUT', handlePutFile));
             return server.start();
         }
 

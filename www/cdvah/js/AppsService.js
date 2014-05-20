@@ -19,34 +19,22 @@
 (function() {
     'use strict';
     /* global myApp */
-    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'notifier', 'PluginMetadata', 'AppHarnessUI', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, notifier, PluginMetadata, AppHarnessUI) {
-
+    myApp.factory('AppsService', ['$q', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'notifier', 'AppHarnessUI', function($q, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, notifier, AppHarnessUI) {
         // Map of type -> installer.
-        var _installerFactories = {};
+        var _installerFactories = Object.create(null);
         // Array of installer objects.
         var _installers = null;
         // The app that is currently running.
         var activeInstaller = null;
 
-        function createInstallHandlersFromJson(json) {
-            var appList = json.appList || [];
-            var ret = [];
-            for (var i = 0; i < appList.length; i++) {
-                var entry = appList[i];
-                var factory = _installerFactories[entry.appType];
-                var installer = factory.createFromJson(entry.appUrl, entry.appId);
-                installer.lastUpdated = entry.lastUpdated && new Date(entry.lastUpdated);
-                installer.installPath = entry.installPath;
-                installer.plugins = PluginMetadata.process(entry.plugins);
-                ret.push(installer);
-            }
-            return ret;
-        }
-
         function readAppsJson() {
             var deferred = $q.defer();
             ResourcesLoader.readJSONFileContents(APPS_JSON)
             .then(function(result) {
+                if (result['fileVersion'] !== 1) {
+                    console.warn('Ignoring old version of apps.json');
+                    result = {};
+                }
                 deferred.resolve(result);
             }, function() {
                 // Error means first run.
@@ -61,25 +49,33 @@
             }
 
             return readAppsJson()
-            .then(function(appsJson) {
-                _installers = createInstallHandlersFromJson(appsJson);
+            .then(function(json) {
+                var appList = json['appList'] || [];
+                _installers = [];
+                var i = -1;
+                function next() {
+                    var entry = appList[++i];
+                    if (!entry) {
+                        return;
+                    }
+                    return _installerFactories[entry['appType']].createFromJson(entry)
+                    .then(function(app) {
+                        _installers.push(app);
+                        return next();
+                    }, next);
+                }
+                return next();
             });
         }
 
         function createAppsJson() {
             var appsJson = {
+                'fileVersion': 1,
                 'appList': []
             };
             for (var i = 0; i < _installers.length; ++i) {
                 var installer = _installers[i];
-                appsJson.appList.push({
-                    'appId' : installer.appId,
-                    'appType' : installer.type,
-                    'appUrl' : installer.url,
-                    'lastUpdated': installer.lastUpdated && +installer.lastUpdated,
-                    'installPath': installer.installPath,
-                    'plugins': installer.plugins.raw
-                });
+                appsJson.appList.push(installer.toDiskJson());
             }
             return appsJson;
         }
@@ -99,15 +95,14 @@
                 AppHarnessUI.createOverlay();
             } else if (eventName == 'hideMenu') {
                 AppHarnessUI.destroyOverlay();
-            } else if (eventName == 'updateApp') {
-                AppsService.updateAndLaunchApp(activeInstaller)
-                .then(null, notifier.error);
             } else if (eventName == 'restartApp') {
                 // TODO: Restart in place?
                 AppsService.launchApp(activeInstaller)
                 .then(null, notifier.error);
             } else if (eventName == 'quitApp') {
                 AppsService.quitApp();
+            } else {
+                console.warn('Unknown message from AppHarnessUI: ' + eventName);
             }
         });
 
@@ -122,6 +117,28 @@
 
             getAppListAsJson : function() {
                 return createAppsJson();
+            },
+
+            // If no appId, then return the first app.
+            // If appId and appType, then create it if it doesn't exist.
+            // Else: return null.
+            getAppById : function(appId, /* optional */ appType) {
+                return initHandlers()
+                .then(function() {
+                    var matches = _installers;
+                    if (appId) {
+                        matches = _installers.filter(function(x) {
+                            return x.appId == appId;
+                        });
+                    }
+                    if (matches.length > 0) {
+                        return matches[0];
+                    }
+                    if (appType) {
+                        return AppsService.addApp(appType, appId);
+                    }
+                    return null;
+                });
             },
 
             quitApp : function() {
@@ -143,10 +160,10 @@
                 });
             },
 
-            addApp : function(installerType, appUrl, /*optional*/ appId) {
-                var installerFactory = _installerFactories[installerType];
+            addApp : function(appType, /* optional */ appId) {
+                var installPath = INSTALL_DIRECTORY + 'app' + new Date().getTime() + '/';
                 return initHandlers().then(function() {
-                    return installerFactory.createFromUrl(appUrl, appId);
+                    return _installerFactories[appType].createNew(installPath, appId);
                 }).then(function(installer) {
                     _installers.push(installer);
                     return writeAppsJson()
@@ -156,13 +173,12 @@
                 });
             },
 
-            editApp : function(oldId, installer) {
-                _installers.forEach(function(inst, i) {
-                    if (inst.appId == oldId) {
-                        _installers.splice(i, 1, installer);
-                    }
-                });
-                return writeAppsJson();
+            uninstallAllApps : function() {
+                var deletePromises = [];
+                for (var i = 0; i < _installers.length; ++i) {
+                    deletePromises.push(AppsService.uninstallApp(_installers[i]));
+                }
+                return $q.all(deletePromises);
             },
 
             uninstallApp : function(installer) {
@@ -173,27 +189,12 @@
                 });
             },
 
-            getLastRunApp : function() {
-                throw new Error('Not implemented.');
-            },
-
-            updateApp : function(installer){
-                var installPath = INSTALL_DIRECTORY + '/' + encodeURIComponent(installer.appId);
-                return installer.updateApp(installPath)
-                .then(writeAppsJson);
-            },
-
-            updateAndLaunchApp : function(installer) {
-                return AppsService.quitApp()
-                .then(function() {
-                    return AppsService.updateApp(installer);
-                }).then(function() {
-                    return AppsService.launchApp(installer);
-                });
+            triggerAppListChange: function() {
+                return writeAppsJson();
             },
 
             registerInstallerFactory : function(installerFactory) {
-                _installerFactories[installerFactory.type] = installerFactory;
+                 _installerFactories[installerFactory.type] = installerFactory;
             },
 
             onAppListChange: null
