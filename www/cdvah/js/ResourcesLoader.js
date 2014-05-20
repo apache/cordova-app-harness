@@ -185,13 +185,19 @@
                 });
             },
 
-            deleteDirectory: function(url) {
+            delete: function(url) {
                 return resolveURL(url)
-                .then(function(dirEntry) {
+                .then(function(entry) {
                     var deferred = $q.defer();
-                    dirEntry.removeRecursively(deferred.resolve, function(error) {
-                        deferred.reject(new Error('There was an error deleting the directory: ' + url + ' ' + JSON.stringify(error)));
-                    });
+                    if (entry.removeRecursively) {
+                        entry.removeRecursively(deferred.resolve, function(error) {
+                            deferred.reject(new Error('There was an error deleting directory: ' + url + ' ' + JSON.stringify(error)));
+                        });
+                    } else {
+                        entry.remove(deferred.resolve, function(error) {
+                            deferred.reject(new Error('There was an error deleting file: ' + url + ' ' + JSON.stringify(error)));
+                        });
+                    }
                     return deferred.promise;
                 }, function() {});
             },
