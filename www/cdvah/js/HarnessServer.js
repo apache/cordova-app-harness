@@ -53,6 +53,7 @@
 
     myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier) {
 
+        var PROTOCOL_VER = 2;
         var server = null;
         var listenAddress = null;
 
@@ -130,7 +131,10 @@
                 return null;
             }).then(function(assetManifest) {
                 resp.sendJsonResponse({
-                    'assetManifest': assetManifest
+                    'assetManifest': assetManifest,
+                    'platform': cordova.platformId,
+                    'cordovaVer': cordova.version,
+                    'protocolVer': PROTOCOL_VER,
                 });
             });
         }
@@ -198,35 +202,10 @@
                 var tmpUrl = ResourcesLoader.createTmpFileUrl();
                 return pipeRequestToFile(req, tmpUrl)
                 .then(function() {
-                    var ret = $q.when();
-                    if (path == 'www/cordova_plugins.js') {
-                        path = 'orig-cordova_plugins.js';
-                    }
-                    if (path == 'www/config.xml') {
-                        ret = ret.then(function() {
-                          return ResourcesLoader.downloadFromUrl(tmpUrl, tmpUrl + '-2');
-                        });
-                    }
-                    ret = ret.then(function() {
-                        return app.directoryManager.addFile(tmpUrl, path, etag);
-                    });
-                    if (path == 'www/config.xml') {
-                        ret = ret.then(function() {
-                            return app.directoryManager.addFile(tmpUrl + '-2', 'config.xml', etag);
-                        });
-                    }
-                    if (path == 'config.xml' || path == 'www/config.xml') {
-                        ret = ret.then(function() {
-                            return app.readConfigXml();
-                        });
-                    } else if (path == 'orig-cordova_plugins.js') {
-                        ret = ret.then(function() {
-                            return app.readCordovaPluginsFile();
-                        });
-                    }
-                    return ret;
+                    return importFile(tmpUrl, path, app, etag);
                 })
                 .then(function() {
+                    // TODO: Add a timeout that resets updatingStatus if no more requests come in.
                     app.updateBytesSoFar += +req.headers['content-length'];
                     app.updatingStatus = app.updateBytesTotal / app.updateBytesSoFar;
                     if (app.updatingStatus === 1) {
@@ -239,11 +218,71 @@
             });
         }
 
+        function importFile(fileUrl, destPath, app, etag) {
+            console.log('Adding file: ' + destPath);
+            var ret = $q.when();
+            if (destPath == 'www/cordova_plugins.js') {
+                destPath = 'orig-cordova_plugins.js';
+            }
+            ret = ret.then(function() {
+                return app.directoryManager.addFile(fileUrl, destPath, etag);
+            });
+            if (destPath == 'config.xml') {
+                ret = ret.then(function() {
+                    return app.readConfigXml();
+                });
+            } else if (destPath == 'orig-cordova_plugins.js') {
+                ret = ret.then(function() {
+                    return app.readCordovaPluginsFile();
+                });
+            }
+            return ret;
+        }
+
+        function handleZipPush(req, resp) {
+            var appId = req.getQueryParam('appId');
+            var appType = req.getQueryParam('appType') || 'cordova';
+            return AppsService.getAppById(appId, appType)
+            .then(function(app) {
+                var tmpZipUrl = ResourcesLoader.createTmpFileUrl();
+                var tmpDirUrl = ResourcesLoader.createTmpFileUrl() + '/';
+                return pipeRequestToFile(req, tmpZipUrl)
+                .then(function() {
+                    console.log('Extracting update zip');
+                    return ResourcesLoader.extractZipFile(tmpZipUrl, tmpDirUrl);
+                })
+                .then(function() {
+                    return ResourcesLoader.readJSONFileContents(tmpDirUrl + 'zipassetmanifest.json');
+                })
+                .then(function(zipAssetManifest) {
+                    var keys = Object.keys(zipAssetManifest);
+                    return $q.when()
+                    .then(function next() {
+                        var k = keys.shift();
+                        if (k) {
+                            return importFile(tmpDirUrl + k, k, app, zipAssetManifest[k]['etag'])
+                            .then(next);
+                        }
+                    });
+                })
+                .then(function() {
+                    app.lastUpdated = new Date();
+                    notifier.success('Update complete.');
+                    return resp.sendTextResponse(200, '');
+                })
+                .finally(function() {
+                    app.updatingStatus = null;
+                    ResourcesLoader.delete(tmpZipUrl);
+                    ResourcesLoader.delete(tmpDirUrl);
+                });
+            });
+        }
+
         function handleInfo(req, resp) {
             var json = {
                 'platform': cordova.platformId,
                 'cordovaVer': cordova.version,
-                'protocolVer': 2,
+                'protocolVer': PROTOCOL_VER,
                 'userAgent': navigator.userAgent,
                 'appList': AppsService.getAppListAsJson()
             };
@@ -262,8 +301,9 @@
                 .addRoute('/assetmanifest', ensureMethodDecorator('GET', handleAssetManifest))
                 .addRoute('/prepupdate', ensureMethodDecorator('POST', handlePrepUpdate))
                 .addRoute('/deletefiles', ensureMethodDecorator('POST', handleDeleteFiles))
-                .addRoute('/deleteapp', ensureMethodDecorator('POST', handleDeleteApp))
-                .addRoute('/putfile', ensureMethodDecorator('PUT', handlePutFile));
+                .addRoute('/putfile', ensureMethodDecorator('PUT', handlePutFile))
+                .addRoute('/zippush', ensureMethodDecorator('POST', handleZipPush))
+                .addRoute('/deleteapp', ensureMethodDecorator('POST', handleDeleteApp));
             return server.start();
         }
 

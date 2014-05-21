@@ -24,9 +24,10 @@
     "harness-push": "./harness-push.js"
   },
   "dependencies": {
-    "request": "~2.34",
+    "jszip": "~2.1",
     "nopt": "~2.2",
-    "shelljs": "0.1.x",
-    "q": "~0.9"
+    "q": "~0.9",
+    "request": "~2.34",
+    "shelljs": "0.1.x"
   }
 }
