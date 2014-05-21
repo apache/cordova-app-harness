@@ -386,7 +386,7 @@
                                 return req.readEntireBody()
                                 .then(function() {
                                     return resp.sendTextResponse(500, '' + err);
-                                })
+                                });
                             } else {
                                 return requestData.socket.close();
                             }
