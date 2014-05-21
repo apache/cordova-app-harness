@@ -220,23 +220,10 @@
 
         function importFile(fileUrl, destPath, app, etag) {
             console.log('Adding file: ' + destPath);
-            var ret = $q.when();
             if (destPath == 'www/cordova_plugins.js') {
                 destPath = 'orig-cordova_plugins.js';
             }
-            ret = ret.then(function() {
-                return app.directoryManager.addFile(fileUrl, destPath, etag);
-            });
-            if (destPath == 'config.xml') {
-                ret = ret.then(function() {
-                    return app.readConfigXml();
-                });
-            } else if (destPath == 'orig-cordova_plugins.js') {
-                ret = ret.then(function() {
-                    return app.readCordovaPluginsFile();
-                });
-            }
-            return ret;
+            return app.directoryManager.addFile(fileUrl, destPath, etag);
         }
 
         function handleZipPush(req, resp) {

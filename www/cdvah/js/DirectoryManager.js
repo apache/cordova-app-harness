@@ -25,6 +25,7 @@
         function DirectoryManager(rootURL) {
             this.rootURL = rootURL;
             this.lastUpdated = null;
+            this.onFileAdded = null;
             this._assetManifest = null;
             this._flushTimerId = null;
         }
@@ -71,6 +72,9 @@
             .then(function() {
                 self._assetManifest[relativePath] = etag;
                 self._lazyWriteAssetManifest();
+                if (self.onFileAdded) {
+                    return self.onFileAdded(relativePath, etag);
+                }
             });
         };
 
@@ -80,6 +84,9 @@
             .then(function() {
                 self._assetManifest[relativePath] = etag;
                 self._lazyWriteAssetManifest();
+                if (self.onFileAdded) {
+                    return self.onFileAdded(relativePath, etag);
+                }
             });
         };
 

@@ -23,22 +23,20 @@
     myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'PluginMetadata', 'CacheClear', 'DirectoryManager', function($q, UrlRemap, ResourcesLoader, PluginMetadata, CacheClear, DirectoryManager) {
         var platformId = cordova.require('cordova/platform').id;
 
-        function Installer(installPath) {
-            this.updatingStatus = null;
-            this.lastUpdated = null;
+        function Installer() {}
+
+        Installer.prototype.init = function(installPath, /* optional */ appId) {
+            var ret = this;
+            ret.appType = ret.constructor.type;
+            ret.updatingStatus = null;
+            ret.lastUpdated = null;
             // Asset manifest is a cache of what files have been downloaded along with their etags.
-            this.directoryManager = new DirectoryManager(installPath);
-            this.appId = null; // Read from config.xml
-            this.appName = null; // Read from config.xml
-            this.startPage = null; // Read from config.xml
-            this.plugins = {}; // Read from orig-cordova_plugins.js
-        }
-
-        Installer.type = 'cordova';
-        Installer.prototype.type = 'cordova';
-
-        Installer.createNew = function(installPath, /* optional */ appId) {
-            var ret = new Installer(installPath);
+            ret.directoryManager = new DirectoryManager(installPath);
+            ret.directoryManager.onFileAdded = this.onFileAdded.bind(this);
+            ret.appId = null; // Read from config.xml
+            ret.appName = null; // Read from config.xml
+            ret.startPage = null; // Read from config.xml
+            ret.plugins = {}; // Read from orig-cordova_plugins.js
             ret.appId = appId;
             return ret.directoryManager.getAssetManifest()
             .then(function() {
@@ -46,48 +44,22 @@
             });
         };
 
-        Installer.createFromJson = function(json) {
-            var ret = new Installer(json['installPath']);
-            ret.lastUpdated = json['lastUpdated'] && new Date(json['lastUpdated']);
-            ret.appId = json['appId'];
-            return ret.directoryManager.getAssetManifest()
-            .then(function() {
-                return ret.readCordovaPluginsFile();
-            }).then(function() {
-                return ret.readConfigXml();
-            }).then(function() {
-                return ret;
-            }, function(e) {
-                console.warn('Deleting broken app: ' + json['installPath']);
-                ResourcesLoader.delete(json['installPath']);
-                throw e;
+        Installer.prototype.initFromJson = function(json) {
+            var self = this;
+            return this.init(json['installPath'], json['appId'])
+            .then(function(ret) {
+                ret.lastUpdated = json['lastUpdated'] && new Date(json['lastUpdated']);
+                return self.readConfigXml();
             });
         };
 
         Installer.prototype.toDiskJson = function() {
             return {
-                'appType' : this.type,
+                'appType' : this.appType,
                 'appId' : this.appId,
                 'lastUpdated': this.lastUpdated && +this.lastUpdated,
                 'installPath': this.directoryManager.rootURL
             };
-        };
-
-        Installer.prototype.readCordovaPluginsFile = function(force) {
-            var self = this;
-            return this.directoryManager.getAssetManifest()
-            .then(function(assetManifest) {
-                if (!force && assetManifest['orig-cordova_plugins.js'] == assetManifest['www/cordova_plugins.js']) {
-                    return null;
-                }
-                return self.getPluginMetadata()
-                .then(function(metadata) {
-                    self.plugins = PluginMetadata.process(metadata);
-                    var pluginIds = Object.keys(metadata);
-                    var newPluginsFileData = PluginMetadata.createNewPluginListFile(pluginIds);
-                    return self.directoryManager.writeFile(newPluginsFileData, 'www/cordova_plugins.js', assetManifest['orig-cordova_plugins.js']);
-                });
-            });
         };
 
         Installer.prototype.readConfigXml = function() {
@@ -106,11 +78,25 @@
             });
         };
 
-        Installer.prototype.getPluginMetadata = function() {
-            return ResourcesLoader.readFileContents(this.directoryManager.rootURL + 'orig-cordova_plugins.js')
-            .then(function(contents) {
-                return PluginMetadata.extractPluginMetadata(contents);
+        Installer.prototype.updateCordovaPluginsFile = function(etag) {
+            var self = this;
+            return self.getPluginMetadata()
+            .then(function(metadata) {
+                self.plugins = PluginMetadata.process(metadata);
+                var pluginIds = Object.keys(metadata);
+                var newPluginsFileData = PluginMetadata.createNewPluginListFile(pluginIds);
+                return self.directoryManager.writeFile(newPluginsFileData, 'www/cordova_plugins.js', etag);
             });
+        };
+
+        Installer.prototype.onFileAdded = function(path) {
+            if (path == 'config.xml') {
+                return this.readConfigXml();
+            }
+        };
+
+        Installer.prototype.getPluginMetadata = function() {
+            throw new Error('unimplemented.');
         };
 
         Installer.prototype.deleteFiles = function() {
@@ -166,9 +152,6 @@
         };
 
         return Installer;
-    }]);
-    myApp.run(['Installer', 'AppsService', function(Installer, AppsService) {
-        AppsService.registerInstallerFactory(Installer);
     }]);
 })();
 

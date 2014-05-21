@@ -58,7 +58,8 @@
                     if (!entry) {
                         return;
                     }
-                    return _installerFactories[entry['appType']].createFromJson(entry)
+                    var Ctor = _installerFactories[entry['appType']];
+                    return new Ctor().initFromJson(entry)
                     .then(function(app) {
                         _installers.push(app);
                         return next();
@@ -163,7 +164,8 @@
             addApp : function(appType, /* optional */ appId) {
                 var installPath = INSTALL_DIRECTORY + 'app' + new Date().getTime() + '/';
                 return initHandlers().then(function() {
-                    return _installerFactories[appType].createNew(installPath, appId);
+                    var Ctor = _installerFactories[appType];
+                    return new Ctor().init(installPath, appId);
                 }).then(function(installer) {
                     _installers.push(installer);
                     return writeAppsJson()
