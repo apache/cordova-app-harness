@@ -76,7 +76,6 @@ function discoverAppId(dir) {
     return appId;
 }
 
-// Takes a Node-style callback: function(err).
 exports.push = function(target, dir, pretend) {
     var appId = discoverAppId(dir);
     var appType = 'cordova';
@@ -85,7 +84,6 @@ exports.push = function(target, dir, pretend) {
     .then(function(result) {
         var derivedWwwDir = getDerivedWwwDir(dir, result.body['platform']);
         var derivedConfigXmlPath = getDerivedConfigXmlPath(dir, result.body['platform']);
-        console.log(derivedConfigXmlPath);
         var cordovaPluginsPath = path.join(derivedWwwDir, 'cordova_plugins.js');
         if (!fs.existsSync(cordovaPluginsPath)) {
             throw new Error('Could not find: ' + cordovaPluginsPath);
@@ -131,7 +129,7 @@ function buildAssetManifest(dir, configXmlPath) {
     var ret = Object.create(null);
     for (var i = 0; i < fileList.length; ++i) {
         // TODO: convert windows slash to unix slash here.
-        var appPath = 'www' + fileList[i].slice(dir.length);
+        var appPath = 'www/' + fileList[i].slice(dir == '.' ? 0 : dir.length + 1);
         ret[appPath] = {
             path: appPath,
             realPath: fileList[i],
@@ -360,11 +358,14 @@ function parseArgs(argv) {
 }
 
 function usage() {
-    console.log('Usage: harness-push push path/to/chrome_app --target=IP_ADDRESS:PORT');
+    console.log('Usage: harness-push push path/to/app --target=IP_ADDRESS:PORT');
     console.log('Usage: harness-push menu');
     console.log('Usage: harness-push eval "alert(1)"');
     console.log('Usage: harness-push info');
     console.log('Usage: harness-push launch [appId]');
+    console.log('Usage: harness-push assetmanifest [appId]');
+    console.log('Usage: harness-push delete appId');
+    console.log('Usage: harness-push deleteall');
     console.log();
     console.log('--target defaults to localhost:2424');
     console.log('To deploy to Android over USB, use: adb forward tcp:2424 tcp:2424');
