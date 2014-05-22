@@ -16,4 +16,7 @@ If are connected via `adb`, you can port forward via:
 
 ## Port Forwarding (iOS)
 
-TODO: Should be possible to port forward via usbmuxd (as described [here](http://www.oodlestechnologies.com/blogs/Data-transfer-to-iOS-devices-from-PC-using-USB-cable--(using-USB-Multiplex-Daemon))
+Download tcprelay.py from: https://github.com/chid/tcprelay
+Then run:
+
+    python tcprelay.py 2424:2424

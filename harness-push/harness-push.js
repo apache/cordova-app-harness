@@ -368,7 +368,10 @@ function usage() {
     console.log('Usage: harness-push deleteall');
     console.log();
     console.log('--target defaults to localhost:2424');
-    console.log('To deploy to Android over USB, use: adb forward tcp:2424 tcp:2424');
+    console.log('    To deploy to Android over USB: adb forward tcp:2424 tcp:2424');
+    console.log('        "adb" comes with the Android SDK');
+    console.log('    To deploy to iOS over USB: python tcprelay.py 2424:2424');
+    console.log('        "tcprelay.py" is available from https://github.com/chid/tcprelay');
     process.exit(1);
 }
 
