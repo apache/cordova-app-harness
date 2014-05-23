@@ -27,9 +27,6 @@ function parseArgs(argv) {
         'target': String
     };
     var ret = nopt(opts, null, argv);
-    if (!ret.target) {
-        ret.target = 'localhost:2424';
-    }
     return ret;
 }
 
