@@ -442,7 +442,7 @@
                         requestData.method = requestDataParts[0].toUpperCase();
                         requestData.resource = requestDataParts[1];
                         requestData.httpVersion = requestDataParts[2];
-                        console.log(requestData.method + ' requestData received for ' + requestData.resource);
+                        console.log('Socket ' + requestData.socket.socketId + ': ' + requestData.method + ' ' + requestData.resource);
                         changeState(requestData, STATE_REQUEST_DATA_RECEIVED);
                         requestData.socket.unread(arrayBuffer);
                         return readRequestHeaders(requestData);
