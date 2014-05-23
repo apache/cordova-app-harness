@@ -20,7 +20,7 @@
     "harness-push": "./harness-push.js"
   },
   "dependencies": {
-    "cordova-harness-push": "~0.0",
+    "cordova-harness-client": "~0.0",
     "nopt": "~2.2"
   }
 }
