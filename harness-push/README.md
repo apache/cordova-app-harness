@@ -1,6 +1,6 @@
-# harness-push
+# cordova-harness-push
 
-A node module & command-line tool for controlling the Cordova App Harness.
+Command-line tool for controlling the Cordova App Harness.
 
 # Usage:
 
