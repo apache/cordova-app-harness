@@ -28,4 +28,7 @@ if ! which jshint; then
 fi
 echo "Running jsHint"
 cd $(dirname "$0")
-jshint www/ --exclude www/cdvah/js/libs --verbose --show-non-errors
+set -x
+jshint www/ --exclude www/cdvah/js/libs --verbose --show-non-errors && \
+jshint harness-push/ --exclude harness-push/node_modules --verbose --show-non-errors && \
+jshint harness-push/node_modules/cordova-harness-client --exclude harness-push/node_modules/cordova-harness-client/node_modules --verbose --show-non-errors

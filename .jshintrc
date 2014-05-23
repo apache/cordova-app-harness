@@ -4,7 +4,7 @@
     "camelcase": true,
     "curly": true,
     "eqeqeq": false,
-    "forin": true,
+    "forin": false,
     "immed": true,
     "indent": 4,
     "latedef": false,
@@ -24,6 +24,7 @@
     "sub":true,
 
     //environment
+    "node": true,
     "browser": true,
     "devel":true,
 
