@@ -22,36 +22,49 @@
     /* global myApp */
     myApp.factory('DirectoryManager', ['$q', 'ResourcesLoader', function($q, ResourcesLoader) {
         var ASSET_MANIFEST = 'assetmanifest.json';
-        function DirectoryManager(rootURL) {
+
+        function DirectoryManager() {}
+
+        DirectoryManager.prototype.init = function(rootURL) {
             this.rootURL = rootURL;
-            this.lastUpdated = null;
             this.onFileAdded = null;
             this._assetManifest = null;
+            this._assetManifestEtag = null;
             this._flushTimerId = null;
-        }
+            var deferred = $q.defer();
+            var me = this;
+            ResourcesLoader.readJSONFileContents(rootURL + ASSET_MANIFEST)
+            .then(function(json) {
+                me._assetManifest = json['assetManifest'];
+                me._assetManifestEtag = json['etag'];
+                deferred.resolve();
+            }, function() {
+                me._assetManifest = {};
+                me._assetManifestEtag = 0;
+                deferred.resolve();
+            });
+            return deferred.promise;
+        };
 
         DirectoryManager.prototype.deleteAll = function() {
-            this.lastUpdated = null;
             this._assetManifest = null;
+            this._assetManifestEtag = null;
             window.clearTimeout(this._flushTimerId);
             return ResourcesLoader.delete(this.rootURL);
         };
 
         DirectoryManager.prototype.getAssetManifest = function() {
-            if (this._assetManifest) {
-                return $q.when(this._assetManifest);
+            return this._assetManifest;
+        };
+
+        DirectoryManager.prototype.getAssetEtag = function(relativePath) {
+            if (this._assetManifest.hasOwnProperty(relativePath)) {
+                return this._assetManifest[relativePath];
             }
-            var deferred = $q.defer();
-            var me = this;
-            ResourcesLoader.readJSONFileContents(this.rootURL + ASSET_MANIFEST)
-            .then(function(json) {
-                me._assetManifest = json;
-                deferred.resolve(json);
-            }, function() {
-                me._assetManifest = {};
-                deferred.resolve({});
-            });
-            return deferred.promise;
+        };
+
+        DirectoryManager.prototype.getAssetManifestEtag = function() {
+            return (this._assetManifestEtag).toString(36).toUpperCase();
         };
 
         DirectoryManager.prototype._lazyWriteAssetManifest = function() {
@@ -60,9 +73,25 @@
             }
         };
 
+        DirectoryManager.prototype._updateManifest = function(relativePath, etag) {
+            if (etag !== null) {
+                this._assetManifest[relativePath] = etag;
+            } else {
+                delete this._assetManifest[relativePath];
+            }
+            this._assetManifestEtag = Math.floor(Math.random() * 0xFFFFFFFF);
+            this._lazyWriteAssetManifest();
+            if (etag !== null && this.onFileAdded) {
+                return this.onFileAdded(relativePath, etag);
+            }
+        };
+
         DirectoryManager.prototype._writeAssetManifest = function() {
             this._flushTimerId = null;
-            var stringContents = JSON.stringify(this._assetManifest);
+            var stringContents = JSON.stringify({
+                'assetManifest': this._assetManifest,
+                'etag': this._assetManifestEtag
+            });
             return ResourcesLoader.writeFileContents(this.rootURL + ASSET_MANIFEST, stringContents);
         };
 
@@ -70,11 +99,7 @@
             var self = this;
             return ResourcesLoader.moveFile(srcURL, this.rootURL + relativePath)
             .then(function() {
-                self._assetManifest[relativePath] = etag;
-                self._lazyWriteAssetManifest();
-                if (self.onFileAdded) {
-                    return self.onFileAdded(relativePath, etag);
-                }
+                return self._updateManifest(relativePath, etag);
             });
         };
 
@@ -82,11 +107,7 @@
             var self = this;
             return ResourcesLoader.writeFileContents(this.rootURL + relativePath, data)
             .then(function() {
-                self._assetManifest[relativePath] = etag;
-                self._lazyWriteAssetManifest();
-                if (self.onFileAdded) {
-                    return self.onFileAdded(relativePath, etag);
-                }
+                return self._updateManifest(relativePath, etag);
             });
         };
 
@@ -94,8 +115,7 @@
             if (!this._assetManifest[relativePath]) {
                 console.warn('Tried to delete non-existing file: ' + relativePath);
             } else {
-                delete this._assetManifest[relativePath];
-                this._lazyWriteAssetManifest();
+                this._updateManifest(relativePath, null);
                 return ResourcesLoader.delete(this.rootURL + relativePath);
             }
         };

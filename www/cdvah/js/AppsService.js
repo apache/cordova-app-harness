@@ -116,6 +116,10 @@
                 });
             },
 
+            getActiveApp: function() {
+                return activeInstaller;
+            },
+
             getAppListAsJson : function() {
                 return createAppsJson();
             },
@@ -162,7 +166,7 @@
             },
 
             addApp : function(appType, /* optional */ appId) {
-                var installPath = INSTALL_DIRECTORY + 'app' + new Date().getTime() + '/';
+                var installPath = INSTALL_DIRECTORY + 'app' + Math.floor(Math.random() * 0xFFFFFFFF).toString(36) + '/';
                 return initHandlers().then(function() {
                     var Ctor = _installerFactories[appType];
                     return new Ctor().init(installPath, appId);

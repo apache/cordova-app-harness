@@ -19,6 +19,8 @@
 
 var myApp = angular.module('CordovaAppHarness', ['ngRoute']);
 
+myApp.value('APP_NAME', 'Cordova App Harness');
+myApp.value('APP_VERSION', '1.0');
 
 myApp.config(['$routeProvider', function($routeProvider){
     $routeProvider.when('/', {

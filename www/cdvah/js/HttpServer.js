@@ -31,6 +31,14 @@
         var STATE_RESPONSE_WAITING_FOR_FLUSH = 5;
         var STATE_COMPLETE = 6;
 
+        function changeState(requestData, newState) {
+            if (newState <= requestData.state) {
+                throw new Error('Socket ' + requestData.socket.socketId + ' state error: ' + requestData.state + '->' + newState);
+            }
+            console.log('Socket ' + requestData.socket.socketId + ' state ' + requestData.state + '->' + newState);
+            requestData.state = newState;
+        }
+
         function HttpRequest(requestData) {
             this._requestData = requestData;
             this.method = requestData.method;
@@ -41,7 +49,7 @@
                 this.bytesRemaining = parseInt(requestData.headers['content-length'] || '0');
             }
             if (this.bytesRemaining === 0) {
-                this._requestData.state = STATE_REQUEST_RECEIVED;
+                changeState(this._requestData, STATE_REQUEST_RECEIVED);
             }
 
             var host = this.headers['host'] || 'localhost';
@@ -110,7 +118,7 @@
                     throw new Error('Bytes remaining negative: ' + self.bytesRemaining);
                 }
                 if (self.bytesRemaining === 0 && self._requestData.state === STATE_HEADERS_RECEIVED) {
-                    self._requestData.state = STATE_REQUEST_RECEIVED;
+                    changeState(self._requestData, STATE_REQUEST_RECEIVED);
                 }
                 return chunk;
             });
@@ -138,7 +146,7 @@
             return this.close();
         };
 
-        HttpResponse.prototype.sendJsonResponse = function(json) {
+        HttpResponse.prototype.sendJsonResponse = function(status, json) {
             return this.sendTextResponse(200, JSON.stringify(json, null, 4), 'application/json');
         };
 
@@ -148,8 +156,11 @@
             }
             var promise = this._requestData.socket.write(arrayBuffer);
             if (!arrayBuffer) {
-                this._requestData.state = STATE_RESPONSE_WAITING_FOR_FLUSH;
-                promise = promise.then(this._finish.bind(this, true));
+                changeState(this._requestData, STATE_RESPONSE_WAITING_FOR_FLUSH);
+                var self = this;
+                promise = promise.then(function() {
+                    self._finish();
+                });
             }
             return promise;
         };
@@ -167,7 +178,7 @@
                 this._requestData.socket.close(new Error('Started to write response before request data was finished.'));
                 return;
             }
-            this._requestData.state = STATE_RESPONSE_STARTED;
+            changeState(this._requestData, STATE_RESPONSE_STARTED);
             var statusMsg = status === 404 ? 'Not Found' :
                             status === 400 ? 'Bad Request' :
                             status === 200 ? 'OK' :
@@ -184,9 +195,9 @@
             if (this._requestData.state === STATE_COMPLETE) {
                 return;
             }
-            this._requestData.state = STATE_COMPLETE;
+            changeState(this._requestData, STATE_COMPLETE);
             this._requestData.socket.onClose = null;
-            var socketId = this._requestData.socketId;
+            var socketId = this._requestData.socket.socketId;
             if (typeof disconnect == 'undefined') {
                 disconnect = (this.headers['Connection'] || '').toLowerCase() != 'keep-alive';
             }
@@ -432,7 +443,7 @@
                         requestData.resource = requestDataParts[1];
                         requestData.httpVersion = requestDataParts[2];
                         console.log(requestData.method + ' requestData received for ' + requestData.resource);
-                        requestData.state = STATE_REQUEST_DATA_RECEIVED;
+                        changeState(requestData, STATE_REQUEST_DATA_RECEIVED);
                         requestData.socket.unread(arrayBuffer);
                         return readRequestHeaders(requestData);
                     }
@@ -442,7 +453,7 @@
                         requestData.headers = parseHeaders(requestData.dataAsStr.substring(0, splitPoint));
                         requestData.dataAsStr = '';
                         arrayBuffer = arrayBuffer.slice(splitPoint + 4 - oldLen);
-                        requestData.state = STATE_HEADERS_RECEIVED;
+                        changeState(requestData, STATE_HEADERS_RECEIVED);
                         requestData.socket.unread(arrayBuffer);
                         return requestData;
                     }

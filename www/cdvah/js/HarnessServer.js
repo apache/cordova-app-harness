@@ -51,7 +51,7 @@
 //     curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?appId=a.b.c"
 //     curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?all=true" # Delete all apps.
 
-    myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier) {
+    myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier, APP_VERSION) {
 
         var PROTOCOL_VER = 2;
         var server = null;
@@ -121,49 +121,41 @@
             });
         }
 
+        function getAssetManifestJson(app) {
+            return {
+                'assetManifest': app && app.directoryManager.getAssetManifest(),
+                'assetManifestEtag': app ? app.directoryManager.getAssetManifestEtag() : '0',
+                'platform': cordova.platformId,
+                'cordovaVer': cordova.version,
+                'protocolVer': PROTOCOL_VER
+            };
+        }
+
         function handleAssetManifest(req, resp) {
             var appId = req.getQueryParam('appId');
             return AppsService.getAppById(appId)
             .then(function(app) {
-                if (app) {
-                    return app.directoryManager.getAssetManifest();
-                }
-                return null;
-            }).then(function(assetManifest) {
-                resp.sendJsonResponse({
-                    'assetManifest': assetManifest,
-                    'platform': cordova.platformId,
-                    'cordovaVer': cordova.version,
-                    'protocolVer': PROTOCOL_VER,
-                });
-            });
-        }
-
-        function handlePrepUpdate(req, resp) {
-            var appId = req.getQueryParam('appId');
-            var appType = req.getQueryParam('appType') || 'cordova';
-            return AppsService.getAppById(appId, appType)
-            .then(function(app) {
-                return req.readAsJson()
-                .then(function(requestJson) {
-                    app.updatingStatus = 0;
-                    app.updateBytesTotal = +requestJson['transferSize'];
-                    app.updateBytesSoFar = 0;
-                    return resp.sendTextResponse(200, '');
-                });
+                return resp.sendJsonResponse(200, getAssetManifestJson(app));
             });
         }
 
         function handleDeleteFiles(req, resp) {
             var appId = req.getQueryParam('appId');
-            var appType = req.getQueryParam('appType') || 'cordova';
-            return AppsService.getAppById(appId, appType)
+            var manifestEtag = req.getQueryParam('manifestEtag');
+            return AppsService.getAppById(appId)
             .then(function(app) {
                 return req.readAsJson()
                 .then(function(requestJson) {
-                    var paths = requestJson['paths'];
-                    for (var i = 0; i < paths.length; ++i) {
-                        app.directoryManager.deleteFile(paths[i]);
+                    if (app) {
+                        if (manifestEtag && app.directoryManager.getAssetManifestEtag() !== manifestEtag) {
+                            return resp.sendJsonResponse(409, getAssetManifestJson(app));
+                        }
+                        var paths = requestJson['paths'];
+                        for (var i = 0; i < paths.length; ++i) {
+                            app.directoryManager.deleteFile(paths[i]);
+                        }
+                    } else {
+                        console.log('Warning: tried to delete files from non-existant app: ' + appId);
                     }
                     return resp.sendTextResponse(200, '');
                 });
@@ -194,27 +186,54 @@
             var appType = req.getQueryParam('appType') || 'cordova';
             var path = req.getQueryParam('path');
             var etag = req.getQueryParam('etag');
+            var manifestEtag = req.getQueryParam('manifestEtag');
             if (!path || !etag) {
                 throw new Error('Request is missing path or etag query params');
             }
             return AppsService.getAppById(appId, appType)
             .then(function(app) {
+                // Checking the manifest ETAG is meant to catch the case where
+                // the client has cached the manifest from a first push, and
+                // wants to validate that it is still valid at the start of a
+                // subsequent push (e.g. make sure the device hasn't changed).
+                if (manifestEtag && app.directoryManager.getAssetManifestEtag() !== manifestEtag) {
+                    return resp.sendJsonResponse(409, getAssetManifestJson(app));
+                }
+                startUpdateProgress(app, req);
                 var tmpUrl = ResourcesLoader.createTmpFileUrl();
                 return pipeRequestToFile(req, tmpUrl)
                 .then(function() {
                     return importFile(tmpUrl, path, app, etag);
                 })
                 .then(function() {
-                    // TODO: Add a timeout that resets updatingStatus if no more requests come in.
-                    app.updateBytesSoFar += +req.headers['content-length'];
-                    app.updatingStatus = app.updateBytesTotal / app.updateBytesSoFar;
-                    if (app.updatingStatus === 1) {
-                        app.updatingStatus = null;
-                        app.lastUpdated = new Date();
-                        notifier.success('Update complete.');
-                    }
-                    return resp.sendTextResponse(200, '');
+                    return incrementUpdateStatusAndSendManifest(app, req, resp);
                 });
+            });
+        }
+
+        // This is set at the beginning of a push to show progress bar
+        // across multiple requests.
+        function startUpdateProgress(app, req) {
+            // This is passed for the first file only, and is used to track total progress.
+            var expectTotal = +req.getQueryParam('expectBytes') || req.headers['content-length'];
+            app.updatingStatus = 0;
+            app.updateBytesTotal = expectTotal;
+            app.updateBytesSoFar = 0;
+        }
+
+        function incrementUpdateStatusAndSendManifest(app, req, resp) {
+            if (app.updatingStatus !== null) {
+                // TODO: Add a timeout that resets updatingStatus if no more requests come in.
+                app.updateBytesSoFar += +req.headers['content-length'];
+                app.updatingStatus = app.updateBytesTotal / app.updateBytesSoFar;
+                if (app.updatingStatus === 1) {
+                    app.updatingStatus = null;
+                    app.lastUpdated = new Date();
+                    notifier.success('Update complete.');
+                }
+            }
+            return resp.sendJsonResponse(200, {
+                'assetManifestEtag': app.directoryManager.getAssetManifestEtag()
             });
         }
 
@@ -229,8 +248,13 @@
         function handleZipPush(req, resp) {
             var appId = req.getQueryParam('appId');
             var appType = req.getQueryParam('appType') || 'cordova';
+            var manifestEtag = req.getQueryParam('manifestEtag');
             return AppsService.getAppById(appId, appType)
             .then(function(app) {
+                if (manifestEtag && app.directoryManager.getAssetManifestEtag() !== manifestEtag) {
+                    return resp.sendJsonResponse(409, getAssetManifestJson(app));
+                }
+                startUpdateProgress(app, req);
                 var tmpZipUrl = ResourcesLoader.createTmpFileUrl();
                 var tmpDirUrl = ResourcesLoader.createTmpFileUrl() + '/';
                 return pipeRequestToFile(req, tmpZipUrl)
@@ -253,9 +277,7 @@
                     });
                 })
                 .then(function() {
-                    app.lastUpdated = new Date();
-                    notifier.success('Update complete.');
-                    return resp.sendTextResponse(200, '');
+                    return incrementUpdateStatusAndSendManifest(app, req, resp);
                 })
                 .finally(function() {
                     app.updatingStatus = null;
@@ -266,14 +288,18 @@
         }
 
         function handleInfo(req, resp) {
+            var activeApp = AppsService.getActiveApp();
             var json = {
                 'platform': cordova.platformId,
                 'cordovaVer': cordova.version,
                 'protocolVer': PROTOCOL_VER,
+                'harnessVer': APP_VERSION,
+                'supportedAppTypes': ['cordova'],
                 'userAgent': navigator.userAgent,
+                'activeAppId': activeApp && activeApp.appId,
                 'appList': AppsService.getAppListAsJson()
             };
-            resp.sendJsonResponse(json);
+            resp.sendJsonResponse(200, json);
         }
 
         function start() {
@@ -286,7 +312,6 @@
                 .addRoute('/launch', ensureMethodDecorator('POST', handleLaunch))
                 .addRoute('/info', ensureMethodDecorator('GET', handleInfo))
                 .addRoute('/assetmanifest', ensureMethodDecorator('GET', handleAssetManifest))
-                .addRoute('/prepupdate', ensureMethodDecorator('POST', handlePrepUpdate))
                 .addRoute('/deletefiles', ensureMethodDecorator('POST', handleDeleteFiles))
                 .addRoute('/putfile', ensureMethodDecorator('PUT', handlePutFile))
                 .addRoute('/zippush', ensureMethodDecorator('POST', handleZipPush))

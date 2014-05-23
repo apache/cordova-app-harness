@@ -31,15 +31,15 @@
             ret.updatingStatus = null;
             ret.lastUpdated = null;
             // Asset manifest is a cache of what files have been downloaded along with their etags.
-            ret.directoryManager = new DirectoryManager(installPath);
-            ret.directoryManager.onFileAdded = this.onFileAdded.bind(this);
             ret.appId = null; // Read from config.xml
             ret.appName = null; // Read from config.xml
             ret.startPage = null; // Read from config.xml
             ret.plugins = {}; // Read from orig-cordova_plugins.js
             ret.appId = appId;
-            return ret.directoryManager.getAssetManifest()
+            ret.directoryManager = new DirectoryManager();
+            return ret.directoryManager.init(installPath)
             .then(function() {
+                ret.directoryManager.onFileAdded = ret.onFileAdded.bind(ret);
                 return ret;
             });
         };

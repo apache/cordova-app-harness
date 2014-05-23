@@ -59,11 +59,8 @@
         };
 
         CordovaInstaller.prototype.readCordovaPluginsFile = function() {
-            var self = this;
-            return this.directoryManager.getAssetManifest()
-            .then(function(assetManifest) {
-                return self.updateCordovaPluginsFile(assetManifest['orig-cordova_plugins.js']);
-            });
+            var etag = this.directoryManager.getAssetEtag('orig-cordova_plugins.js');
+            return this.updateCordovaPluginsFile(etag);
         };
 
         return CordovaInstaller;
