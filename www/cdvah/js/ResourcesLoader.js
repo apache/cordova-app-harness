@@ -211,8 +211,13 @@
                         }
                     };
 
+                    var onZipProgress = function(progressEvent) {
+                        var unzipPercentage = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                        deferred.notify(unzipPercentage);
+                    };
+
                     /* global zip */
-                    zip.unzip(zipUrl, outputDirectory, onZipDone);
+                    zip.unzip(zipUrl, outputDirectory, onZipDone, onZipProgress);
                     return deferred.promise;
                 });
             }

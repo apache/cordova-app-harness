@@ -264,6 +264,8 @@
                 })
                 .then(function() {
                     return ResourcesLoader.readJSONFileContents(tmpDirUrl + 'zipassetmanifest.json');
+                }, null, function(unzipPercentage) {
+                    app.updatingStatus = unzipPercentage;
                 })
                 .then(function(zipAssetManifest) {
                     var keys = Object.keys(zipAssetManifest);
