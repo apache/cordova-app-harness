@@ -161,7 +161,13 @@
                     activeInstaller = installer;
                     return installer.launch();
                 }).then(function(launchUrl) {
-                    return AppHarnessUI.create(launchUrl);
+                    // Don't just use ResourcesLoader.doesFileExist because remaps might make it exist.
+                    return ResourcesLoader.xhrGet(launchUrl)
+                    .then(function() {
+                        return AppHarnessUI.create(launchUrl);
+                    }, function() {
+                        throw new Error('Start file does not exist: ' + launchUrl.replace(/.*?\/www\//, 'www/'));
+                    });
                 });
             },
 
