@@ -44,14 +44,8 @@ myApp.factory('urlCleanup', function() {
 });
 
 document.addEventListener('deviceready', function() {
-    cordova.filesystem.getDataDirectory(false, function(dirEntry) {
-        myApp.value('INSTALL_DIRECTORY', dirEntry.toURL() + 'apps/');
-        myApp.value('APPS_JSON', dirEntry.toURL() + 'apps.json');
-        window.requestFileSystem(window.TEMPORARY, 1 * 1024 * 1024, function(fs) {
-            myApp.value('TEMP_DIR', fs.root.toURL());
-            angular.bootstrap(document, ['CordovaAppHarness']);
-        }, function() {
-            console.error('Failed to get temporary FS');
-        });
-    });
+    myApp.value('INSTALL_DIRECTORY', cordova.file.dataDirectory + 'apps/');
+    myApp.value('APPS_JSON', cordova.file.dataDirectory + 'apps.json');
+    myApp.value('TEMP_DIR', cordova.file.tempDirectory || cordova.file.cacheDirectory);
+    angular.bootstrap(document, ['CordovaAppHarness']);
 }, false);
