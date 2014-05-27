@@ -61,6 +61,7 @@
             if (this._assetManifest.hasOwnProperty(relativePath)) {
                 return this._assetManifest[relativePath];
             }
+            return '';
         };
 
         DirectoryManager.prototype.getAssetManifestEtag = function() {

@@ -80,7 +80,7 @@
 
         Installer.prototype.updateCordovaPluginsFile = function(etag) {
             var self = this;
-            return self.getPluginMetadata()
+            return $q.when(self.getPluginMetadata())
             .then(function(metadata) {
                 self.plugins = PluginMetadata.process(metadata);
                 var pluginIds = Object.keys(metadata);
@@ -120,33 +120,32 @@
                 var urlutil = cordova.require('cordova/urlutil');
                 var harnessUrl = urlutil.makeAbsolute(location.pathname);
                 var harnessDir = harnessUrl.replace(/\/[^\/]*\/[^\/]*$/, '');
-                var installUrl = self.directoryManager.rootURL;
+                var realWwwUrl = self.directoryManager.rootURL + 'www';
                 var startLocation = urlutil.makeAbsolute(self.startPage).replace('/cdvah/', '/');
-                var useNativeStartLocation = platformId == 'ios';
+                var realStartLocation = startLocation.replace(harnessDir, realWwwUrl);
 
-                // Use toNativeURL() so that scheme is file:/ instead of cdvfile:/ (file: has special access).
-                return ResourcesLoader.toNativeURL(installUrl)
-                .then(function(nativeInstallUrl) {
-                    nativeInstallUrl = nativeInstallUrl.replace(/\/$/, '');
-                    // Point right at the dest. location on iOS.
-                    if (useNativeStartLocation) {
-                        startLocation = startLocation.replace(harnessDir, nativeInstallUrl + '/www');
-                    }
+                // Point right at the dest. location on iOS.
+                if (platformId == 'ios') {
+                    startLocation = realStartLocation;
+                }
 
-                    // Override cordova.js, and www/plugins to point at bundled plugins.
-                    UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
-                    UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
+                if (!/^file:/.exec(startLocation)) {
+                    throw new Error('Expected to start with file: ' + startLocation);
+                }
 
-                    // Make any references to www/ point to the app's install location.
-                    var harnessPrefixPattern = '^' + harnessDir.replace('file:///', 'file://.*?/');
-                    UrlRemap.aliasUri(harnessPrefixPattern, harnessPrefixPattern, nativeInstallUrl + '/www', false /* redirect */, true /* allowFurtherRemapping */);
+                // Override cordova.js, and www/plugins to point at bundled plugins.
+                UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
+                UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
 
-                    // Set-up app-harness: scheme to point at the harness.
-                    UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true, false);
-                    return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false, false)
-                    .then(function() {
-                        return startLocation;
-                    });
+                // Make any references to www/ point to the app's install location.
+                var harnessPrefixPattern = '^' + harnessDir.replace('file:///', 'file://.*?/');
+                UrlRemap.aliasUri(harnessPrefixPattern, harnessPrefixPattern, realWwwUrl, false /* redirect */, true /* allowFurtherRemapping */);
+
+                // Set-up app-harness: scheme to point at the harness.
+                UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true, false);
+                return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false, false)
+                .then(function() {
+                    return startLocation;
                 });
             });
         };

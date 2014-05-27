@@ -130,10 +130,6 @@
                 return resolveURL(url).then(function() { return true; }, function() { return false; });
             },
 
-            toNativeURL: function(url){
-                return resolveURL(url).then(function(e) { return e.toNativeURL(); });
-            },
-
             // returns a promise with a full path to the downloaded file
             downloadFromUrl: function(from, to) {
                 return ensureDirectoryExists(dirName(to))
