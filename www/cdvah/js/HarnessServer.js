@@ -38,19 +38,19 @@
 // Returns JSON of the asset manifest for the given app ID (or the first app if none is given):
 //     curl -v "http://$IP_ADDRESS:2424/assetmanifest?appId=a.b.c"
 //
-// Tell the interface that an update is in progress for the given app ID (or the first app if none is given):
-//     echo '{"transferSize": 100}' | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/prepupdate?app=foo"
-//
 // Deletes a set of files within the given app ID (or the first app if none is given):
 //     echo '{"paths":["www/index.html"]}' | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/deletefiles?appId=a.b.c"
 //
 // Updates a single file within the given app ID (or the first app if none is given):
-//     cat file | curl -v -X PUT -d @- "http://$IP_ADDRESS:2424/assetmanifest?appId=a.b.c&path=www/index.html&etag=1234"
+//     cat file | curl -v -X PUT -d @- "http://$IP_ADDRESS:2424/assetmanifest?appId=a.b.c&appType=cordova&path=www/index.html&etag=1234"
 //
 // Deletes the app with the given ID (or the first app if none is given):
 //     curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?appId=a.b.c"
 //     curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?all=true" # Delete all apps.
-
+//
+// Send a set of files within the given app ID (or the first app if none is given):
+//     cat file | curl -v -X PUT -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&apptype=cordova"
+//
     myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier, APP_VERSION) {
 
         var PROTOCOL_VER = 2;
