@@ -60,24 +60,22 @@
                     matched: [],
                     missing: [],
                     newer: [], // Those dependencies which are newer in the child than the harness.
-                    older: []  // And those which are older in the child than the harness.
+                    older: [],  // And those which are older in the child than the harness.
+                    all: []
                 };
 
-                if (!childPlugins) {
-                    results.raw = {};
-                    return results;
-                }
-
                 Object.keys(childPlugins).forEach(function(plugin) {
+                    var version = childPlugins[plugin];
+                    results.all.push({ id: plugin, version: version });
                     if (!harnessPluginMetadata[plugin]) {
-                        results.missing.push({ id: plugin, version: childPlugins[plugin] });
+                        results.missing.push({ id: plugin, version: version });
                     } else {
-                        switch(semverCompare(harnessPluginMetadata[plugin], childPlugins[plugin])) {
+                        switch(semverCompare(harnessPluginMetadata[plugin], version)) {
                             case -1: // Child older.
-                                results.older.push({ id: plugin, versions: { harness: harnessPluginMetadata[plugin], child: childPlugins[plugin] } });
+                                results.older.push({ id: plugin, versions: { harness: harnessPluginMetadata[plugin], child: version } });
                                 break;
                             case 1: // Child newer.
-                                results.newer.push({ id: plugin, versions: { harness: harnessPluginMetadata[plugin], child: childPlugins[plugin] } });
+                                results.newer.push({ id: plugin, versions: { harness: harnessPluginMetadata[plugin], child: version } });
                                 break;
                             case 0: // Match!
                                 results.matched.push({ id: plugin, version: harnessPluginMetadata[plugin] });

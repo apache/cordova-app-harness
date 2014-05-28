@@ -33,16 +33,6 @@ myApp.config(['$routeProvider', function($routeProvider){
     });
 }]);
 
-myApp.factory('urlCleanup', function() {
-    return function(url) {
-        url = url.replace(/\/$/, '').replace(new RegExp(cordova.platformId + '$'), '').replace(/\/$/, '');
-        if (!/^(file|http|https)+:/.test(url)) {
-            url = 'http://' + url;
-        }
-        return url;
-    };
-});
-
 document.addEventListener('deviceready', function() {
     myApp.value('INSTALL_DIRECTORY', cordova.file.dataDirectory + 'apps/');
     myApp.value('APPS_JSON', cordova.file.dataDirectory + 'apps.json');
