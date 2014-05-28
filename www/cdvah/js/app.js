@@ -33,6 +33,12 @@ myApp.config(['$routeProvider', function($routeProvider){
     });
 }]);
 
+myApp.run(['$rootScope', 'APP_NAME', 'APP_VERSION', function($rootScope, APP_NAME, APP_VERSION){
+    $rootScope.appTitle = APP_NAME;
+    $rootScope.appVersion = APP_VERSION;
+    document.title = APP_NAME + ' v' + APP_VERSION;
+}]);
+
 document.addEventListener('deviceready', function() {
     myApp.value('INSTALL_DIRECTORY', cordova.file.dataDirectory + 'apps/');
     myApp.value('APPS_JSON', cordova.file.dataDirectory + 'apps.json');

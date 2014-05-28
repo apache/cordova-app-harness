@@ -19,10 +19,8 @@
 (function(){
     'use strict';
     /* global myApp */
-    myApp.controller('ListCtrl', ['$location', 'notifier', '$rootScope', '$scope', '$routeParams', '$q', 'AppsService', 'HarnessServer', 'APP_NAME', 'APP_VERSION', function ($location, notifier, $rootScope, $scope, $routeParams, $q, AppsService, HarnessServer, APP_NAME, APP_VERSION) {
+    myApp.controller('ListCtrl', ['$location', 'notifier', '$scope', '$routeParams', '$q', 'AppsService', 'HarnessServer', function ($location, notifier, $scope, $routeParams, $q, AppsService, HarnessServer) {
         $scope.appList = [];
-        $rootScope.appTitle = APP_NAME + ' v' + APP_VERSION;
-        document.title = APP_NAME + ' v' + APP_VERSION;
 
         function initialise() {
             $scope.$on('$destroy', function() {
