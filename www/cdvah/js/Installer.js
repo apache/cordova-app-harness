@@ -33,6 +33,7 @@
             // Asset manifest is a cache of what files have been downloaded along with their etags.
             ret.appId = null; // Read from config.xml
             ret.appName = null; // Read from config.xml
+            ret.iconURL = null; // Read from config.xml
             ret.startPage = null; // Read from config.xml
             ret.plugins = {}; // Read from orig-cordova_plugins.js
             ret.appId = appId;
@@ -73,8 +74,13 @@
                 self.appId = xmlDoc.firstChild.getAttribute('id');
                 var el = lastEl(xmlDoc.getElementsByTagName('content'));
                 self.startPage = el ? el.getAttribute('src') : 'index.html';
+                el = lastEl(xmlDoc.getElementsByTagName('icon'));
+                self.iconURL = el ? el.getAttribute('src') : null;
+                if (self.iconURL) {
+                    self.iconURL = self.directoryManager.rootURL + self.iconURL;
+                }
                 el = lastEl(xmlDoc.getElementsByTagName('name'));
-                self.appName = el ? el.nodeValue : 'Unnamed';
+                self.appName = el ? el.textContent : null;
             });
         };
 
