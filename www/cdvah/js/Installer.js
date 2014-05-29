@@ -124,35 +124,45 @@
             return $q.when(this._prepareForLaunch())
             .then(function() {
                 var urlutil = cordova.require('cordova/urlutil');
-                var harnessUrl = urlutil.makeAbsolute(location.pathname);
-                var harnessDir = harnessUrl.replace(/\/[^\/]*\/[^\/]*$/, '');
-                var realWwwUrl = self.directoryManager.rootURL + 'www';
+                var harnessWwwUrl = urlutil.makeAbsolute(location.pathname).replace(/\/[^\/]*\/[^\/]*$/, '/');
+                var appWwwUrl = self.directoryManager.rootURL + 'www/';
                 var startLocation = urlutil.makeAbsolute(self.startPage).replace('/cdvah/', '/');
-                var realStartLocation = startLocation.replace(harnessDir, realWwwUrl);
-
-                // Point right at the dest. location on iOS.
-                if (platformId == 'ios') {
-                    startLocation = realStartLocation;
-                }
+                var realStartLocation = startLocation.replace(harnessWwwUrl, appWwwUrl);
+                var useRemapper = platformId == 'android';
 
                 if (!/^file:/.exec(startLocation)) {
                     throw new Error('Expected to start with file: ' + startLocation);
                 }
 
-                // Override cordova.js, and www/plugins to point at bundled plugins.
-                UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
-                UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
+                if (useRemapper) {
+                    // Override cordova.js, and www/plugins to point at bundled plugins.
+                    UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
+                    UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
 
-                // Make any references to www/ point to the app's install location.
-                var harnessPrefixPattern = '^' + harnessDir.replace('file:///', 'file://.*?/');
-                UrlRemap.aliasUri(harnessPrefixPattern, harnessPrefixPattern, realWwwUrl, false /* redirect */, true /* allowFurtherRemapping */);
+                    // Make any references to www/ point to the app's install location.
+                    var harnessPrefixPattern = '^' + harnessWwwUrl.replace('file:///', 'file://.*?/');
+                    UrlRemap.aliasUri(harnessPrefixPattern, harnessPrefixPattern, appWwwUrl, false /* redirect */, true /* allowFurtherRemapping */);
 
-                // Set-up app-harness: scheme to point at the harness.
-                UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessDir, true, false);
-                return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessDir, false, false)
-                .then(function() {
-                    return startLocation;
-                });
+                    // Set-up app-harness: scheme to point at the harness.
+                    UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessWwwUrl, true, false);
+                    return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessWwwUrl, false, false)
+                    .then(function() {
+                        return startLocation;
+                    });
+                } else {
+                    return ResourcesLoader.delete(appWwwUrl + 'plugins/')
+                    .then(function() {
+                        return ResourcesLoader.delete(appWwwUrl + 'cordova.js');
+                    }).then(function() {
+                        return ResourcesLoader.delete(appWwwUrl + 'plugins/');
+                    }).then(function() {
+                        return ResourcesLoader.copy(harnessWwwUrl + 'cordova.js', appWwwUrl + 'cordova.js');
+                    }).then(function() {
+                        return ResourcesLoader.copy(harnessWwwUrl + 'plugins/', appWwwUrl + 'plugins/');
+                    }).then(function() {
+                        return realStartLocation;
+                    });
+                }
             });
         };
 

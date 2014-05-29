@@ -169,6 +169,18 @@
                 return writeToFile(url, contents, true /* append */);
             },
 
+            copy: function(fromUrl, toUrl) {
+                return resolveURL(fromUrl)
+                .then(function(fromEntry) {
+                    return ensureDirectoryExists(dirName(toUrl))
+                    .then(function(destEntry) {
+                        var deferred = $q.defer();
+                        fromEntry.copyTo(destEntry, baseName(toUrl), deferred.resolve, deferred.reject);
+                        return deferred.promise;
+                    });
+                });
+            },
+
             moveFile: function(fromUrl, toUrl) {
                 return resolveURL(fromUrl)
                 .then(function(fromEntry) {
