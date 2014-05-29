@@ -29,32 +29,13 @@
 }
 @end
 
-@interface AHUIOverlayPlugin : CDVPlugin {
-@public
-    __weak AppHarnessUI* _parentPlugin;
-}
-@end
-
 @interface AppHarnessUI : CDVPlugin {
     AHUIViewController* _slaveCordovaViewController;
     NSString* _eventsCallbackId;
-    CDVViewController* _overlayCordovaViewController;
+    BOOL _slaveVisible;
 }
 - (void)sendEvent:(NSString*)event;
 @end
-
-
-#pragma mark AHUIOverlayPlugin
-
-@implementation AHUIOverlayPlugin
-
-- (void)sendEvent:(CDVInvokedUrlCommand*)command {
-    NSString* event = [command argumentAtIndex:0];
-    [_parentPlugin sendEvent:event];
-}
-
-@end
-
 
 #pragma mark AHUIViewController
 
@@ -69,7 +50,7 @@
     tapRecognizer.numberOfTapsRequired = 2;
     tapRecognizer.numberOfTouchesRequired = 2;
     tapRecognizer.delegate = self;
-
+ 
     // Add the tap gesture recognizer to the view
     [self.view addGestureRecognizer:tapRecognizer];
 }
@@ -116,7 +97,7 @@
         _slaveCordovaViewController = [[AHUIViewController alloc] init];
         _slaveCordovaViewController.startPage = url;
         _slaveCordovaViewController->_parentPlugin = self;
-        [self.viewController presentViewController:_slaveCordovaViewController animated:NO completion:nil];
+        [self setVisibleHelper:YES];
     } else {
         NSLog(@"AppHarnessUI.create: already exists");
     }
@@ -128,47 +109,37 @@
     if (_slaveCordovaViewController == nil) {
         NSLog(@"AppHarnessUI.destroy: already destroyed.");
     } else {
+        [self setVisibleHelper:NO];
         _slaveCordovaViewController = nil;
-        _overlayCordovaViewController = nil;
-        [self.viewController dismissViewControllerAnimated:NO completion:nil];
+        [self sendEvent:@"destroyed"];
     }
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:_eventsCallbackId]; // Close events channel.
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)createOverlay:(CDVInvokedUrlCommand*)command {
-    NSString* url = [command argumentAtIndex:0];
-    if (_slaveCordovaViewController == nil) {
-        NSLog(@"AppHarnessUI.createOverlay: slave doesn't exist");
-    } else if (_overlayCordovaViewController == nil) {
-        _overlayCordovaViewController = [[CDVViewController alloc] init];
-        _overlayCordovaViewController.startPage = url;
-        AHUIOverlayPlugin* overlayPlugin = [[AHUIOverlayPlugin alloc] init];
-        overlayPlugin->_parentPlugin = self;
-        [_overlayCordovaViewController registerPlugin:overlayPlugin withPluginName:@"OverlayPlugin"];
-        _overlayCordovaViewController.view.opaque = NO;
-        _overlayCordovaViewController.view.backgroundColor = [UIColor clearColor];
-        _overlayCordovaViewController.webView.opaque = NO;
-        _overlayCordovaViewController.webView.backgroundColor = [UIColor clearColor];
-        _overlayCordovaViewController.webView.scrollView.scrollEnabled = NO;
-        [_slaveCordovaViewController.view addSubview:_overlayCordovaViewController.view];
-    } else {
-        NSLog(@"AppHarnessUI.createOverlay: already exists");
+- (void)setVisibleHelper:(BOOL)value {
+    if (value == _slaveVisible) {
+        return;
     }
+    _slaveVisible = value;
+    if (_slaveCordovaViewController == nil) {
+        NSLog(@"AppHarnessUI.setVisible: slave doesn't exist");
+    } else {
+        UIView* newView = value ? _slaveCordovaViewController.view : self.viewController.view;
+        UIView* oldView = !value ? _slaveCordovaViewController.view : self.viewController.view;
+        UIView* superView = oldView.superview;
+        [oldView removeFromSuperview];
+        [superView addSubview:newView];
+    }
+}
+
+- (void)setVisible:(CDVInvokedUrlCommand*)command {
+    BOOL value = [[command argumentAtIndex:0] boolValue];
+    [self setVisibleHelper:value];
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)destroyOverlay:(CDVInvokedUrlCommand*)command {
-    if (_overlayCordovaViewController == nil) {
-        NSLog(@"AppHarnessUI.destroyOverlay: already destroyed.");
-    } else {
-        [_overlayCordovaViewController.view removeFromSuperview];
-        _overlayCordovaViewController = nil;
-    }
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
 @end
 
