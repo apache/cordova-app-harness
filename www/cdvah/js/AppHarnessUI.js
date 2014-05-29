@@ -31,14 +31,9 @@
                 cordova.plugins.appharnessui.destroy(deferred.resolve);
                 return deferred.promise;
             },
-            createOverlay: function() {
+            setVisible: function(value) {
                 var deferred = $q.defer();
-                cordova.plugins.appharnessui.createOverlay('app-harness:///cdvahcm/contextMenu.html', deferred.resolve);
-                return deferred.promise;
-            },
-            destroyOverlay: function() {
-                var deferred = $q.defer();
-                cordova.plugins.appharnessui.destroyOverlay(deferred.resolve);
+                cordova.plugins.appharnessui.setVisible(value, deferred.resolve);
                 return deferred.promise;
             },
             setEventHandler: function(f) {

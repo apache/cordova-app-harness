@@ -27,7 +27,6 @@ import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CordovaWebViewClient;
 import org.apache.cordova.IceCreamCordovaWebViewClient;
 import org.apache.cordova.LinearLayoutSoftKeyboardDetect;
-import org.apache.cordova.PluginEntry;
 import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 
@@ -46,12 +45,8 @@ public class AppHarnessUI extends CordovaPlugin {
     ViewGroup contentView;
     View origMainView;
     CustomCordovaWebView slaveWebView;
-    CordovaWebView overlayWebView;
+    boolean slaveVisible;
     CallbackContext eventsCallback;
-
-    public CordovaWebView getSlave() {
-        return slaveWebView;
-    }
 
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
@@ -68,17 +63,11 @@ public class AppHarnessUI extends CordovaPlugin {
                     destroy(callbackContext);
                 }
             });
-        } else if ("createOverlay".equals(action)) {
-            final String url = args.getString(0);
+        } else if ("setVisible".equals(action)) {
+            final boolean value = args.getBoolean(0);
             this.cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
-                    createOverlay(url, callbackContext);
-                }
-            });
-        } else if ("destroyOverlay".equals(action)) {
-            this.cordova.getActivity().runOnUiThread(new Runnable() {
-                public void run() {
-                    destroyOverlay(callbackContext);
+                    setSlaveVisible(value, callbackContext);
                 }
             });
         } else if ("evalJs".equals(action)) {
@@ -96,7 +85,7 @@ public class AppHarnessUI extends CordovaPlugin {
         return true;
     }
 
-    void sendEvent(String eventName) {
+    private void sendEvent(String eventName) {
         PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName);
         pluginResult.setKeepCallback(true);
         eventsCallback.sendPluginResult(pluginResult );
@@ -127,9 +116,8 @@ public class AppHarnessUI extends CordovaPlugin {
             if (activity.getBooleanProperty("DisallowOverscroll", false)) {
                 slaveWebView.setOverScrollMode(CordovaWebView.OVER_SCROLL_NEVER);
             }
-            contentView.removeAllViews();
-            contentView.addView((View)slaveWebView.getParent());
             slaveWebView.loadUrl(url);
+            setSlaveVisible(true, null);
         }
         callbackContext.success();
     }
@@ -138,44 +126,37 @@ public class AppHarnessUI extends CordovaPlugin {
         if (slaveWebView == null) {
             Log.w(LOG_TAG, "destroy: already destroyed");
         } else {
-            contentView.removeAllViews();
-            contentView.addView(origMainView);
+            setSlaveVisible(false, null);
             slaveWebView.destroy();
             slaveWebView = null;
+            sendEvent("destroyed");
         }
         if (eventsCallback != null) {
-            eventsCallback.success();
+            eventsCallback.success("");
             eventsCallback = null;
         }
         callbackContext.success();
     }
 
-    private void createOverlay(String url, CallbackContext callbackContext) {
-        if (overlayWebView != null) {
-            Log.w(LOG_TAG, "createOverlay: already exists");
+    private void setSlaveVisible(boolean value, CallbackContext callbackContext) {
+        if (value == slaveVisible) {
+            return;
+        }
+        if (slaveWebView == null) {
+            Log.w(LOG_TAG, "setSlaveVisible: slave not created");
         } else {
-            overlayWebView = new CordovaWebView(cordova.getActivity());
-            initWebView(overlayWebView);
-            overlayWebView.pluginManager.addService(new PluginEntry("OverlayPlugin", new OverlayPlugin()));
-            overlayWebView.setOverScrollMode(CordovaWebView.OVER_SCROLL_NEVER);
-            contentView.addView((View)overlayWebView.getParent());
-            overlayWebView.loadUrl(url);
+            slaveVisible = value;
+            contentView.removeAllViews();
+            View newView = value ? (View)slaveWebView.getParent() : origMainView;
+            // Back button capturing breaks without these:
+            contentView.addView(newView);
+            newView.requestFocus();
 
         }
-        callbackContext.success();
-    }
-
-    private void destroyOverlay(CallbackContext callbackContext) {
-        if (overlayWebView == null) {
-            Log.w(LOG_TAG, "destroyOverlay: already destroyed");
-        } else {
-            contentView.removeView((View)overlayWebView.getParent());
-            overlayWebView.destroy();
-            overlayWebView = null;
+        if (callbackContext != null) {
+            callbackContext.success();
         }
-        callbackContext.success();
     }
-
 
     private void initWebView(CordovaWebView newWebView) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
@@ -203,17 +184,6 @@ public class AppHarnessUI extends CordovaPlugin {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 1.0F));
         layoutView.addView(newWebView);
-    }
-
-    private class OverlayPlugin extends CordovaPlugin {
-        @Override
-        public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
-            if ("sendEvent".equals(action)) {
-                sendEvent(args.getString(0));
-                return true;
-            }
-            return false;
-        }
     }
 
     // Based on: http://stackoverflow.com/questions/12414680/how-to-implement-a-two-finger-double-click-in-android

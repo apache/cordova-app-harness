@@ -20,7 +20,7 @@
 var exec = cordova.require('cordova/exec');
 
 function eventHandler(type) {
-    exports.onEvent && exports.onEvent(type);
+    type && exports.onEvent && exports.onEvent(type);
 }
 
 exports.onEvent = null;
@@ -34,12 +34,8 @@ exports.destroy = function(win) {
     exec(win, null, 'AppHarnessUI', 'destroy', []);
 };
 
-exports.createOverlay = function(url, win) {
-    exec(win, null, 'AppHarnessUI', 'createOverlay', [url]);
-};
-
-exports.destroyOverlay = function(win) {
-    exec(win, null, 'AppHarnessUI', 'destroyOverlay', []);
+exports.setVisible = function(value, win) {
+    exec(win, null, 'AppHarnessUI', 'setVisible', [value]);
 };
 
 exports.evalJs = function(code, win) {
