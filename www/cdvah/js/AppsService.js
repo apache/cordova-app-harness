@@ -53,7 +53,8 @@
                 var appList = json['appList'] || [];
                 _installers = [];
                 var i = -1;
-                function next() {
+                return $q.when()
+                .then(function next() {
                     var entry = appList[++i];
                     if (!entry) {
                         return;
@@ -64,8 +65,7 @@
                         _installers.push(app);
                         return next();
                     }, next);
-                }
-                return next();
+                });
             });
         }
 
