@@ -62,33 +62,21 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    UIPinchGestureRecognizer *pinchRecognizer =
-        [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     UITapGestureRecognizer *tapRecognizer =
         [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
 
     // Two-finger double-tap.
     tapRecognizer.numberOfTapsRequired = 2;
     tapRecognizer.numberOfTouchesRequired = 2;
+    tapRecognizer.delegate = self;
 
     // Add the tap gesture recognizer to the view
     [self.view addGestureRecognizer:tapRecognizer];
-    [self.view addGestureRecognizer:pinchRecognizer];
-    tapRecognizer.delegate = self;
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
     // Required for tap gesture recognizer to work with UIWebView.
     return YES;
-}
-
-- (void)handlePinch:(UIPinchGestureRecognizer *)recognizer {
-    if (recognizer.enabled && recognizer.scale < 0.3) {
-        // Stop callbacks for this gesture.
-        recognizer.enabled = NO;
-        recognizer.enabled = YES;
-        [_parentPlugin sendEvent:@"showMenu"];
-    }
 }
 
 - (void)handleTap:(UITapGestureRecognizer *)recognizer {

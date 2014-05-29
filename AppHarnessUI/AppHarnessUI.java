@@ -36,8 +36,6 @@ import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
-import android.view.ScaleGestureDetector.OnScaleGestureListener;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -258,39 +256,18 @@ public class AppHarnessUI extends CordovaPlugin {
 
     }
 
-    private class CustomCordovaWebView extends CordovaWebView implements OnScaleGestureListener {
-        ScaleGestureDetector scaleGestureDetector;
+    private class CustomCordovaWebView extends CordovaWebView {
         TwoFingerDoubleTapGestureDetector twoFingerTapDetector;
 
         public CustomCordovaWebView(Context context) {
             super(context);
-            scaleGestureDetector = new ScaleGestureDetector(context, this);
             twoFingerTapDetector = new TwoFingerDoubleTapGestureDetector();
         }
 
         @Override
         public boolean onTouchEvent(MotionEvent e) {
-            scaleGestureDetector.onTouchEvent(e);
             twoFingerTapDetector.onTouchEvent(e);
             return super.onTouchEvent(e);
-        }
-
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            if (detector.getScaleFactor() < 0.6) {
-                sendEvent("showMenu");
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            return true;
-        }
-
-        @Override
-        public void onScaleEnd(ScaleGestureDetector detector) {
         }
     }
 }
