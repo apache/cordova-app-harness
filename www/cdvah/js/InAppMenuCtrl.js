@@ -52,13 +52,6 @@
             $scope.$apply(function() {
                 if (eventName == 'showMenu') {
                     AppHarnessUI.setVisible(false);
-                } else if (eventName == 'hideMenu') {
-                    AppHarnessUI.setVisible(true);
-                } else if (eventName == 'restartApp') {
-                    // TODO: Restart in place?
-                    AppsService.launchApp(activeApp);
-                } else if (eventName == 'quitApp') {
-                    AppsService.quitApp();
                 } else if (eventName == 'destroyed') {
                     $window.history.back();
                 } else {
