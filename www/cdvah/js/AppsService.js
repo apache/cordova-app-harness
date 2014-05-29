@@ -171,16 +171,24 @@
             },
 
             uninstallAllApps : function() {
-                var deletePromises = [];
-                for (var i = 0; i < _installers.length; ++i) {
-                    deletePromises.push(AppsService.uninstallApp(_installers[i]));
-                }
-                return $q.all(deletePromises);
+                this.quitApp()
+                .then(function() {
+                    var deletePromises = [];
+                    for (var i = 0; i < _installers.length; ++i) {
+                        deletePromises.push(AppsService.uninstallApp(_installers[i]));
+                    }
+                    return $q.all(deletePromises);
+                });
             },
 
             uninstallApp : function(installer) {
-                return installer.deleteFiles()
-                .then(function() {
+                var ret = $q.when();
+                if (installer == activeInstaller) {
+                    ret = this.quitApp();
+                }
+                return ret.then(function() {
+                    return installer.deleteFiles();
+                }).then(function() {
                     _installers.splice(_installers.indexOf(installer), 1);
                     return writeAppsJson();
                 });
