@@ -49,15 +49,13 @@
         };
 
         AppHarnessUI.setEventHandler(function(eventName) {
-            $scope.$apply(function() {
-                if (eventName == 'showMenu') {
-                    AppHarnessUI.setVisible(false);
-                } else if (eventName == 'destroyed') {
-                    $window.history.back();
-                } else {
-                    console.warn('Unknown message from AppHarnessUI: ' + eventName);
-                }
-            });
+            if (eventName == 'showMenu') {
+                AppHarnessUI.setVisible(false);
+            } else if (eventName == 'destroyed') {
+                $window.history.back();
+            } else {
+                console.warn('Unknown message from AppHarnessUI: ' + eventName);
+            }
         });
     }]);
 })();

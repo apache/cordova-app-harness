@@ -104,7 +104,7 @@
 
         function handleMenu(req, resp) {
             resp.sendTextResponse(200, '');
-            return AppHarnessUI.createOverlay();
+            return AppHarnessUI.fireEvent('showMenu');
         }
 
         function handleLaunch(req, resp) {

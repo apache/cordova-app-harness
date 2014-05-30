@@ -37,7 +37,16 @@
                 return deferred.promise;
             },
             setEventHandler: function(f) {
-                cordova.plugins.appharnessui.onEvent = f;
+                cordova.plugins.appharnessui.onEvent = f && function(type) {
+                    $q.when().then(function() {
+                        f(type);
+                    });
+                };
+            },
+            fireEvent: function(type) {
+                if (cordova.plugins.appharnessui.onEvent) {
+                    cordova.plugins.appharnessui.onEvent(type);
+                }
             },
             evalJs: function(code) {
                 var deferred = $q.defer();
