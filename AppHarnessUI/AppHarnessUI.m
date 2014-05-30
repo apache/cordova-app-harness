@@ -26,6 +26,7 @@
 @interface AHUIViewController : CDVViewController<UIGestureRecognizerDelegate> {
 @public
     __weak AppHarnessUI* _parentPlugin;
+    UITapGestureRecognizer* _singleTapRecognizer;
 }
 @end
 
@@ -50,14 +51,29 @@
     tapRecognizer.numberOfTapsRequired = 2;
     tapRecognizer.numberOfTouchesRequired = 2;
     tapRecognizer.delegate = self;
- 
-    // Add the tap gesture recognizer to the view
     [self.view addGestureRecognizer:tapRecognizer];
+
+    // Single-tap
+    _singleTapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleSingleTap:)];
+
+}
+
+- (void)setCaptureSingleTap:(BOOL)value {
+    [self.webView setUserInteractionEnabled:!value];
+    if (value) {
+        [self.view addGestureRecognizer:_singleTapRecognizer];
+    } else {
+        [self.view removeGestureRecognizer:_singleTapRecognizer];
+    }
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
     // Required for tap gesture recognizer to work with UIWebView.
     return YES;
+}
+
+- (void)handleSingleTap:(UITapGestureRecognizer *)recognizer {
+    [_parentPlugin sendEvent:@"hideMenu"];
 }
 
 - (void)handleTap:(UITapGestureRecognizer *)recognizer {
@@ -97,7 +113,14 @@
         _slaveCordovaViewController = [[AHUIViewController alloc] init];
         _slaveCordovaViewController.startPage = url;
         _slaveCordovaViewController->_parentPlugin = self;
-        [self setVisibleHelper:YES];
+        UIView* newView = _slaveCordovaViewController.view;
+        UIView* superView = self.viewController.view;
+        [self.viewController addChildViewController:_slaveCordovaViewController];
+        [newView layer].anchorPoint = CGPointMake(0.0f, 1.0f);
+        [newView setFrame:superView.bounds];
+        [superView addSubview:newView];
+        [_slaveCordovaViewController didMoveToParentViewController:self.viewController];
+        _slaveVisible = YES;
     } else {
         NSLog(@"AppHarnessUI.create: already exists");
     }
@@ -109,8 +132,10 @@
     if (_slaveCordovaViewController == nil) {
         NSLog(@"AppHarnessUI.destroy: already destroyed.");
     } else {
-        [self setVisibleHelper:NO];
+        [_slaveCordovaViewController removeFromParentViewController];
+        [_slaveCordovaViewController.view removeFromSuperview];
         _slaveCordovaViewController = nil;
+        _slaveVisible = NO;
         [self sendEvent:@"destroyed"];
     }
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -126,11 +151,18 @@
     if (_slaveCordovaViewController == nil) {
         NSLog(@"AppHarnessUI.setVisible: slave doesn't exist");
     } else {
-        UIView* newView = value ? _slaveCordovaViewController.view : self.viewController.view;
-        UIView* oldView = !value ? _slaveCordovaViewController.view : self.viewController.view;
-        UIView* superView = oldView.superview;
-        [oldView removeFromSuperview];
-        [superView addSubview:newView];
+        [UIView animateWithDuration:.3
+                              delay:0
+                            options:UIViewAnimationOptionCurveEaseOut
+                         animations:^{
+             [_slaveCordovaViewController setCaptureSingleTap:!value];
+             UIView* view = _slaveCordovaViewController.view;
+             if (value) {
+                 [view setTransform:CGAffineTransformIdentity];
+             } else {
+                 [view setTransform:CGAffineTransformMakeScale(.25, .25)];
+             }
+         } completion:nil];
     }
 }
 
