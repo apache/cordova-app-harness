@@ -17,7 +17,7 @@
  * under the License.
 */
 
-var myApp = angular.module('CordovaAppHarness', ['ngRoute']);
+var myApp = angular.module('CordovaAppHarness', ['ngRoute', 'angularMoment']);
 
 myApp.value('APP_NAME', 'Cordova App Harness');
 myApp.value('APP_VERSION', '1.0');

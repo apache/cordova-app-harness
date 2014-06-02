@@ -229,6 +229,7 @@
                 if (app.updatingStatus === 1) {
                     app.updatingStatus = null;
                     app.lastUpdated = new Date();
+                    AppsService.triggerAppListChange();
                     notifier.success('Update complete.');
                 }
             }
