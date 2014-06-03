@@ -144,8 +144,7 @@
                     UrlRemap.aliasUri(harnessPrefixPattern, harnessPrefixPattern, appWwwUrl, false /* redirect */, true /* allowFurtherRemapping */);
 
                     // Set-up app-harness: scheme to point at the harness.
-                    UrlRemap.aliasUri('^app-harness:///cdvah/index.html', '^app-harness://', harnessWwwUrl, true, false);
-                    return UrlRemap.aliasUri('^app-harness:', '^app-harness://', harnessWwwUrl, false, false)
+                    return UrlRemap.aliasUri('^app-harness:', '^app-harness:///', harnessWwwUrl, false, false)
                     .then(function() {
                         return startLocation;
                     });
