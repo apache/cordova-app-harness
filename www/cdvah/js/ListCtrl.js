@@ -31,10 +31,16 @@
             .then(function() {
                 return HarnessServer.start();
             }).then(function() {
-                return HarnessServer.getListenAddress()
-                .then(function(value) {
-                    $scope.ipAddress = value;
-                });
+                var getInfoCallback = function() {
+                    HarnessServer.getListenAddress(/* skipCache */ true)
+                    .then(function(value) {
+                        $scope.ipAddress = value ? value : 'Failed to start server';
+                    });
+                };
+
+                // When getInfo is called, the callback is retained and called every time network info changes.
+                // The callback updates the IP.
+                navigator.connection.getInfo(getInfoCallback);
             }, function() {
                 $scope.ipAddress = 'Failed to start server';
             });

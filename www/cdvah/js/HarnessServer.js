@@ -322,8 +322,8 @@
             return server.start();
         }
 
-        function getListenAddress() {
-            if (listenAddress) {
+        function getListenAddress(skipCache) {
+            if (listenAddress && !skipCache) {
                 return $q.when(listenAddress);
             }
             var deferred = $q.defer();
