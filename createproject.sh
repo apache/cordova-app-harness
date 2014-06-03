@@ -18,7 +18,7 @@
 
 if [[ $# -eq 0 || "$1" = "--help" ]]; then
     echo "Use this script to create an Cordova App Harness project"
-    echo "Usage: $0 NewDirName"
+    echo "Usage: $0 NewDirName [--allplugins]>"
     echo 'Options via variables:'
     echo '  PLATFORMS="android ios"'
     echo '  CORDOVA="path/to/cordova"'
@@ -70,6 +70,7 @@ set +x
 # fi
 
 echo Installing plugins.
+# org.apache.cordova.device isn't used directly, but is convenient to test mobilespec.
 "$CORDOVA" plugin add\
     "$AH_PATH/UrlRemap" \
     "$AH_PATH/CacheClear" \
@@ -80,7 +81,30 @@ echo Installing plugins.
     org.chromium.socket \
     org.chromium.zip \
     --searchpath="$PLUGIN_SEARCH_PATH"
-# org.apache.cordova.device isn't used directly, but is convenient to test mobilespec.
+
+if [[ "$2" = "--allplugins" ]]; then
+"$CORDOVA" plugin add \
+    org.apache.cordova.battery-status \
+    org.apache.cordova.camera \
+    org.apache.cordova.contacts \
+    org.apache.cordova.device-motion \
+    org.apache.cordova.device-orientation \
+    org.apache.cordova.device \
+    org.apache.cordova.dialogs \
+    org.apache.cordova.file-transfer \
+    org.apache.cordova.file \
+    org.apache.cordova.geolocation \
+    org.apache.cordova.globalization \
+    org.apache.cordova.inappbrowser \
+    org.apache.cordova.media-capture \
+    org.apache.cordova.network-information \
+    org.apache.cordova.splashscreen \
+    org.apache.cordova.statusbar \
+    org.apache.cordova.vibration \
+    --searchpath="$PLUGIN_SEARCH_PATH"
+    # Skipped core plugins:
+    # org.apache.cordova.console
+fi
 
 # To enable barcode scanning:
 # $CORDOVA plugin add https://github.com/wildabeast/BarcodeScanner.git # Optional
