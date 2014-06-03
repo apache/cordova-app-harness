@@ -55,7 +55,7 @@ fi
 
 "$CORDOVA" create "$DIR_NAME" "$APP_ID" "$APP_NAME" --link-to "$AH_PATH/www" || exit 1
 cd "$DIR_NAME"
-cp "$AH_PATH/config.xml" . || exit 1
+cp "$AH_PATH/template-overrides/config.xml" . || exit 1
 perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
 perl -i -pe "s/{NAME}/$APP_NAME/g" config.xml || exit 1
 perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
