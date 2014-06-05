@@ -171,7 +171,7 @@
             },
 
             uninstallAllApps : function() {
-                this.quitApp()
+                return this.quitApp()
                 .then(function() {
                     var deletePromises = [];
                     for (var i = 0; i < _installers.length; ++i) {
