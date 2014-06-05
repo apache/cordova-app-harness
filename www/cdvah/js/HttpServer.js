@@ -39,6 +39,11 @@
             requestData.state = newState;
         }
 
+        function ResponseException(code, /* optional */ responseText) {
+            this.code = code;
+            this.responseText = responseText;
+        }
+
         function HttpRequest(requestData) {
             this._requestData = requestData;
             this.method = requestData.method;
@@ -396,7 +401,10 @@
                             if (requestData.state < STATE_RESPONSE_STARTED) {
                                 return req.readEntireBody()
                                 .then(function() {
-                                    return resp.sendTextResponse(500, '' + err);
+                                    if (err instanceof ResponseException) {
+                                        return resp.sendTextResponse(err.code, (err.responseText || '') + '\n');
+                                    }
+                                    return resp.sendTextResponse(500, '' + err + '\n');
                                 });
                             } else {
                                 return requestData.socket.close();
@@ -488,6 +496,7 @@
             return headers;
         }
 
+        HttpServer.ResponseException = ResponseException;
         return HttpServer;
     }]);
 })();

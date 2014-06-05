@@ -60,7 +60,7 @@
         function ensureMethodDecorator(method, func) {
             return function(req, resp) {
                 if (req.method != method) {
-                    return resp.sendTextResponse(405, 'Method Not Allowed\n');
+                    throw new HttpServer.ResponseException(405, 'Method Not Allowed');
                 }
                 return func(req, resp);
             };
@@ -117,7 +117,7 @@
                         return resp.sendTextResponse(200, '');
                     });
                 }
-                return resp.sendTextResponse(412, 'No apps available for launch\n');
+                throw new HttpServer.ResponseException(412, 'No apps available for launch');
             });
         }
 
@@ -264,6 +264,8 @@
                     return ResourcesLoader.extractZipFile(tmpZipUrl, tmpDirUrl);
                 })
                 .then(function() {
+                    // This file looks like:
+                    // {"path/within/zip": { "path": "dest/path", "etag": "foo" }}
                     return ResourcesLoader.readJSONFileContents(tmpDirUrl + 'zipassetmanifest.json');
                 }, null, function(unzipPercentage) {
                     app.updatingStatus = unzipPercentage;
@@ -274,10 +276,12 @@
                     .then(function next() {
                         var k = keys.shift();
                         if (k) {
-                            return importFile(tmpDirUrl + k, k, app, zipAssetManifest[k]['etag'])
+                            return importFile(tmpDirUrl + k, zipAssetManifest[k]['path'], app, zipAssetManifest[k]['etag'])
                             .then(next);
                         }
                     });
+                }, function() {
+                    throw new HttpServer.ResponseException(400, 'Zip file missing zipassetmanifest.json');
                 })
                 .then(function() {
                     return incrementUpdateStatusAndSendManifest(app, req, resp);
