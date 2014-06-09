@@ -49,7 +49,8 @@
 //     curl -v -X POST "http://$IP_ADDRESS:2424/deleteapp?all=true" # Delete all apps.
 //
 // Send a set of files within the given app ID (or the first app if none is given):
-//     cat file | curl -v -X PUT -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&apptype=cordova"
+//     cat file | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&appType=cordova"
+// The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->{"path":dstPath, "etag":"0"}.
 //
     myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier, APP_VERSION) {
 
