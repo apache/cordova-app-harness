@@ -20,7 +20,7 @@
     'use strict';
 
     /* global myApp, cordova */
-    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'PluginMetadata', 'CacheClear', 'DirectoryManager', function($q, UrlRemap, ResourcesLoader, PluginMetadata, CacheClear, DirectoryManager) {
+    myApp.factory('Installer', ['$q', 'UrlRemap', 'ResourcesLoader', 'PluginMetadata', 'DirectoryManager', function($q, UrlRemap, ResourcesLoader, PluginMetadata, DirectoryManager) {
         var platformId = cordova.require('cordova/platform').id;
 
         function Installer() {}
@@ -115,8 +115,7 @@
         };
 
         Installer.prototype._prepareForLaunch = function() {
-            // Cache clearing necessary only for Android.
-            return CacheClear.clear();
+            return $q.when();
         };
 
         Installer.prototype.launch = function() {

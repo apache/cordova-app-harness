@@ -94,7 +94,6 @@ echo Installing plugins.
 # org.apache.cordova.device isn't used directly, but is convenient to test mobilespec.
 "$CORDOVA" plugin add\
     "$AH_PATH/UrlRemap" \
-    "$AH_PATH/CacheClear" \
     "$AH_PATH/AppHarnessUI" \
     org.apache.cordova.file \
     org.apache.cordova.file-transfer \
