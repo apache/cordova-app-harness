@@ -116,6 +116,7 @@ if [[ "$2" = "--allplugins" ]]; then
     org.apache.cordova.geolocation \
     org.apache.cordova.globalization \
     org.apache.cordova.inappbrowser \
+    org.apache.cordova.media \
     org.apache.cordova.media-capture \
     org.apache.cordova.network-information \
     org.apache.cordova.splashscreen \
