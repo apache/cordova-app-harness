@@ -47,8 +47,8 @@
         };
 
         DirectoryManager.prototype.deleteAll = function() {
-            this._assetManifest = null;
-            this._assetManifestEtag = null;
+            this._assetManifest = {};
+            this._assetManifestEtag = 0;
             window.clearTimeout(this._flushTimerId);
             return ResourcesLoader.delete(this.rootURL);
         };
@@ -96,24 +96,21 @@
             return ResourcesLoader.writeFileContents(this.rootURL + ASSET_MANIFEST, stringContents);
         };
 
-        DirectoryManager.prototype.bulkAddFile = function(zipAssetManifest, srcURL) {
+        DirectoryManager.prototype.bulkAddFile = function(newAssetManifest, srcURL) {
             var self = this;
-            return ResourcesLoader.moveFile(srcURL, self.rootURL )
+            return this.deleteAll()
             .then(function() {
-                 var src=self.rootURL+'www/cordova_plugins.js';
-                 var dest = self.rootURL+'orig-cordova_plugins.js';
-                 return ResourcesLoader.moveFile(src,dest );
-            })
-            .then(function() {
-                 var keys=Object.keys(zipAssetManifest);
-                 for(var i=0;i<keys.length;i++) {
-                     var k = keys[i];
-                     var destPath = zipAssetManifest[k]['path'];
-                     if (destPath == 'www/cordova_plugins.js') {
-                         destPath = 'orig-cordova_plugins.js';
-                     }
-                     self._updateManifest(destPath, zipAssetManifest[k]['etag']);
-                 }
+                return ResourcesLoader.moveFile(srcURL, self.rootURL);
+            }).then(function() {
+                var keys = Object.keys(newAssetManifest);
+                return $q.when().then(function next() {
+                    var key = keys.shift();
+                    if (!key) {
+                        return;
+                    }
+                    return self._updateManifest(key, newAssetManifest[key])
+                    .then(next);
+                });
             });
         };
 

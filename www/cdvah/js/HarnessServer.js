@@ -50,16 +50,22 @@
 //
 // Send a set of files within the given app ID (or the first app if none is given):
 //     cat file | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&appType=cordova"
-// The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->{"path":dstPath, "etag":"0"}.
+// The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->"$etag"}.
 //
 // Send a partial update of files within the given app ID (or the first app if none is given):
 //     cat file | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&appType=cordova&movetype=file"
-// The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->{"path":dstPath, "etag":"0"}.
+// The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->"$etag"}.
 // With this method, the files are moved one at a time and will overwrite any existing file of the same name.
 //
+// PROTOCOL CHANGES BY VERSION:
+// Version 3:
+//   - Allow zipassetmanifest to use { "srcPath" => "$etag" } rather than { "srcPath" => { "etag": "foo" } } (still supports either though).
+//   - Removed support for custom dstPath within zipassetmanifest.json
+//   - Sped up zippush by doing a directory move rather than per-file moves.
+//   - Added ?movetype=file to zippush command for old per-file behaviour.
     myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier, APP_VERSION) {
 
-        var PROTOCOL_VER = 2;
+        var PROTOCOL_VER = 3;
         var server = null;
         var listenAddress = null;
 
@@ -272,23 +278,29 @@
                 })
                 .then(function() {
                     // This file looks like:
-                    // {"path/within/zip": { "path": "dest/path", "etag": "foo" }}
+                    // {"path/within/zip": "$etag" }
                     return ResourcesLoader.readJSONFileContents(tmpDirUrl + 'zipassetmanifest.json');
                 }, null, function(unzipPercentage) {
                     app.updatingStatus = unzipPercentage;
                 })
                 .then(function(zipAssetManifest) {
+                    // Support old format of {"path/within/zip": {"etag": "$etag" }}
+                    Object.keys(zipAssetManifest).forEach(function(k) {
+                        if (typeof zipAssetManifest[k] != 'string') {
+                            zipAssetManifest[k] = zipAssetManifest[k]['etag'];
+                        }
+                    });
                     if (movetype == 'bulk') {
                         console.log('Moving files in bulk');
                         return $q.when()
                         .then(function(){
-                            // get the source base path from the first file
-                            // all files need to be in the same place
-                            var firstfile = Object.keys(zipAssetManifest)[0];
-                            var fpath = tmpDirUrl + firstfile;
-                            var pathendposition = fpath.lastIndexOf(zipAssetManifest[firstfile]['path']);
-                            var fromurl = fpath.substr(0,pathendposition-1);
-                            return app.directoryManager.bulkAddFile(zipAssetManifest, fromurl);
+                            if (zipAssetManifest['www/cordova_plugins.js']) {
+                                zipAssetManifest['orig-cordova_plugins.js'] = zipAssetManifest['www/cordova_plugins.js'];
+                                delete zipAssetManifest['www/cordova_plugins.js'];
+                                return ResourcesLoader.moveFile(tmpDirUrl + 'www/cordova_plugins.js', tmpDirUrl + 'orig-cordova_plugins.js');
+                            }
+                        }).then(function() {
+                            return app.directoryManager.bulkAddFile(zipAssetManifest, tmpDirUrl);
                         });
                     } else {
                         var keys = Object.keys(zipAssetManifest);
@@ -297,7 +309,7 @@
                         .then(function next() {
                             var k = keys.shift();
                             if (k) {
-                                return  importFile(tmpDirUrl + k, zipAssetManifest[k]['path'], app, zipAssetManifest[k]['etag'])
+                                return importFile(tmpDirUrl + k, k, app, zipAssetManifest[k])
                                 .then(next);
                             }
                         });
