@@ -91,9 +91,11 @@ public class AppHarnessUI extends CordovaPlugin {
     }
 
     private void sendEvent(String eventName) {
-        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName);
-        pluginResult.setKeepCallback(true);
-        eventsCallback.sendPluginResult(pluginResult );
+        if (eventsCallback != null) {
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName);
+            pluginResult.setKeepCallback(true);
+            eventsCallback.sendPluginResult(pluginResult );
+        }
     }
 
     @SuppressLint("NewApi")
