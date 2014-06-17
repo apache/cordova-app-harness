@@ -45,34 +45,38 @@ public class UrlRemap extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
-        if ("addAlias".equals(action)) {
-            RouteParams params = new RouteParams();
-            params.matchRegex = Pattern.compile(args.getString(0));
-            params.replaceRegex = Pattern.compile(args.getString(1));
-            params.replacer = args.getString(2);
-            params.redirectToReplacedUrl = args.getBoolean(3);
-            params.allowFurtherRemapping = args.getBoolean(4);
-            rerouteParams.add(params);
-        } else if ("clearAllAliases".equals(action)) {
-            resetMappings();
-        } else if ("injectJs".equals(action)) {
-            RouteParams params = new RouteParams();
-            params.matchRegex = Pattern.compile(args.getString(0));
-            params.jsToInject = args.getString(1);
-            rerouteParams.add(params);
-        } else if ("setResetUrl".equals(action)) {
-            resetUrlParams = new RouteParams();
-            resetUrlParams.matchRegex = Pattern.compile(args.getString(0));
-        } else {
-            return false;
+        synchronized (rerouteParams) {
+            if ("addAlias".equals(action)) {
+                RouteParams params = new RouteParams();
+                params.matchRegex = Pattern.compile(args.getString(0));
+                params.replaceRegex = Pattern.compile(args.getString(1));
+                params.replacer = args.getString(2);
+                params.redirectToReplacedUrl = args.getBoolean(3);
+                params.allowFurtherRemapping = args.getBoolean(4);
+                rerouteParams.add(params);
+            } else if ("clearAllAliases".equals(action)) {
+                resetMappings();
+            } else if ("injectJs".equals(action)) {
+                RouteParams params = new RouteParams();
+                params.matchRegex = Pattern.compile(args.getString(0));
+                params.jsToInject = args.getString(1);
+                rerouteParams.add(params);
+            } else if ("setResetUrl".equals(action)) {
+                resetUrlParams = new RouteParams();
+                resetUrlParams.matchRegex = Pattern.compile(args.getString(0));
+            } else {
+                return false;
+            }
+            callbackContext.success();
+            return true;
         }
-        callbackContext.success();
-        return true;
     }
 
     public void resetMappings() {
-        resetUrlParams = null;
-        rerouteParams.clear();
+        synchronized (rerouteParams) {
+            resetUrlParams = null;
+            rerouteParams.clear();
+        }
     }
 
     private RouteParams getChosenParams(String url, boolean forInjection) {
@@ -86,23 +90,25 @@ public class UrlRemap extends CordovaPlugin {
 
     @Override
     public boolean onOverrideUrlLoading(String url) {
-        if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(url).find()) {
-            resetMappings();
-        }
-
-        RouteParams params = getChosenParams(url, false);
-        // Check if we need to replace the url
-        if (params != null && params.redirectToReplacedUrl) {
-            String newUrl = params.replaceRegex.matcher(url).replaceFirst(params.replacer);
-
-            if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(newUrl).find()) {
+        synchronized (rerouteParams) {
+            if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(url).find()) {
                 resetMappings();
             }
-
-            webView.loadUrlIntoView(newUrl, false);
-            return true;
+    
+            RouteParams params = getChosenParams(url, false);
+            // Check if we need to replace the url
+            if (params != null && params.redirectToReplacedUrl) {
+                String newUrl = params.replaceRegex.matcher(url).replaceFirst(params.replacer);
+    
+                if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(newUrl).find()) {
+                    resetMappings();
+                }
+    
+                webView.loadUrlIntoView(newUrl, false);
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -110,9 +116,11 @@ public class UrlRemap extends CordovaPlugin {
         // Look for top level navigation changes
         if ("onPageFinished".equals(id) && data != null) {
             String url = data.toString();
-            RouteParams params = getChosenParams(url, true);
-            if (params != null) {
-                webView.sendJavascript(params.jsToInject);
+            synchronized (rerouteParams) {
+                RouteParams params = getChosenParams(url, true);
+                if (params != null) {
+                    webView.sendJavascript(params.jsToInject);
+                }
             }
         }
         return null;
@@ -120,16 +128,18 @@ public class UrlRemap extends CordovaPlugin {
 
     @Override
     public Uri remapUri(Uri uri) {
-        String uriAsString = uri.toString();
-        RouteParams params = getChosenParams(uriAsString, false);
-        if (params != null && !params.redirectToReplacedUrl) {
-            String newUrl = params.replaceRegex.matcher(uriAsString).replaceFirst(params.replacer);
-            Uri ret = Uri.parse(newUrl);
-            if (params.allowFurtherRemapping) {
-                ret = webView.getResourceApi().remapUri(ret);
+        synchronized (rerouteParams) {
+            String uriAsString = uri.toString();
+            RouteParams params = getChosenParams(uriAsString, false);
+            if (params != null && !params.redirectToReplacedUrl) {
+                String newUrl = params.replaceRegex.matcher(uriAsString).replaceFirst(params.replacer);
+                Uri ret = Uri.parse(newUrl);
+                if (params.allowFurtherRemapping) {
+                    ret = webView.getResourceApi().remapUri(ret);
+                }
+                return ret;
             }
-            return ret;
+            return null;
         }
-        return null;
     }
 }
