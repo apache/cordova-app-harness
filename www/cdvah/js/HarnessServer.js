@@ -52,6 +52,11 @@
 //     cat file | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&appType=cordova"
 // The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->{"path":dstPath, "etag":"0"}.
 //
+// Send a partial update of files within the given app ID (or the first app if none is given):
+//     cat file | curl -v -X POST -d @- "http://$IP_ADDRESS:2424/zippush?appId=a.b.c&appType=cordova&movetype=file"
+// The zip file must contain a zipassetmanifest.json file at its root that is a map of "srcPath"->{"path":dstPath, "etag":"0"}.
+// With this method, the files are moved one at a time and will overwrite any existing file of the same name.
+//
     myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier, APP_VERSION) {
 
         var PROTOCOL_VER = 2;
@@ -251,6 +256,7 @@
             var appId = req.getQueryParam('appId');
             var appType = req.getQueryParam('appType') || 'cordova';
             var manifestEtag = req.getQueryParam('manifestEtag');
+            var movetype = req.getQueryParam('movetype') || 'bulk';
             return AppsService.getAppById(appId, appType)
             .then(function(app) {
                 if (manifestEtag && app.directoryManager.getAssetManifestEtag() !== manifestEtag) {
@@ -272,15 +278,30 @@
                     app.updatingStatus = unzipPercentage;
                 })
                 .then(function(zipAssetManifest) {
-                    var keys = Object.keys(zipAssetManifest);
-                    return $q.when()
-                    .then(function next() {
-                        var k = keys.shift();
-                        if (k) {
-                            return importFile(tmpDirUrl + k, zipAssetManifest[k]['path'], app, zipAssetManifest[k]['etag'])
-                            .then(next);
-                        }
-                    });
+                    if (movetype == 'bulk') {
+                        console.log('Moving files in bulk');
+                        return $q.when()
+                        .then(function(){
+                            // get the source base path from the first file
+                            // all files need to be in the same place
+                            var firstfile = Object.keys(zipAssetManifest)[0];
+                            var fpath = tmpDirUrl + firstfile;
+                            var pathendposition = fpath.lastIndexOf(zipAssetManifest[firstfile]['path']);
+                            var fromurl = fpath.substr(0,pathendposition-1);
+                            return app.directoryManager.bulkAddFile(zipAssetManifest, fromurl);
+                        });
+                    } else {
+                        var keys = Object.keys(zipAssetManifest);
+                        console.log('Moving '+keys.length+ ' files separately');
+                        return $q.when()
+                        .then(function next() {
+                            var k = keys.shift();
+                            if (k) {
+                                return  importFile(tmpDirUrl + k, zipAssetManifest[k]['path'], app, zipAssetManifest[k]['etag'])
+                                .then(next);
+                            }
+                        });
+                    }
                 }, function() {
                     throw new HttpServer.ResponseException(400, 'Zip file missing zipassetmanifest.json');
                 })

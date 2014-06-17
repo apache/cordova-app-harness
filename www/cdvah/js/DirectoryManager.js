@@ -96,6 +96,27 @@
             return ResourcesLoader.writeFileContents(this.rootURL + ASSET_MANIFEST, stringContents);
         };
 
+        DirectoryManager.prototype.bulkAddFile = function(zipAssetManifest, srcURL) {
+            var self = this;
+            return ResourcesLoader.moveFile(srcURL, self.rootURL )
+            .then(function() {
+                 var src=self.rootURL+'www/cordova_plugins.js';
+                 var dest = self.rootURL+'orig-cordova_plugins.js';
+                 return ResourcesLoader.moveFile(src,dest );
+            })
+            .then(function() {
+                 var keys=Object.keys(zipAssetManifest);
+                 for(var i=0;i<keys.length;i++) {
+                     var k = keys[i];
+                     var destPath = zipAssetManifest[k]['path'];
+                     if (destPath == 'www/cordova_plugins.js') {
+                         destPath = 'orig-cordova_plugins.js';
+                     }
+                     self._updateManifest(destPath, zipAssetManifest[k]['etag']);
+                 }
+            });
+        };
+
         DirectoryManager.prototype.addFile = function(srcURL, relativePath, etag) {
             var self = this;
             return ResourcesLoader.moveFile(srcURL, this.rootURL + relativePath)
