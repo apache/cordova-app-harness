@@ -39,15 +39,36 @@ AH_PATH="$(cd $(dirname $0) && pwd)"
 extra_search_path="$PLUGIN_SEARCH_PATH"
 PLUGIN_SEARCH_PATH="$(dirname "$AH_PATH")"
 
+function ResolveSymlinks() {
+  local found_path="$1"
+  if [[ -n "$found_path" ]]; then
+      node -e "console.log(require('fs').realpathSync('$found_path'))"
+  fi
+}
 function AddSearchPathIfExists() {
     if [[ -d "$1" ]]; then
         PLUGIN_SEARCH_PATH="$PLUGIN_SEARCH_PATH:$1"
     fi
 }
-AddSearchPathIfExists "$(dirname "$AH_PATH")/cordova"
-AddSearchPathIfExists "$(dirname "$AH_PATH")/cordova/cordova-plugins"
-AddSearchPathIfExists "$(dirname "$AH_PATH")/cordova-plugins"
-AddSearchPathIfExists "$(dirname "$AH_PATH")/mobile-chrome-apps/chrome-cordova/plugins"
+
+# Use coho to find Cordova plugins
+COHO_PATH=$(ResolveSymlinks $(which coho))
+if [[ -n "$COHO_PATH" ]]; then
+    CDV_PATH="$(dirname $(dirname "$COHO_PATH"))"
+    AddSearchPathIfExists "$CDV_PATH"
+    AddSearchPathIfExists "$CDV_PATH/cordova-plugins"
+else
+    # For when repos are cloned as siblings.
+    AddSearchPathIfExists "$(dirname "$AH_PATH")"
+    AddSearchPathIfExists "$(dirname "$AH_PATH")/cordova-plugins"
+fi
+
+# Use cca to find Chrome plugins
+CCA_PATH=$(ResolveSymlinks $(which cca))
+if [[ -n "$CCA_PATH" ]]; then
+    CCA_PATH="$(dirname $(dirname "$CCA_PATH"))"
+    AddSearchPathIfExists "$CCA_PATH/chrome-cordova/plugins"
+fi
 
 if [[ -n "$extra_search_path" ]]; then
     PLUGIN_SEARCH_PATH="${extra_search_path}:$PLUGIN_SEARCH_PATH"
