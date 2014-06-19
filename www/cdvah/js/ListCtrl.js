@@ -19,7 +19,7 @@
 (function(){
     'use strict';
     /* global myApp */
-    myApp.controller('ListCtrl', ['$location', 'notifier', '$scope', '$routeParams', '$q', 'AppsService', 'HarnessServer', function ($location, notifier, $scope, $routeParams, $q, AppsService, HarnessServer) {
+    myApp.controller('ListCtrl', ['$location', '$scope', '$routeParams', '$q', 'AppsService', 'HarnessServer', function ($location, $scope, $routeParams, $q, AppsService, HarnessServer) {
         $scope.appList = [];
 
         function initialise() {
@@ -59,7 +59,7 @@
                 });
                 $scope.appList = newAppsList;
             }, function(error){
-                notifier.error(error);
+                console.error(error);
             });
         }
 
@@ -67,7 +67,7 @@
             event.stopPropagation();
             return AppsService.launchApp(app)
             .then(null, function(error){
-                notifier.error(error);
+                console.error(error);
             });
         };
 
@@ -77,7 +77,7 @@
             if(shouldUninstall) {
                 return AppsService.uninstallApp(app)
                 .then(null, function(error) {
-                    notifier.error(error);
+                    console.error(error);
                 });
             }
         };

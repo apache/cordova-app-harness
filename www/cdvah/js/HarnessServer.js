@@ -63,7 +63,7 @@
 //   - Removed support for custom dstPath within zipassetmanifest.json
 //   - Sped up zippush by doing a directory move rather than per-file moves.
 //   - Added ?movetype=file to zippush command for old per-file behaviour.
-    myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'notifier', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, notifier, APP_VERSION) {
+    myApp.factory('HarnessServer', ['$q', 'HttpServer', 'ResourcesLoader', 'AppHarnessUI', 'AppsService', 'APP_VERSION', function($q, HttpServer, ResourcesLoader, AppHarnessUI, AppsService, APP_VERSION) {
 
         var PROTOCOL_VER = 3;
         var server = null;
@@ -242,7 +242,7 @@
                     app.updatingStatus = null;
                     app.lastUpdated = new Date();
                     AppsService.triggerAppListChange();
-                    notifier.success('Update complete.');
+                    console.log('Update complete.');
                 }
             }
             return resp.sendJsonResponse(200, {

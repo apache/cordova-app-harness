@@ -19,7 +19,7 @@
 (function() {
     'use strict';
     /* global myApp */
-    myApp.factory('AppsService', ['$q', '$location', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'notifier', 'AppHarnessUI', function($q, $location, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, notifier, AppHarnessUI) {
+    myApp.factory('AppsService', ['$q', '$location', 'ResourcesLoader', 'INSTALL_DIRECTORY', 'APPS_JSON', 'AppHarnessUI', function($q, $location, ResourcesLoader, INSTALL_DIRECTORY, APPS_JSON, AppHarnessUI) {
         // Map of type -> installer.
         var _installerFactories = Object.create(null);
         // Array of installer objects.
