@@ -98,6 +98,7 @@ echo Installing plugins.
     org.apache.cordova.file \
     org.apache.cordova.file-transfer \
     org.apache.cordova.device \
+    org.apache.cordova.network-information \
     org.chromium.socket \
     org.chromium.zip \
     --searchpath="$PLUGIN_SEARCH_PATH"
@@ -118,7 +119,6 @@ if [[ "$2" = "--allplugins" ]]; then
     org.apache.cordova.inappbrowser \
     org.apache.cordova.media \
     org.apache.cordova.media-capture \
-    org.apache.cordova.network-information \
     org.apache.cordova.splashscreen \
     org.apache.cordova.statusbar \
     org.apache.cordova.vibration \
