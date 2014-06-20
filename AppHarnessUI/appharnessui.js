@@ -25,9 +25,9 @@ function eventHandler(type) {
 
 exports.onEvent = null;
 
-exports.create = function(url, win) {
+exports.create = function(url, serviceNameWhitelist, win) {
     exec(eventHandler, null, 'AppHarnessUI', 'events', []);
-    exec(win, null, 'AppHarnessUI', 'create', [url]);
+    exec(win, null, 'AppHarnessUI', 'create', [url, serviceNameWhitelist]);
 };
 
 exports.destroy = function(win) {

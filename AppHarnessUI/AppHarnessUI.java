@@ -18,6 +18,9 @@
 */
 package org.apache.appharness;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.cordova.AndroidChromeClient;
 import org.apache.cordova.AndroidWebView;
 import org.apache.cordova.CallbackContext;
@@ -29,6 +32,7 @@ import org.apache.cordova.CordovaWebViewClient;
 import org.apache.cordova.IceCreamCordovaWebViewClient;
 import org.apache.cordova.LinearLayoutSoftKeyboardDetect;
 import org.apache.cordova.PluginResult;
+import org.json.JSONArray;
 import org.json.JSONException;
 
 import android.annotation.SuppressLint;
@@ -58,9 +62,14 @@ public class AppHarnessUI extends CordovaPlugin {
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
         if ("create".equals(action)) {
             final String url = args.getString(0);
+            JSONArray pluginIdWhitelist = args.getJSONArray(1);
+            final Set<String> pluginIdWhitelistAsSet = new HashSet<String>(pluginIdWhitelist.length());
+            for (int i = 0; i < pluginIdWhitelist.length(); ++i) {
+                pluginIdWhitelistAsSet.add(pluginIdWhitelist.getString(i));
+            }
             this.cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
-                    create(url, callbackContext);
+                    create(url, pluginIdWhitelistAsSet, callbackContext);
                 }
             });
         } else if ("destroy".equals(action)) {
@@ -113,7 +122,7 @@ public class AppHarnessUI extends CordovaPlugin {
         callbackContext.success();
     }
 
-    private void create(String url, CallbackContext callbackContext) {
+    private void create(String url, Set<String> pluginIdWhitelist, CallbackContext callbackContext) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
 
         if (slaveWebView != null) {
@@ -126,6 +135,7 @@ public class AppHarnessUI extends CordovaPlugin {
             }
             slaveWebView.clearCache(true);
             slaveWebView.clearHistory();
+            slaveWebView.getPluginManager().setPluginIdWhitelist(pluginIdWhitelist);
             slaveWebView.loadUrl(url);
             View newView = (View)slaveWebView.getParent();
             contentView.addView(newView);

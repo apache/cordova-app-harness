@@ -146,12 +146,17 @@
                 }).then(function(launchUrl) {
                     // Don't just use ResourcesLoader.doesFileExist because remaps might make it exist.
                     return ResourcesLoader.xhrGet(launchUrl)
-                    .then(function() {
-                        return AppHarnessUI.create(launchUrl);
-                    }, function() {
+                    .then(null, function() {
                         throw new Error('Start file does not exist: ' + launchUrl.replace(/.*?\/www\//, 'www/'));
                     }).then(function() {
+                        return installer.getPluginMetadata();
+                    }).then(function(pluginMetadata) {
                         $location.path('/inappmenu');
+                        return AppHarnessUI.create(launchUrl, pluginMetadata);
+                    }).then(function() {
+                        if (AppsService.onAppListChange) {
+                            AppsService.onAppListChange();
+                        }
                     });
                 });
             },

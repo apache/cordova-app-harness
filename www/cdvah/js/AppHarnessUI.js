@@ -19,11 +19,29 @@
 (function() {
     'use strict';
     /* global myApp */
-    myApp.factory('AppHarnessUI', ['$q', function($q) {
+    myApp.factory('AppHarnessUI', ['$q', 'pluginIdToServiceNames', function($q, pluginIdToServiceNames) {
+        function createServiceNameWhitelist(pluginMetadata) {
+            var ret = [];
+            Object.keys(pluginMetadata).forEach(function(pluginId) {
+                var serviceNames = pluginIdToServiceNames[pluginId];
+                if (serviceNames) {
+                    ret.push.apply(ret, serviceNames);
+                }
+            });
+            if (cordova.platformId == 'android') {
+                // This is a plugin bundled with the platform.
+                ret.push('App');
+                // Needed for launching to work.
+                ret.push('UrlRemap');
+            }
+            return ret;
+        }
+
         return {
-            create: function(url) {
+            create: function(url, pluginMetadata) {
                 var deferred = $q.defer();
-                cordova.plugins.appharnessui.create(url, deferred.resolve);
+                var serviceNames = createServiceNameWhitelist(pluginMetadata);
+                cordova.plugins.appharnessui.create(url, serviceNames, deferred.resolve);
                 return deferred.promise;
             },
             destroy: function() {

@@ -135,6 +135,7 @@
 
                 if (useRemapper) {
                     // Override cordova.js, and www/plugins to point at bundled plugins.
+                    // Note: Due to the remapper's inability to remap files that exist, this isn't strictly necessary.
                     UrlRemap.aliasUri('^(?!app-harness://).*/www/cordova\\.js.*', '.+', 'app-harness:///cordova.js', false /* redirect */, true /* allowFurtherRemapping */);
                     UrlRemap.aliasUri('^(?!app-harness://).*/www/plugins/.*', '^.*?/www/plugins/' , 'app-harness:///plugins/', false /* redirect */, true /* allowFurtherRemapping */);
 

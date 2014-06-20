@@ -92,6 +92,9 @@ set -x
 $CORDOVA platform add $PLATFORM_ARGS || exit 1
 set +x
 
+mkdir -p hooks/after_prepare
+cp "$AH_PATH"/template-overrides/after-hook.js hooks/after_prepare
+
 # if [[ $PLATFORMS = *ios* ]]; then
     # ../../cordova-ios/bin/update_cordova_subproject platforms/ios/CordovaAppHarness.xcodeproj
 # fi
