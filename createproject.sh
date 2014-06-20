@@ -139,6 +139,8 @@ fi
 # To enable barcode scanning:
 # $CORDOVA plugin add https://github.com/wildabeast/BarcodeScanner.git # Optional
 
+cordova prepare
+
 if [[ $? != 0 ]]; then
     echo "Plugin installation failed. Probably you need to set PLUGIN_SEARCH_PATH env variable so that it contains the plugin that failed to install."
     exit 1
