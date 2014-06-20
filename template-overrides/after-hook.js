@@ -73,7 +73,7 @@ function renameCordovaPluginsFile() {
         var wwwPath = preparedWwwPathMap[platformId];
         fs.renameSync(path.join(wwwPath, 'cordova_plugins.js'), path.join(wwwPath, 'cordova_plugins_harness.js'));
         var cordovaJsContents = fs.readFileSync(path.join(wwwPath, 'cordova.js'), 'utf8');
-        cordovaJsContents = cordovaJsContents.replace(/cordova_plugins\.js/g, 'cordova_plugins_harness.js');
+        cordovaJsContents = cordovaJsContents.replace(/'cordova_plugins\.js'/g, '(window.THIS_IS_APP_HARNESS ? "cordova_plugins_harness.js" : "cordova_plugins.js")');
         fs.writeFileSync(path.join(wwwPath, 'cordova.js'), cordovaJsContents);
         console.log('Renamed cordova_plugins.js -> ' + path.join(wwwPath, 'cordova_plugins_harness.js'));
     });
