@@ -26,6 +26,7 @@ if [[ $# -eq 0 || "$1" = "--help" ]]; then
     echo '  APP_ID="org.apache.AppHarness"'
     echo '  APP_NAME="CordovaAppHarness"'
     echo '  APP_VERSION="0.0.1"'
+    echo '  ANDROID_PATH="path/to/cordova-android"'
     exit 1
 fi
 
@@ -57,6 +58,7 @@ if [[ -n "$COHO_PATH" ]]; then
     CDV_PATH="$(dirname $(dirname "$COHO_PATH"))"
     AddSearchPathIfExists "$CDV_PATH"
     AddSearchPathIfExists "$CDV_PATH/cordova-plugins"
+    ANDROID_PATH=${ANDROID_PATH-$CDV_PATH/cordova-android}
 else
     # For when repos are cloned as siblings.
     AddSearchPathIfExists "$(dirname "$AH_PATH")"
@@ -81,9 +83,13 @@ perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
 perl -i -pe "s/{NAME}/$APP_NAME/g" config.xml || exit 1
 perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
 
+PLATFORM_ARGS="$PLATFORMS"
+if [[ -n "$ANDROID_PATH" ]]; then
+  PLATFORM_ARGS="${PLATFORMS/android/$ANDROID_PATH}"
+fi
 
 set -x
-$CORDOVA platform add $PLATFORMS || exit 1
+$CORDOVA platform add $PLATFORM_ARGS || exit 1
 set +x
 
 # if [[ $PLATFORMS = *ios* ]]; then

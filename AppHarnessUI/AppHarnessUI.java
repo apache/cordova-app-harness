@@ -18,12 +18,13 @@
 */
 package org.apache.appharness;
 
+import org.apache.cordova.AndroidChromeClient;
+import org.apache.cordova.AndroidWebView;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaActivity;
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CordovaChromeClient;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CordovaWebViewClient;
 import org.apache.cordova.IceCreamCordovaWebViewClient;
 import org.apache.cordova.LinearLayoutSoftKeyboardDetect;
@@ -121,7 +122,7 @@ public class AppHarnessUI extends CordovaPlugin {
             slaveWebView = new CustomCordovaWebView(activity);
             initWebView(slaveWebView);
             if (activity.getBooleanProperty("DisallowOverscroll", false)) {
-                slaveWebView.setOverScrollMode(CordovaWebView.OVER_SCROLL_NEVER);
+                slaveWebView.setOverScrollMode(View.OVER_SCROLL_NEVER);
             }
             slaveWebView.clearCache(true);
             slaveWebView.clearHistory();
@@ -180,7 +181,7 @@ public class AppHarnessUI extends CordovaPlugin {
         }
     }
 
-    private void initWebView(final CordovaWebView newWebView) {
+    private void initWebView(final AndroidWebView newWebView) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
         if (contentView == null) {
             contentView = (ViewGroup)activity.findViewById(android.R.id.content);
@@ -193,12 +194,8 @@ public class AppHarnessUI extends CordovaPlugin {
 //        layoutView.setBackground(origRootView.getBackground());
         layoutView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.BOTTOM | Gravity.LEFT));
 
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.HONEYCOMB) {
-            newWebView.setWebViewClient(new CordovaWebViewClient(cordova, newWebView));
-        } else {
-            newWebView.setWebViewClient(new IceCreamCordovaWebViewClient(cordova, newWebView));
-        }
-        newWebView.setWebChromeClient(new CordovaChromeClient(cordova, newWebView));
+        newWebView.setWebViewClient((CordovaWebViewClient)new IceCreamCordovaWebViewClient(cordova, newWebView));
+        newWebView.setWebChromeClient((CordovaChromeClient)new AndroidChromeClient(cordova, newWebView));
 
         newWebView.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -247,7 +244,7 @@ public class AppHarnessUI extends CordovaPlugin {
 
     }
 
-    private class CustomCordovaWebView extends CordovaWebView {
+    private class CustomCordovaWebView extends AndroidWebView {
         TwoFingerDoubleTapGestureDetector twoFingerTapDetector;
         boolean stealTapEvents;
 
