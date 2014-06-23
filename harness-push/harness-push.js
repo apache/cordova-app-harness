@@ -36,6 +36,7 @@ function usage() {
     console.log('Usage: harness-push eval "alert(1)"');
     console.log('Usage: harness-push info');
     console.log('Usage: harness-push launch [appId]');
+    console.log('Usage: harness-push quit');
     console.log('Usage: harness-push assetmanifest [appId]');
     console.log('Usage: harness-push delete appId');
     console.log('Usage: harness-push deleteall');
@@ -91,6 +92,8 @@ function main() {
         client.info().then(onSuccess, onFailure);
     } else if (cmd == 'launch') {
         client.launch(args.argv.remain[1]).then(onSuccess, onFailure);
+    } else if (cmd == 'quit') {
+        client.quit(args.argv.remain[1]).then(onSuccess, onFailure);
     } else {
         usage();
     }

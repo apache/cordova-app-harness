@@ -119,6 +119,13 @@
             return AppHarnessUI.fireEvent('showMenu');
         }
 
+        function handleQuit(req, resp) {
+            return AppsService.quitApp()
+            .then(function() {
+                return resp.sendTextResponse(200, '');
+            });
+        }
+
         function handleLaunch(req, resp) {
             var appId = req.getQueryParam('appId');
             return AppsService.getAppById(appId)
@@ -351,6 +358,7 @@
                 .addRoute('/exec', ensureMethodDecorator('POST', handleExec))
                 .addRoute('/menu', ensureMethodDecorator('POST', handleMenu))
                 .addRoute('/launch', ensureMethodDecorator('POST', handleLaunch))
+                .addRoute('/quit', ensureMethodDecorator('POST', handleQuit))
                 .addRoute('/info', ensureMethodDecorator('GET', handleInfo))
                 .addRoute('/assetmanifest', ensureMethodDecorator('GET', handleAssetManifest))
                 .addRoute('/deletefiles', ensureMethodDecorator('POST', handleDeleteFiles))
