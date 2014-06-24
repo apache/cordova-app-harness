@@ -71,7 +71,7 @@ function main() {
             usage();
         }
         var pushSession = client.createPushSession(args.argv.remain[1]);
-        pushSession.push().then(onSuccess, onFailure);
+        client.quit().then(pushSession.push().then(onSuccess, onFailure));
     } else if (cmd == 'deleteall') {
         client.deleteAllApps();
     } else if (cmd == 'delete') {
