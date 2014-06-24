@@ -31,11 +31,11 @@ if (platforms.length === 0) {
   return;
 }
 
-function generatePluginToServiceNamesFile() {
+function generatePluginInfoFile() {
     var idToServiceNameMap = {};
+    var depsMap = {};
 
-    function extractServiceNames(p) {
-        var contents = fs.readFileSync(p, 'utf8');
+    function extractServiceNames(contents) {
         var foundNames = {};
         var pattern = /<feature\s+name="(.+?)"/g;
         var match;
@@ -45,21 +45,34 @@ function generatePluginToServiceNamesFile() {
         return Object.keys(foundNames);
     }
 
+    function extractDependencies(contents) {
+        var foundIds = {};
+        var pattern = /<dependency\s+id="(.+?)"/g;
+        var match;
+        while (match = pattern.exec(contents)) {
+            foundIds[match[1]] = true;
+        }
+        return Object.keys(foundIds);
+    }
+
     fs.readdirSync('plugins').forEach(function(p) {
         var pluginXmlPath = path.join('plugins', p, 'plugin.xml');
         if (fs.existsSync(pluginXmlPath)) {
-            idToServiceNameMap[p] = extractServiceNames(pluginXmlPath);
+            var contents = fs.readFileSync(pluginXmlPath, 'utf8');
+            idToServiceNameMap[p] = extractServiceNames(contents);
+            depsMap[p] = extractDependencies(contents);
         }
     });
 
-    var fileContents = 'myApp.value("pluginIdToServiceNames", ' + JSON.stringify(idToServiceNameMap, null, 4) + ');\n'
+    var fileContents = 'myApp.value("pluginIdToServiceNames", ' + JSON.stringify(idToServiceNameMap, null, 4) + ');\n' +
+        'myApp.value("pluginDepsMap", ' + JSON.stringify(depsMap, null, 4) + ');\n'
 
     platforms.forEach(function(platformId) {
         var wwwPath = preparedWwwPathMap[platformId];
         if (!fs.existsSync(path.join(wwwPath, 'cdvah', 'generated'))) {
             fs.mkdirSync(path.join(wwwPath, 'cdvah', 'generated'));
         }
-        var outPath = path.join(wwwPath, 'cdvah', 'generated', 'pluginIdToServiceNames.js');
+        var outPath = path.join(wwwPath, 'cdvah', 'generated', 'installedPluginsMetadata.js');
         fs.writeFileSync(outPath, fileContents);
         console.log('Wrote ' + outPath);
     });
@@ -78,5 +91,5 @@ function renameCordovaPluginsFile() {
         console.log('Renamed cordova_plugins.js -> ' + path.join(wwwPath, 'cordova_plugins_harness.js'));
     });
 }
-generatePluginToServiceNamesFile();
+generatePluginInfoFile();
 renameCordovaPluginsFile();
