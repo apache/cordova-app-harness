@@ -92,6 +92,17 @@ set -x
 $CORDOVA platform add $PLATFORM_ARGS || exit 1
 set +x
 
+if [[ "$PLATFORMS" = *android* ]]; then
+    echo 'var fs = require("fs");
+          var fname = "platforms/android/src/org/chromium/appdevtool/ChromeAppDeveloperTool.java";
+          var tname = "'$AH_PATH'/template-overrides/Activity.java";
+          var orig = fs.readFileSync(fname, "utf8");
+          var templ = fs.readFileSync(tname, "utf8");
+          var newData = orig.replace(/}\s*$/, templ + "\n}\n").replace(/import.*?$/m, "import org.apache.appharness.AppHarnessUI;\n$&");
+          fs.writeFileSync(fname, newData);
+          ' | node || exit $?
+fi
+
 mkdir -p hooks/after_prepare
 cp "$AH_PATH"/template-overrides/after-hook.js hooks/after_prepare
 

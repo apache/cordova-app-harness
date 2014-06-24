@@ -58,6 +58,14 @@ public class AppHarnessUI extends CordovaPlugin {
     boolean slaveVisible;
     CallbackContext eventsCallback;
 
+    public boolean isSlaveVisible() {
+        return slaveVisible;
+    }
+
+    public boolean isSlaveCreated() {
+        return slaveWebView != null && slaveWebView.getParent() != null;
+    }
+
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
         if ("create".equals(action)) {
@@ -100,7 +108,7 @@ public class AppHarnessUI extends CordovaPlugin {
         return true;
     }
 
-    private void sendEvent(String eventName) {
+    public void sendEvent(String eventName) {
         if (eventsCallback != null) {
             PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName);
             pluginResult.setKeepCallback(true);
@@ -280,6 +288,20 @@ public class AppHarnessUI extends CordovaPlugin {
             super.onSizeChanged(w, h, oldw, oldh);
             // Needed for the view to stay in the bottom when rotating.
             setPivotY(h);
+        }
+
+        @Override
+        public boolean backHistory() {
+            if (getView().getNavigationHistory().canGoBack()) {
+                return super.backHistory();
+            }
+            if (slaveVisible) {
+                sendEvent("showMenu");
+                return true;
+            }
+            // Should never get here since the webview does not have focus.
+            Log.w(LOG_TAG, "Somehow back button was pressed when app not visible");
+            return false;
         }
     }
 }
