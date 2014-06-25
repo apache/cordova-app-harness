@@ -71,9 +71,12 @@ function main() {
             usage();
         }
         var pushSession = client.createPushSession(args.argv.remain[1]);
-        client.quit().then(pushSession.push().then(onSuccess, onFailure));
+        client.quit()
+        .then(function() {
+            return pushSession.push();
+        }).then(onSuccess, onFailure);
     } else if (cmd == 'deleteall') {
-        client.deleteAllApps();
+        client.deleteAllApps().then(onSuccess, onFailure);
     } else if (cmd == 'delete') {
         if (!args.argv.remain[1]) {
             usage();
@@ -93,7 +96,7 @@ function main() {
     } else if (cmd == 'launch') {
         client.launch(args.argv.remain[1]).then(onSuccess, onFailure);
     } else if (cmd == 'quit') {
-        client.quit(args.argv.remain[1]).then(onSuccess, onFailure);
+        client.quit().then(onSuccess, onFailure);
     } else {
         usage();
     }
