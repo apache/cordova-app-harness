@@ -18,38 +18,33 @@
 */
 package org.apache.appharness;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.cordova.AndroidChromeClient;
-import org.apache.cordova.AndroidWebView;
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.ConfigXmlParser;
 import org.apache.cordova.CordovaActivity;
 import org.apache.cordova.CordovaArgs;
-import org.apache.cordova.CordovaChromeClient;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.CordovaWebViewClient;
-import org.apache.cordova.IceCreamCordovaWebViewClient;
 import org.apache.cordova.LinearLayoutSoftKeyboardDetect;
+import org.apache.cordova.PluginEntry;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewPropertyAnimator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class AppHarnessUI extends CordovaPlugin {
     private static final String LOG_TAG = "AppHarnessUI";
     ViewGroup contentView;
@@ -57,13 +52,14 @@ public class AppHarnessUI extends CordovaPlugin {
     CustomCordovaWebView slaveWebView;
     boolean slaveVisible;
     CallbackContext eventsCallback;
+    LinearLayoutSoftKeyboardDetect layoutView;
 
     public boolean isSlaveVisible() {
         return slaveVisible;
     }
 
     public boolean isSlaveCreated() {
-        return slaveWebView != null && slaveWebView.getParent() != null;
+        return slaveWebView != null && slaveWebView.getView().getParent() != null && ((ViewGroup)slaveWebView.getView().getParent()).getParent() != null;
     }
 
     @Override
@@ -116,16 +112,11 @@ public class AppHarnessUI extends CordovaPlugin {
         }
     }
 
-    @SuppressLint("NewApi")
     private void evalJs(String code, CallbackContext callbackContext) {
         if (slaveWebView == null) {
             Log.w(LOG_TAG, "Not evaluating JS since no app is active");
         } else {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-                slaveWebView.loadUrl("javascript:" + code);
-            } else {
-                slaveWebView.evaluateJavascript(code, null);
-            }
+            slaveWebView.evaluateJavascript(code);
         }
         callbackContext.success();
     }
@@ -136,21 +127,23 @@ public class AppHarnessUI extends CordovaPlugin {
         if (slaveWebView != null) {
             Log.w(LOG_TAG, "create: already exists");
         } else {
-            slaveWebView = new CustomCordovaWebView(activity);
-            initWebView(slaveWebView);
-            if (activity.getBooleanProperty("DisallowOverscroll", false)) {
-                slaveWebView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            slaveWebView = new CustomAndroidWebView(this, activity);
+        }
+        {
+            initWebView(slaveWebView, pluginIdWhitelist);
+            if (preferences.getBoolean("DisallowOverscroll", false)) {
+                slaveWebView.getView().setOverScrollMode(View.OVER_SCROLL_NEVER);
             }
             slaveWebView.clearCache(true);
             slaveWebView.clearHistory();
             slaveWebView.getPluginManager().setPluginIdWhitelist(pluginIdWhitelist);
             slaveWebView.loadUrl(url);
-            View newView = (View)slaveWebView.getParent();
+            View newView = (View)slaveWebView.getView().getParent();
             contentView.addView(newView);
             slaveVisible = true;
             // Back button capturing breaks without these:
+            webView.getView().setEnabled(false);
             newView.requestFocus();
-
         }
         callbackContext.success();
     }
@@ -159,10 +152,14 @@ public class AppHarnessUI extends CordovaPlugin {
         if (slaveWebView == null) {
             Log.w(LOG_TAG, "destroy: already destroyed");
         } else {
-            contentView.removeView((View)slaveWebView.getParent());
-            slaveWebView.destroy();
+            slaveWebView.loadUrl("data:text/plain;charset=utf-8,");
+            contentView.removeView((View)slaveWebView.getView().getParent());
+            webView.getView().setEnabled(true);
             origMainView.requestFocus();
-            slaveWebView = null;
+
+            slaveWebView.getView().setScaleX(1.0f);
+            slaveWebView.getView().setScaleY(1.0f);
+            slaveWebView.setStealTapEvents(false);
             slaveVisible = false;
             sendEvent("destroyed");
         }
@@ -182,16 +179,20 @@ public class AppHarnessUI extends CordovaPlugin {
             Log.w(LOG_TAG, "setSlaveVisible: slave not created");
         } else {
             slaveVisible = value;
-            ViewPropertyAnimator anim = slaveWebView.animate();
+            ViewPropertyAnimator anim = slaveWebView.getView().animate();
             // Note: Pivot is set in onSizeChanged.
             if (value) {
                 anim.scaleX(1.0f).scaleY(1.0f);
-                ((View)slaveWebView.getParent()).requestFocus();
+                webView.getView().setEnabled(false);
+                slaveWebView.getView().setEnabled(true);
+                ((View)slaveWebView.getView().getParent()).requestFocus();
             } else {
                 anim.scaleX(.25f).scaleY(.25f);
+                webView.getView().setEnabled(true);
+                slaveWebView.getView().setEnabled(false);
                 origMainView.requestFocus();
             }
-            slaveWebView.stealTapEvents = !value;
+            slaveWebView.setStealTapEvents( !value);
             anim.setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
         }
         if (callbackContext != null) {
@@ -199,109 +200,32 @@ public class AppHarnessUI extends CordovaPlugin {
         }
     }
 
-    private void initWebView(final AndroidWebView newWebView) {
+    private void initWebView(final CustomCordovaWebView newWebView, Set<String> pluginIdWhitelist) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
+        ConfigXmlParser parser = new ConfigXmlParser();
+        // TODO: Parse the app's config.xml rather than our own config.xml.
+        parser.parse(activity);
+        ArrayList<PluginEntry> pluginEntries = parser.getPluginEntries();
+
+        newWebView.init(cordova, pluginEntries, webView.getWhitelist(), preferences);
         if (contentView == null) {
             contentView = (ViewGroup)activity.findViewById(android.R.id.content);
             origMainView = contentView.getChildAt(0);
         }
 
-        LinearLayoutSoftKeyboardDetect layoutView = new LinearLayoutSoftKeyboardDetect(activity, contentView.getWidth(), contentView.getHeight());
+        if(layoutView == null) {
+            layoutView = new LinearLayoutSoftKeyboardDetect(activity, contentView.getWidth(), contentView.getHeight());
+            layoutView.addView(newWebView.getView());
+        }
         layoutView.setOrientation(LinearLayout.VERTICAL);
 
 //        layoutView.setBackground(origRootView.getBackground());
         layoutView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.BOTTOM | Gravity.LEFT));
 
-        newWebView.setWebViewClient((CordovaWebViewClient)new IceCreamCordovaWebViewClient(cordova, newWebView));
-        newWebView.setWebChromeClient((CordovaChromeClient)new AndroidChromeClient(cordova, newWebView));
-
-        newWebView.setLayoutParams(new LinearLayout.LayoutParams(
+        newWebView.getView().setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 1.0F));
-        layoutView.addView(newWebView);
-    }
-
-    // Based on: http://stackoverflow.com/questions/12414680/how-to-implement-a-two-finger-double-click-in-android
-    private class TwoFingerDoubleTapGestureDetector {
-        private final int TIMEOUT = ViewConfiguration.getDoubleTapTimeout() + 100;
-        private long mFirstDownTime = 0;
-        private boolean mSeparateTouches = false;
-        private byte mTwoFingerTapCount = 0;
-
-        private void reset(long time) {
-            mFirstDownTime = time;
-            mSeparateTouches = false;
-            mTwoFingerTapCount = 0;
-        }
-
-        public boolean onTouchEvent(MotionEvent event) {
-            switch(event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-                if(mFirstDownTime == 0 || event.getEventTime() - mFirstDownTime > TIMEOUT)
-                    reset(event.getDownTime());
-                break;
-            case MotionEvent.ACTION_POINTER_UP:
-                if(event.getPointerCount() == 2)
-                    mTwoFingerTapCount++;
-                else
-                    mFirstDownTime = 0;
-                break;
-            case MotionEvent.ACTION_UP:
-                if(!mSeparateTouches)
-                    mSeparateTouches = true;
-                else if(mTwoFingerTapCount == 2 && event.getEventTime() - mFirstDownTime < TIMEOUT) {
-                    sendEvent("showMenu");
-                    mFirstDownTime = 0;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-    }
-
-    private class CustomCordovaWebView extends AndroidWebView {
-        TwoFingerDoubleTapGestureDetector twoFingerTapDetector;
-        boolean stealTapEvents;
-
-        public CustomCordovaWebView(Context context) {
-            super(context);
-            twoFingerTapDetector = new TwoFingerDoubleTapGestureDetector();
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent e) {
-            if (stealTapEvents) {
-                if (e.getAction() == MotionEvent.ACTION_UP) {
-                    sendEvent("hideMenu");
-                }
-                return true;
-            }
-            twoFingerTapDetector.onTouchEvent(e);
-            return super.onTouchEvent(e);
-        }
-
-        @SuppressLint("NewApi")
-        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            super.onSizeChanged(w, h, oldw, oldh);
-            // Needed for the view to stay in the bottom when rotating.
-            setPivotY(h);
-        }
-
-        @Override
-        public boolean backHistory() {
-            if (getView().getNavigationHistory().canGoBack()) {
-                return super.backHistory();
-            }
-            if (slaveVisible) {
-                sendEvent("showMenu");
-                return true;
-            }
-            // Should never get here since the webview does not have focus.
-            Log.w(LOG_TAG, "Somehow back button was pressed when app not visible");
-            return false;
-        }
+        newWebView.getView().setVisibility(View.VISIBLE);
     }
 }

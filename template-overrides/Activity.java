@@ -2,7 +2,7 @@
     @Override
     public void onBackPressed() {
         // If app is running, quit it.
-        AppHarnessUI ahui = (AppHarnessUI)appView.getPlugin("AppHarnessUI");
+        AppHarnessUI ahui = (AppHarnessUI)appView.getPluginManager().getPlugin("AppHarnessUI");
         if (ahui != null) {
             if (ahui.isSlaveCreated()) {
                 ahui.sendEvent("quitApp");
@@ -17,7 +17,7 @@
     public Object onMessage(String id, Object data) {
         // Capture the app calling navigator.app.exitApp().
         if ("exit".equals(id)) {
-            AppHarnessUI ahui = (AppHarnessUI)appView.getPlugin("AppHarnessUI");
+            AppHarnessUI ahui = (AppHarnessUI)appView.getPluginManager().getPlugin("AppHarnessUI");
             if (ahui != null) {
                 if (ahui.isSlaveCreated()) {
                     ahui.sendEvent("quitApp");
