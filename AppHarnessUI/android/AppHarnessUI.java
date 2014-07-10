@@ -128,6 +128,8 @@ public class AppHarnessUI extends CordovaPlugin {
             Log.w(LOG_TAG, "create: already exists");
         } else {
             slaveWebView = new CustomAndroidWebView(this, activity);
+            // We'll set the plugin entries in initWebView.
+            slaveWebView.init(cordova, new ArrayList<PluginEntry>(), webView.getWhitelist(), preferences);
         }
         {
             initWebView(slaveWebView, pluginIdWhitelist);
@@ -136,7 +138,6 @@ public class AppHarnessUI extends CordovaPlugin {
             }
             slaveWebView.clearCache(true);
             slaveWebView.clearHistory();
-            slaveWebView.getPluginManager().setPluginIdWhitelist(pluginIdWhitelist);
             slaveWebView.loadUrl(url);
             View newView = (View)slaveWebView.getView().getParent();
             contentView.addView(newView);
@@ -192,7 +193,7 @@ public class AppHarnessUI extends CordovaPlugin {
                 slaveWebView.getView().setEnabled(false);
                 origMainView.requestFocus();
             }
-            slaveWebView.setStealTapEvents( !value);
+            slaveWebView.setStealTapEvents(!value);
             anim.setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
         }
         if (callbackContext != null) {
@@ -205,9 +206,14 @@ public class AppHarnessUI extends CordovaPlugin {
         ConfigXmlParser parser = new ConfigXmlParser();
         // TODO: Parse the app's config.xml rather than our own config.xml.
         parser.parse(activity);
-        ArrayList<PluginEntry> pluginEntries = parser.getPluginEntries();
+        ArrayList<PluginEntry> pluginEntries = new ArrayList<PluginEntry>(parser.getPluginEntries());
+        for (PluginEntry p : parser.getPluginEntries()) {
+            if (!pluginIdWhitelist.contains(p.service)) {
+                pluginEntries.remove(p);
+            }
+        }
+        slaveWebView.getPluginManager().setPluginEntries(pluginEntries);
 
-        newWebView.init(cordova, pluginEntries, webView.getWhitelist(), preferences);
         if (contentView == null) {
             contentView = (ViewGroup)activity.findViewById(android.R.id.content);
             origMainView = contentView.getChildAt(0);

@@ -30,7 +30,7 @@ class TwoFingerDoubleTapGestureDetector {
     private boolean mSeparateTouches = false;
     private byte mTwoFingerTapCount = 0;
 
-    public void setParent(AppHarnessUI parent) {
+    public TwoFingerDoubleTapGestureDetector(AppHarnessUI parent) {
         this.parent = parent;
     }
 

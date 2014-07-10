@@ -35,8 +35,7 @@ class CustomAndroidWebView extends AndroidWebView implements CustomCordovaWebVie
     public CustomAndroidWebView(AppHarnessUI parent, Context context) {
         super(context);
         this.parent = parent;
-        twoFingerTapDetector = new TwoFingerDoubleTapGestureDetector();
-        twoFingerTapDetector.setParent(parent);
+        twoFingerTapDetector = new TwoFingerDoubleTapGestureDetector(parent);
     }
 
     public void setStealTapEvents(boolean value){
