@@ -18,8 +18,21 @@
   under the License.
  */
 
-var nopt = require('nopt');
-var HarnessClient = require('cordova-harness-client');
+var path = require('path');
+try {
+    var nopt = require('nopt');
+} catch (e) {
+    console.log('Please run: ( cd ' + __dirname + ' && npm install )');
+    process.exit(1);
+}
+try {
+    var HarnessClient = require('cordova-harness-client');
+} catch (e) {
+    console.log('Please run: ( cd ' +
+        path.join(__dirname, 'node_modules', 'chrome-app-developer-tool-client') +
+        ' && npm install )');
+    process.exit(1);
+}
 
 function parseArgs(argv) {
     var opts = {

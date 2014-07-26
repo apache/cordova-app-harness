@@ -21,48 +21,62 @@ if [[ $# -eq 0 || "$1" = "--help" ]]; then
     echo "Usage: $0 NewDirName [--allplugins]>"
     echo 'Options via variables:'
     echo '  PLATFORMS="android ios"'
-    echo '  CORDOVA="path/to/cordova"'
     echo '  PLUGIN_SEARCH_PATH="path1:path2:path3"'
     echo '  APP_ID="org.apache.AppHarness"'
     echo '  APP_NAME="CordovaAppHarness"'
-    echo '  APP_VERSION="0.0.1"'
-    echo '  ANDROID_PATH="path/to/cordova-android"'
     exit 1
 fi
 
-CORDOVA="${CORDOVA-cordova}"
 PLATFORMS="${PLATFORMS-android}"
 APP_ID=${APP_ID-org.apache.appharness}
 APP_NAME=${APP_NAME-CordovaAppHarness}
-APP_VERSION=${APP_VERSION-0.0.1}
+APP_VERSION=$(cd "$AH_PATH" && node -e "console.log(require('./package').version)")
 DIR_NAME="${1}"
 AH_PATH="$(cd $(dirname $0) && pwd)"
 extra_search_path="$PLUGIN_SEARCH_PATH"
-PLUGIN_SEARCH_PATH="$(dirname "$AH_PATH")"
+PLUGIN_SEARCH_PATH=""
+
+PLUGIN_REGISTRY_FLAG=""
+if [[ -n "$DISABLE_PLUGIN_REGISTRY" ]]; then
+    PLUGIN_REGISTRY_FLAG=--noregistry
+fi
+
+CORDOVA="$AH_PATH/node_modules/cordova/bin/cordova"
+ALL_DEPS=$(cd "$AH_PATH" && node -e "console.log(Object.keys(require('./package').devDependencies).join(' '))")
+
+for dep in $ALL_DEPS; do
+    if [[ ! -e "$AH_PATH/node_modules/$dep" ]]; then
+        echo "Missing dependency: $dep"
+        echo 'Running: npm install'
+        (cd "$AH_PATH" && npm install)
+        break
+    fi
+done
 
 function ResolveSymlinks() {
-  local found_path="$1"
-  if [[ -n "$found_path" ]]; then
-      node -e "console.log(require('fs').realpathSync('$found_path'))"
-  fi
+    local found_path="$1"
+    if [[ -n "$found_path" ]]; then
+        node -e "console.log(require('fs').realpathSync('$found_path'))"
+    fi
 }
 function AddSearchPathIfExists() {
     if [[ -d "$1" ]]; then
-        PLUGIN_SEARCH_PATH="$PLUGIN_SEARCH_PATH:$1"
+        if [[ -n "$PLUGIN_SEARCH_PATH" ]]; then
+            PLUGIN_SEARCH_PATH="$PLUGIN_SEARCH_PATH:$1"
+        else
+            PLUGIN_SEARCH_PATH="$1"
+        fi
     fi
 }
+
 
 # Use coho to find Cordova plugins
 COHO_PATH=$(ResolveSymlinks $(which coho))
 if [[ -n "$COHO_PATH" ]]; then
+    echo "Using locally installed cordova plugins."
     CDV_PATH="$(dirname $(dirname "$COHO_PATH"))"
     AddSearchPathIfExists "$CDV_PATH"
     AddSearchPathIfExists "$CDV_PATH/cordova-plugins"
-    ANDROID_PATH=${ANDROID_PATH-$CDV_PATH/cordova-android}
-else
-    # For when repos are cloned as siblings.
-    AddSearchPathIfExists "$(dirname "$AH_PATH")"
-    AddSearchPathIfExists "$(dirname "$AH_PATH")/cordova-plugins"
 fi
 
 # Use cca to find Chrome plugins
@@ -76,7 +90,11 @@ if [[ -n "$extra_search_path" ]]; then
     PLUGIN_SEARCH_PATH="${extra_search_path}:$PLUGIN_SEARCH_PATH"
 fi
 
+rm -rf "$DIR_NAME"
+set -x
 "$CORDOVA" create "$DIR_NAME" "$APP_ID" "$APP_NAME" --link-to "$AH_PATH/www" || exit 1
+set +x
+
 cd "$DIR_NAME"
 cp "$AH_PATH/template-overrides/config.xml" . || exit 1
 perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
@@ -85,7 +103,7 @@ perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
 
 PLATFORM_ARGS="$PLATFORMS"
 if [[ -n "$ANDROID_PATH" ]]; then
-  PLATFORM_ARGS="${PLATFORMS/android/$ANDROID_PATH}"
+  PLATFORM_ARGS="${PLATFORMS/android/$AH_PATH/node_modules/cordova-android}"
 fi
 
 set -x
@@ -106,11 +124,8 @@ fi
 mkdir -p hooks/after_prepare
 cp "$AH_PATH"/template-overrides/after-hook.js hooks/after_prepare
 
-# if [[ $PLATFORMS = *ios* ]]; then
-    # ../../cordova-ios/bin/update_cordova_subproject platforms/ios/CordovaAppHarness.xcodeproj
-# fi
-
 echo Installing plugins.
+set -x
 # org.apache.cordova.device isn't used directly, but is convenient to test mobilespec.
 "$CORDOVA" plugin add\
     "$AH_PATH/UrlRemap" \
@@ -121,7 +136,8 @@ echo Installing plugins.
     org.apache.cordova.network-information \
     org.chromium.socket \
     org.chromium.zip \
-    --searchpath="$PLUGIN_SEARCH_PATH"
+    --searchpath="$PLUGIN_SEARCH_PATH" \
+    $PLUGIN_REGISTRY_FLAG || exit $?
 
 if [[ "$2" = "--allplugins" ]]; then
 "$CORDOVA" plugin add \
@@ -142,7 +158,8 @@ if [[ "$2" = "--allplugins" ]]; then
     org.apache.cordova.splashscreen \
     org.apache.cordova.statusbar \
     org.apache.cordova.vibration \
-    --searchpath="$PLUGIN_SEARCH_PATH"
+    --searchpath="$PLUGIN_SEARCH_PATH" \
+    $PLUGIN_REGISTRY_FLAG || exit $?
     # Skipped core plugins:
     # org.apache.cordova.console
 fi
@@ -150,41 +167,10 @@ fi
 # To enable barcode scanning:
 # $CORDOVA plugin add https://github.com/wildabeast/BarcodeScanner.git # Optional
 
-cordova prepare
+"$CORDOVA" prepare || exit $?
+ln -s "$CORDOVA" .
 
-if [[ $? != 0 ]]; then
-    echo "Plugin installation failed. Probably you need to set PLUGIN_SEARCH_PATH env variable so that it contains the plugin that failed to install."
-    exit 1
-fi
-
-echo '
-var cordova = require("../../cordova-cli/cordova");
-
-module.exports = function(grunt) {
-  // Simple config to run jshint any time a file is added, changed or deleted
-  grunt.initConfig({
-    watch: {
-      files: ["www/**"],
-      tasks: ["prepare"],
-    },
-  });
-  grunt.loadNpmTasks("grunt-contrib-watch");
-
-  grunt.registerTask("prepare", "Runs cdv prepare", function() {
-    var done = this.async();
-    cordova.prepare(function(e) {
-      done(!e);
-    });
-  });
-
-  // Default task(s).
-  grunt.registerTask("default", ["watch"]);
-};
-' > Gruntfile.js
-
-mkdir node_modules
-
-# TODO: Add an option for installing grunt
-exit 0
-npm install grunt grunt-contrib-watch || exit 1
+set +x
+echo "Project successfully created at:"
+pwd
 

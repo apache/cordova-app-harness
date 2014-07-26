@@ -1,0 +1,18 @@
+{
+  "name": "cordova-app-harness",
+  "version": "0.0.1-dev",
+  "description": "Cordova companion app for rapid development iteration",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/cordova-app-harness.git"
+  },
+  "author": "The Cordova Team",
+  "license": "Apache version 2.0",
+  "bugs": {
+    "url": "http://issues.apache.org/jira/browse/CB"
+  },
+  "devDependencies": {
+    "cordova": "latest",
+    "cordova-android": "apache/cordova-android#4.0.x"
+  }
+}
