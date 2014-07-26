@@ -27,7 +27,11 @@ if [[ $# -eq 0 || "$1" = "--help" ]]; then
     exit 1
 fi
 
-PLATFORMS="${PLATFORMS-android}"
+if [[ "Darwin" = $(uname -s) ]]; then
+    PLATFORMS="${PLATFORMS-android ios}"
+else
+    PLATFORMS="${PLATFORMS-android}"
+fi
 APP_ID=${APP_ID-org.apache.appharness}
 APP_NAME=${APP_NAME-CordovaAppHarness}
 APP_VERSION=$(cd "$AH_PATH" && node -e "console.log(require('./package').version)")
@@ -101,10 +105,7 @@ perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
 perl -i -pe "s/{NAME}/$APP_NAME/g" config.xml || exit 1
 perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
 
-PLATFORM_ARGS="$PLATFORMS"
-if [[ -n "$ANDROID_PATH" ]]; then
-  PLATFORM_ARGS="${PLATFORMS/android/$AH_PATH/node_modules/cordova-android}"
-fi
+PLATFORM_ARGS="${PLATFORMS/android/$AH_PATH/node_modules/cordova-android}"
 
 set -x
 $CORDOVA platform add $PLATFORM_ARGS || exit 1
