@@ -21,4 +21,8 @@
     <name>{NAME}</name>
     <content src="cdvah/harnessmenu.html" />
     <access origin="*" />
+    <preference name="webView" value="org.apache.cordova.AndroidWebView" />
+    <preference name="android-minSdkVersion" value="14" />
+    <preference name="iosPersistentFileLocation" value="Library" />
+    <preference name="AndroidPersistentFileLocation" value="Internal" />
 </widget>
