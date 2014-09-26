@@ -42,6 +42,16 @@ public class UrlRemap extends CordovaPlugin {
     // Shared routing for all webviews.
     private static RouteParams resetUrlParams;
     private static List<RouteParams> rerouteParams = new ArrayList<RouteParams>();
+    private static boolean hasMaster;
+    private boolean isMaster;
+
+    @Override
+    protected void pluginInitialize() {
+        if (!hasMaster) {
+            hasMaster = true;
+            isMaster = true;
+        }
+    }
 
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
@@ -90,6 +100,10 @@ public class UrlRemap extends CordovaPlugin {
 
     @Override
     public boolean onOverrideUrlLoading(String url) {
+        // Don't remap for the main webview.
+        if (isMaster) {
+            return false;
+        }
         synchronized (rerouteParams) {
             if (resetUrlParams != null && resetUrlParams.matchRegex.matcher(url).find()) {
                 resetMappings();
@@ -128,6 +142,10 @@ public class UrlRemap extends CordovaPlugin {
 
     @Override
     public Uri remapUri(Uri uri) {
+        // Don't remap for the main webview.
+        if (isMaster) {
+            return null;
+        }
         synchronized (rerouteParams) {
             String uriAsString = uri.toString();
             RouteParams params = getChosenParams(uriAsString, false);
