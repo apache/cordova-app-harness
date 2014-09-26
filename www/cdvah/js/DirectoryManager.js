@@ -82,8 +82,15 @@
             }
             this._assetManifestEtag = Math.floor(Math.random() * 0xFFFFFFFF);
             this._lazyWriteAssetManifest();
+            var self = this;
             if (etag !== null && this.onFileAdded) {
-                return this.onFileAdded(relativePath, etag);
+                return this.onFileAdded(relativePath, etag)
+                .then(null, function(err) {
+                    // If there was an error with the file, delete it so that clients will
+                    // send it again.
+                    return self.deleteFile(relativePath)
+                    .then(function() { throw err; }, function() { throw err; });
+                });
             }
         };
 
@@ -133,10 +140,10 @@
         DirectoryManager.prototype.deleteFile = function(relativePath) {
             if (!this._assetManifest[relativePath]) {
                 console.warn('Tried to delete non-existing file: ' + relativePath);
-            } else {
-                this._updateManifest(relativePath, null);
-                return ResourcesLoader.delete(this.rootURL + relativePath);
+                return $q.when();
             }
+            this._updateManifest(relativePath, null);
+            return ResourcesLoader.delete(this.rootURL + relativePath);
         };
 
         return DirectoryManager;
