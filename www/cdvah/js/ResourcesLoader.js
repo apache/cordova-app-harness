@@ -121,7 +121,7 @@
             });
         }
 
-        return {
+        var ResourcesLoader = {
             createTmpFileUrl: function(extension) {
                 return TEMP_DIR + Math.floor(Math.random()* 100000000) + (extension || '');
             },
@@ -140,12 +140,12 @@
 
             //returns a promise with the contents of the file
             readFileContents: function(url) {
-                return this.xhrGet(url);
+                return ResourcesLoader.xhrGet(url);
             },
 
             //returns a promise with the json contents of the file
             readJSONFileContents: function(url) {
-                return this.xhrGet(url, true);
+                return ResourcesLoader.xhrGet(url, true);
             },
 
             xhrGet: function(url, json) {
@@ -234,5 +234,6 @@
                 });
             }
         };
+        return ResourcesLoader;
     }]);
 })();
