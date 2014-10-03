@@ -23,7 +23,7 @@
     <h3 class="topcoat-list__header">Installed Apps</h3>
     <ul class="topcoat-list">
         <li class="topcoat-list__item" ng-repeat="app in appList">
-            <div>{{app.appId}}</div>
+            <div>{{app.getAppName() || app.getConfigXmlId() || app.appId}}</div>
             <div ng-show="app.updatingStatus === null">Last updated: <span am-time-ago="app.lastUpdated"></span></div>
             <div ng-show="app.updatingStatus !== null">Update in progress: {{app.updatingStatus}}%</div>
             <div ng-show="app.plugins.missing.length + app.plugins.newer.length + app.plugins.older.length > 0">
@@ -39,6 +39,7 @@
             <button ng-click="showDetails($index)">Details</button>
         </li>
     </ul>
+  </div>
 </div>
 
 

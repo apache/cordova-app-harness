@@ -17,7 +17,7 @@
   under the License.
 -->
 <div class="in-app-menu-container">
-  <h1>{{app.appName || app.appId}}</h1>
+  <h1>{{app.getAppName() || app.getConfigXmlId() || app.appId}}</h1>
   <button ng-click="restartApp()">Restart App</button><br>
   <button ng-click="quitApp()">Quit App</button>
 </div>
