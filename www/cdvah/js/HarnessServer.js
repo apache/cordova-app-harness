@@ -106,6 +106,32 @@
             return req.readChunk().then(handleChunk);
         }
 
+        function pipeFileToResponse(srcUrl, resp) {
+            // TODO: HttpServer needs to expose a "readyForWrite" event, and we need to use FileReader
+            // so that we can stream this.
+            // Might also be able to get the file as a Blob via an XHR,
+            // but that doesn't help us to send it to socket (needs an arraybuffer).
+            return ResourcesLoader.resolveFileAsBlob(srcUrl)
+            .then(function(blob) {
+                resp.headers['Content-Type'] = blob.type || 'application/octet-stream';
+                resp.headers['Content-Length'] = '' + blob.size;
+                var readFunc = ResourcesLoader.readBlobInChunks(blob);
+                return readFunc()
+                .then(function writeChunk(arrayBuffer) {
+                    // End of file.
+                    if (!arrayBuffer) {
+                        resp.close();
+                        return;
+                    }
+                    // TODO: Read next chunk while writing current chunk.
+                    return resp.writeChunk(arrayBuffer)
+                    .then(function() {
+                        return readFunc().then(writeChunk);
+                    });
+                });
+            });
+        }
+
         function handleExec(req, resp) {
             var js = req.getQueryParam('code');
             return AppHarnessUI.evalJs(js)
@@ -335,6 +361,22 @@
             });
         }
 
+        function handleGetFile(req, resp) {
+            var appId = req.getQueryParam('appId');
+            var path = req.getQueryParam('path');
+            // Strip beginning /, and any ../ (attempt at security)
+            path = path.replace(/^\/+/, '').replace(/\/\.+\//g, '/');
+
+            return AppsService.getAppById(appId)
+            .then(function(app) {
+                var filePath = app.directoryManager.rootURL + path;
+                return pipeFileToResponse(filePath, resp)
+                .then(null, function() {
+                    throw new HttpServer.ResponseException(404, 'File not found. Tried: ' + filePath);
+                });
+            });
+        }
+
         function handleInfo(req, resp) {
             var activeApp = AppsService.getActiveApp();
             var json = {
@@ -364,7 +406,8 @@
                 .addRoute('/deletefiles', ensureMethodDecorator('POST', handleDeleteFiles))
                 .addRoute('/putfile', ensureMethodDecorator('PUT', handlePutFile))
                 .addRoute('/zippush', ensureMethodDecorator('POST', handleZipPush))
-                .addRoute('/deleteapp', ensureMethodDecorator('POST', handleDeleteApp));
+                .addRoute('/deleteapp', ensureMethodDecorator('POST', handleDeleteApp))
+                .addRoute('/getfile', ensureMethodDecorator('GET', handleGetFile));
             return server.start();
         }
 

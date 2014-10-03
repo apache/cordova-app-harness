@@ -57,6 +57,12 @@
             return deferred.promise;
         }
 
+        function filePromisified(entry) {
+            var deferred = $q.defer();
+            entry.file(deferred.resolve, deferred.reject);
+            return deferred.promise;
+        }
+
         function dirName(path) {
             return path.replace(/\/[^\/]+\/?$/, '/');
         }
@@ -121,6 +127,25 @@
             });
         }
 
+        function createFileReaderGenerator(blob, chunkSize) {
+            var reader = new FileReader();
+            var curOffset = 0;
+            // Returns a promise for the next chunk.
+            return function() {
+                if (curOffset >= blob.size) {
+                    return $q.when(null);
+                }
+                var deferred = $q.defer();
+                reader.onloadend = function() {
+                    deferred.resolve(reader.result);
+                };
+                var curBlob = blob.slice(curOffset, curOffset + chunkSize);
+                curOffset += chunkSize;
+                reader.readAsArrayBuffer(curBlob);
+                return deferred.promise;
+            };
+        }
+
         var ResourcesLoader = {
             createTmpFileUrl: function(extension) {
                 return TEMP_DIR + Math.floor(Math.random()* 100000000) + (extension || '');
@@ -143,13 +168,32 @@
                 return ResourcesLoader.xhrGet(url);
             },
 
+            //returns a promise with the contents of the file
+            readBinaryFileContents: function(url) {
+                return ResourcesLoader.xhrGet(url, false, true);
+            },
+
+            resolveFileAsBlob: function(url) {
+                return resolveURL(url)
+                .then(function(fileEntry) {
+                    return filePromisified(fileEntry);
+                });
+            },
+
+            //returns a promise with a function that returns promises of array buffers.
+            readBlobInChunks: function(blob, chunkSize) {
+                chunkSize = chunkSize || 256 * 1024;
+                return createFileReaderGenerator(blob, chunkSize);
+            },
+
             //returns a promise with the json contents of the file
             readJSONFileContents: function(url) {
                 return ResourcesLoader.xhrGet(url, true);
             },
 
-            xhrGet: function(url, json) {
-                var opts = json ? null : {transformResponse: []};
+            xhrGet: function(url, json, binary) {
+                var opts = binary ? {responseType: 'arraybuffer'} :
+                           json ? null : {transformResponse: []};
                 return $http.get(url, opts)
                 .then(function(response, status) {
                     if (!response) {
