@@ -128,6 +128,14 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (void)reload:(CDVInvokedUrlCommand*)command {
+    if (_slaveCordovaViewController == nil) {
+        NSLog(@"AppHarnessUI.reload: no url to reload");
+    } else {
+        [[_slaveCordovaViewController webView] reload];
+    }
+}
+
 - (void)destroy:(CDVInvokedUrlCommand*)command {
     if (_slaveCordovaViewController == nil) {
         NSLog(@"AppHarnessUI.destroy: already destroyed.");

@@ -49,6 +49,11 @@
                 cordova.plugins.appharnessui.destroy(deferred.resolve);
                 return deferred.promise;
             },
+            reload: function() {
+                var deferred = $q.defer();
+                cordova.plugins.appharnessui.reload(deferred.resolve);
+                return deferred.promise;
+            },
             setVisible: function(value) {
                 var deferred = $q.defer();
                 cordova.plugins.appharnessui.setVisible(value, deferred.resolve);

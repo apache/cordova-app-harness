@@ -30,6 +30,10 @@ exports.create = function(url, serviceNameWhitelist, win) {
     exec(win, null, 'AppHarnessUI', 'create', [url, serviceNameWhitelist]);
 };
 
+exports.reload = function(win) {
+    exec(win, null, 'AppHarnessUI', 'reload', []);
+}
+
 exports.destroy = function(win) {
     exec(win, null, 'AppHarnessUI', 'destroy', []);
 };
