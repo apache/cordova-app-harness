@@ -139,8 +139,21 @@
             },
 
             launchApp : function(installer) {
-                return AppsService.quitApp()
+                // Determine whether we're relaunching the same app as is already active.
+                var relaunch = activeInstaller && activeInstaller.appId;
+                relaunch = installer && installer.appId;
+                relaunch = relaunch && (activeInstaller.appId === installer.appId);
+
+                return $q.when()
                 .then(function() {
+                    // If we're relaunching the active app, move on.
+                    // Otherwise, quit the active app.
+                    if (relaunch) {
+                        return $q.when();
+                    } else {
+                        return AppsService.quitApp();
+                    }
+                }).then(function() {
                     activeInstaller = installer;
                     return installer.launch();
                 }).then(function(launchUrl) {
@@ -152,7 +165,14 @@
                         return installer.getPluginMetadata();
                     }).then(function(pluginMetadata) {
                         $location.path('/inappmenu');
-                        return AppHarnessUI.create(launchUrl, pluginMetadata);
+                        // If we're relaunching the active app, just reload the existing webview.
+                        // Otherwise, create a new one.
+                        // TODO(maxw): Use the existing webview all the time.
+                        if (relaunch) {
+                            return AppHarnessUI.reload();
+                        } else {
+                            return AppHarnessUI.create(launchUrl, pluginMetadata);
+                        }
                     }).then(function() {
                         if (AppsService.onAppListChange) {
                             AppsService.onAppListChange();
