@@ -53,7 +53,6 @@ public class AppHarnessUI extends CordovaPlugin {
     boolean slaveVisible;
     CallbackContext eventsCallback;
     LinearLayoutSoftKeyboardDetect layoutView;
-    String startUrl;
 
     public boolean isSlaveVisible() {
         return slaveVisible;
@@ -67,20 +66,19 @@ public class AppHarnessUI extends CordovaPlugin {
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
         if ("create".equals(action)) {
             final String url = args.getString(0);
-            JSONArray pluginIdWhitelist = args.getJSONArray(1);
-            final Set<String> pluginIdWhitelistAsSet = new HashSet<String>(pluginIdWhitelist.length());
-            for (int i = 0; i < pluginIdWhitelist.length(); ++i) {
-                pluginIdWhitelistAsSet.add(pluginIdWhitelist.getString(i));
-            }
+            final Set<String> pluginIdWhitelistAsSet = jsonArrayToSet(args.getJSONArray(1));
             this.cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
                     create(url, pluginIdWhitelistAsSet, callbackContext);
                 }
             });
         } else if ("reload".equals(action)) {
+            final String url = args.getString(0);
+            final Set<String> pluginIdWhitelistAsSet = jsonArrayToSet(args.getJSONArray(1));
+            final String webViewType = args.getString(2);
             this.cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
-                    reload(callbackContext);
+                    reload(url, pluginIdWhitelistAsSet, webViewType, callbackContext);
                 }
             });
         } else if ("destroy".equals(action)) {
@@ -111,6 +109,14 @@ public class AppHarnessUI extends CordovaPlugin {
         return true;
     }
 
+    private Set<String> jsonArrayToSet(JSONArray jsonArray) throws JSONException {
+        final Set<String> set = new HashSet<String>(jsonArray.length());
+        for (int i = 0; i < jsonArray.length(); ++i) {
+            set.add(jsonArray.getString(i));
+        }
+        return set;
+    }
+
     public void sendEvent(String eventName) {
         if (eventsCallback != null) {
             PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName);
@@ -129,7 +135,6 @@ public class AppHarnessUI extends CordovaPlugin {
     }
 
     private void create(String url, Set<String> pluginIdWhitelist, CallbackContext callbackContext) {
-        startUrl = url;
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
 
         if (slaveWebView != null) {
@@ -157,14 +162,14 @@ public class AppHarnessUI extends CordovaPlugin {
         callbackContext.success();
     }
 
-    private void reload(CallbackContext callbackContext) {
+    private void reload(String url, Set<String> pluginIdWhitelist, String webViewType, CallbackContext callbackContext) {
         if (slaveWebView == null) {
             Log.w(LOG_TAG, "reload: no webview exists");
-        } else if (startUrl == null) {
-            Log.w(LOG_TAG, "reload: no recorded start url");
         } else {
+            // TODO(maxw): If the webview type has changed, create a new webview.
+            setPluginEntries(pluginIdWhitelist);
             slaveWebView.clearCache(true);
-            slaveWebView.loadUrl(startUrl);
+            slaveWebView.loadUrl(url);
         }
         callbackContext.success();
     }
@@ -182,7 +187,6 @@ public class AppHarnessUI extends CordovaPlugin {
             slaveWebView.getView().setScaleY(1.0f);
             slaveWebView.setStealTapEvents(false);
             slaveVisible = false;
-            startUrl = null;
             sendEvent("destroyed");
         }
         if (eventsCallback != null) {
@@ -222,7 +226,7 @@ public class AppHarnessUI extends CordovaPlugin {
         }
     }
 
-    private void initWebView(final CustomCordovaWebView newWebView, Set<String> pluginIdWhitelist) {
+    private void setPluginEntries(Set<String> pluginIdWhitelist) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
         ConfigXmlParser parser = new ConfigXmlParser();
         // TODO: Parse the app's config.xml rather than our own config.xml.
@@ -234,7 +238,12 @@ public class AppHarnessUI extends CordovaPlugin {
             }
         }
         slaveWebView.getPluginManager().setPluginEntries(pluginEntries);
+    }
 
+    private void initWebView(final CustomCordovaWebView newWebView, Set<String> pluginIdWhitelist) {
+        setPluginEntries(pluginIdWhitelist);
+
+        CordovaActivity activity = (CordovaActivity)cordova.getActivity();
         if (contentView == null) {
             contentView = (ViewGroup)activity.findViewById(android.R.id.content);
             origMainView = contentView.getChildAt(0);

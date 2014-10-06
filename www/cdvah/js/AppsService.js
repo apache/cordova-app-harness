@@ -140,14 +140,15 @@
 
             launchApp : function(installer) {
                 // Determine whether we're relaunching the same app as is already active.
-                var relaunch = activeInstaller && activeInstaller.appId;
-                relaunch = installer && installer.appId;
-                relaunch = relaunch && (activeInstaller.appId === installer.appId);
+                var activeAppId = activeInstaller && activeInstaller.appId;
+                var newAppId = installer && installer.appId;
+                var relaunch = activeAppId && newAppId && activeAppId === newAppId;
 
                 return $q.when()
                 .then(function() {
                     // If we're relaunching the active app, move on.
                     // Otherwise, quit the active app.
+                    // TODO(maxw): Determine whether we actually ever need to quit the app.
                     if (relaunch) {
                         return $q.when();
                     } else {
@@ -169,7 +170,7 @@
                         // Otherwise, create a new one.
                         // TODO(maxw): Use the existing webview all the time.
                         if (relaunch) {
-                            return AppHarnessUI.reload();
+                            return AppHarnessUI.reload(launchUrl, pluginMetadata, 'system');
                         } else {
                             return AppHarnessUI.create(launchUrl, pluginMetadata);
                         }

@@ -129,10 +129,14 @@
 }
 
 - (void)reload:(CDVInvokedUrlCommand*)command {
+    NSString* url = [command argumentAtIndex:0];
     if (_slaveCordovaViewController == nil) {
-        NSLog(@"AppHarnessUI.reload: no url to reload");
+        NSLog(@"AppHarnessUI.reload: no webview exists");
     } else {
-        [[_slaveCordovaViewController webView] reload];
+        [_slaveCordovaViewController setStartPage:url];
+        NSURL *urlObj = [NSURL URLWithString:url];
+        NSURLRequest *requestObj = [NSURLRequest requestWithURL:urlObj];
+        [[_slaveCordovaViewController webView] loadRequest:requestObj];
     }
 }
 
