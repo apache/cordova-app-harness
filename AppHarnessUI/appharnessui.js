@@ -31,9 +31,6 @@ exports.create = function(url, serviceNameWhitelist, win) {
 };
 
 exports.reload = function(url, serviceNameWhitelist, webViewType, win) {
-    if (webViewType != "system" && webViewType != "crosswalk") {
-        return;
-    }
     exec(win, null, 'AppHarnessUI', 'reload', [url, serviceNameWhitelist, webViewType]);
 };
 
