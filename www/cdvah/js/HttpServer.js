@@ -85,20 +85,27 @@
         };
 
         HttpRequest.prototype.readEntireBody = function() {
+            var self = this;
             var byteArray = null;
             var soFar = 0;
-            var self = this;
             function handleChunk(chunk) {
-                if (byteArray) {
-                    byteArray.set(chunk, soFar);
-                    soFar += chunk.byteLength;
-                }
+                byteArray.set(new Uint8Array(chunk), soFar);
+                soFar += chunk.byteLength;
+
                 if (self.bytesRemaining === 0) {
-                    return byteArray ? byteArray.buffer : chunk;
+                    return byteArray.buffer;
                 }
                 return self.readChunk().then(handleChunk);
             }
-            return this.readChunk().then(handleChunk);
+            return this.readChunk().then(function(chunk) {
+                // Avoid array copy if there's only one chunk.
+                if (self.bytesRemaining === 0) {
+                    return chunk;
+                }
+                // Otherwise, allocate the buffer based on Content-Length.
+                byteArray = new Uint8Array(self.bytesRemaining + chunk.byteLength);
+                return handleChunk(chunk);
+            });
         };
 
         HttpRequest.prototype.readChunk = function(/* optional */maxChunkSize) {
