@@ -114,6 +114,9 @@ set +x
 if [[ "$PLATFORMS" = *android* ]]; then
     echo 'var fs = require("fs");
           var fname = "platforms/android/src/org/apache/appharness/CordovaAppHarness.java";
+          if (!fs.existsSync(fname)) {
+              fname = "platforms/android/src/org/apache/appharness/MainActivity.java";
+          }
           var tname = "'$AH_PATH'/template-overrides/Activity.java";
           var orig = fs.readFileSync(fname, "utf8");
           var templ = fs.readFileSync(tname, "utf8");
