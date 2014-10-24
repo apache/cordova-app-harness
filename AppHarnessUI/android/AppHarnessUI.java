@@ -238,6 +238,9 @@ public class AppHarnessUI extends CordovaPlugin {
             }
         }
         slaveWebView.getPluginManager().setPluginEntries(pluginEntries);
+        // This is added by cordova-android in code, so we need to re-add it likewise.
+        // Note that we re-route navigator.app.exitApp() in JS to close the webview rather than close the Activity.
+        slaveWebView.getPluginManager().addService("App", "org.apache.cordova.CoreAndroid");
     }
 
     private void initWebView(final CustomCordovaWebView newWebView, Set<String> pluginIdWhitelist) {
