@@ -408,6 +408,8 @@
                 .addRoute('/zippush', ensureMethodDecorator('POST', handleZipPush))
                 .addRoute('/deleteapp', ensureMethodDecorator('POST', handleDeleteApp))
                 .addRoute('/getfile', ensureMethodDecorator('GET', handleGetFile));
+
+            window.HTTP_SERVER = server; // for debugging
             return server.start();
         }
 
@@ -416,7 +418,7 @@
                 return $q.when(listenAddress);
             }
             var deferred = $q.defer();
-            chrome.socket.getNetworkList(function(interfaces) {
+            chrome.system.network.getNetworkInterfaces(function(interfaces) {
                 // Filter out ipv6 addresses.
                 var ret = interfaces.filter(function(i) {
                     return i.address.indexOf(':') === -1;

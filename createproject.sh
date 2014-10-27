@@ -138,7 +138,9 @@ set -x
     org.apache.cordova.file-transfer \
     org.apache.cordova.device \
     org.apache.cordova.network-information \
-    org.chromium.socket \
+    org.chromium.sockets.tcp \
+    org.chromium.sockets.tcpserver \
+    org.chromium.system.network \
     org.chromium.zip \
     --searchpath="$PLUGIN_SEARCH_PATH" \
     $PLUGIN_REGISTRY_FLAG || exit $?

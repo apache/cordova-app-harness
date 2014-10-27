@@ -31,6 +31,24 @@
         var STATE_RESPONSE_WAITING_FOR_FLUSH = 5;
         var STATE_COMPLETE = 6;
 
+        // Map of socketId -> Socket.
+        var socketMap = Object.create(null);
+
+        chrome.sockets.tcp.onReceive.addListener(function(receiveInfo) {
+            var socket = socketMap[receiveInfo.socketId];
+            if (socket) {
+                socket._pendingReadChunks.push(receiveInfo.data);
+                socket._onReceive();
+            }
+        });
+
+        chrome.sockets.tcp.onReceiveError.addListener(function(receiveInfo) {
+            var socket = socketMap[receiveInfo.socketId];
+            if (socket) {
+                socket._onReceiveError(receiveInfo.resultCode);
+            }
+        });
+
         function changeState(requestData, newState) {
             if (newState <= requestData.state) {
                 throw new Error('Socket ' + requestData.socket.socketId + ' state error: ' + requestData.state + '->' + newState);
@@ -217,56 +235,49 @@
             if (disconnect) {
                 this._requestData.socket.close();
             } else {
-                this._requestData.httpServer._onAccept(socketId);
+                this._requestData.httpServer._onAccept(this._requestData.socket);
             }
         };
 
         function Socket(socketId) {
+            socketMap[socketId] = this;
             this.socketId = socketId;
             this.alive = true;
             this.onClose = null;
-            this._pendingReadChunk = null;
+            this._pendingReadChunks = [];
+            this._pendingReadDeferred = null;
             this._writeQueue = [];
-            this._readInProgress = false;
+            this._paused = true;
         }
 
         Socket.prototype.unread = function(chunk) {
-            if (this._pendingReadChunk) {
-                throw new Error('Socket.unread called multiple times.');
+            if (chunk.byteLength > 0) {
+                this._pendingReadChunks.unshift(chunk);
+                this._onReceive();
             }
-            this._pendingReadChunk = chunk;
         };
 
         Socket.prototype.read = function(maxLength) {
-            if (this._readInProgress) {
+            if (this._pendingReadDeferred) {
                 throw new Error('Read already in progress.');
+            } else if (!this.alive) {
+                throw new Error('Socket.read called after socket closed.');
             }
-            this._readInProgress = true;
             maxLength = maxLength || Infinity;
-            var self = this;
             var deferred = $q.defer();
-            var bufSize = Math.min(200 * 1024, maxLength);
-            var chunk = this._pendingReadChunk;
+            var chunk = this._pendingReadChunks.shift();
             if (chunk) {
-                self._readInProgress = false;
                 if (chunk.byteLength <= maxLength) {
-                    this._pendingReadChunk = null;
                     deferred.resolve(chunk);
                 } else {
-                    this._pendingReadChunk = chunk.slice(maxLength);
+                    this._pendingReadChunks.unshift(chunk.slice(maxLength));
                     deferred.resolve(chunk.slice(0, maxLength));
                 }
             } else {
-                chrome.socket.read(this.socketId, bufSize, function(readInfo) {
-                    self._readInProgress = false;
-                    if (!readInfo.data) {
-                        var err = new Error('Socket.read() failed with code ' + readInfo.resultCode);
-                        self.close(err);
-                        deferred.reject(err);
-                    } else {
-                        deferred.resolve(readInfo.data);
-                    }
-                });
+                this._pendingReadDeferred = deferred;
+            }
+            if (this._pendingReadChunks.length <= 1) {
+                this._setPaused(false);
             }
             return deferred.promise;
         };
@@ -282,14 +293,43 @@
             return deferred.promise;
         };
 
-        Socket.prototype.close = function(/*(optional*/ error) {
+        Socket.prototype.close = function(/*optional*/ error) {
             if (this.alive) {
                 this.alive = false;
-                chrome.socket.destroy(this.socketId);
+                delete socketMap[this.socketId];
+                chrome.sockets.tcp.close(this.socketId);
                 if (this.onClose) {
                     this.onClose(error);
                 }
             }
+            if (this._pendingReadDeferred) {
+                var deferred = this._pendingReadDeferred;
+                this._pendingReadDeferred = null;
+                deferred.reject(error);
+            }
+        };
+
+        Socket.prototype._setPaused = function(value) {
+            if (value != this._paused) {
+                chrome.sockets.tcp.setPaused(this.socketId, value, null);
+                this._paused = value;
+            }
+        };
+
+        Socket.prototype._onReceive = function() {
+            if (this._pendingReadDeferred) {
+                var deferred = this._pendingReadDeferred;
+                this._pendingReadDeferred = null;
+                deferred.resolve(this._pendingReadChunks.shift());
+            }
+            if (this._pendingReadChunks.length > 2) {
+                this._setPaused(true);
+            }
+        };
+
+        Socket.prototype._onReceiveError = function(resultCode) {
+            var err = new Error('Socket.read() failed with code ' + resultCode);
+            this.close(err);
         };
 
         Socket.prototype._pokeWriteQueue = function() {
@@ -300,14 +340,14 @@
             var deferred = this._writeQueue[1];
             if (arrayBuffer && arrayBuffer.byteLength > 0) {
                 var self = this;
-                chrome.socket.write(this.socketId, arrayBuffer, function(writeInfo) {
-                    if (writeInfo.bytesWritten !== arrayBuffer.byteLength) {
+                chrome.sockets.tcp.send(this.socketId, arrayBuffer, function(writeInfo) {
+                    if (writeInfo.bytesSent !== arrayBuffer.byteLength) {
                         console.warn('Failed to write entire ArrayBuffer.');
                     }
                     self._writeQueue.shift();
                     self._writeQueue.shift();
-                    if (writeInfo.bytesWritten < 0) {
-                        var err = new Error('Write error: ' + -writeInfo.bytesWritten);
+                    if (writeInfo.bytesSent < 0) {
+                        var err = new Error('Write error: ' + -writeInfo.bytesSent);
                         deferred.reject(err);
                         self.close(err);
                     } else {
@@ -337,17 +377,28 @@
         HttpServer.prototype.start = function(/* optional */ port) {
             port = port || DEFAULT_PORT;
             var deferred = $q.defer();
-            var boundAccept = this._onAccept.bind(this);
+            var self = this;
             console.log('Starting web server on port ' + port);
-            chrome.socket.create('tcp', function(createInfo) {
+            chrome.sockets.tcpServer.create(function(createInfo) {
                 if (!createInfo) {
                     console.error('Failed to create socket: ' + chrome.runtime.lastError);
                     deferred.reject(new Error('Failed to create socket: ' + chrome.runtime.lastError));
                     return;
                 }
-                chrome.socket.listen(createInfo.socketId, '0.0.0.0', port, function(result) {
+                chrome.sockets.tcpServer.listen(createInfo.socketId, '0.0.0.0', port, function(result) {
                     if (result === 0) {
-                        acceptLoop(createInfo.socketId, boundAccept);
+                        chrome.sockets.tcpServer.onAccept.addListener(function(acceptInfo) {
+                            if (acceptInfo.socketId === createInfo.socketId) {
+                                // Default size of 4k does not work very efficiently over Cordova's exec() bridge.
+                                chrome.sockets.tcp.update(acceptInfo.clientSocketId, {bufferSize: 200 * 1024});
+                                self._onAccept(new Socket(acceptInfo.clientSocketId));
+                            }
+                        });
+                        chrome.sockets.tcpServer.onAcceptError.addListener(function(errorInfo) {
+                            if (errorInfo.socketId === createInfo.socketId) {
+                                console.warn('Socket error occurred: ' + errorInfo.resultCode + ' (TODO: handle this!)');
+                            }
+                        });
                         deferred.resolve();
                     } else {
                         console.error('Error on socket.listen: ' + result);
@@ -358,18 +409,11 @@
             return deferred.promise;
         };
 
-        function acceptLoop(socketId, acceptCallback) {
-            chrome.socket.accept(socketId, function(acceptInfo) {
-                acceptCallback(acceptInfo.socketId);
-                acceptLoop(socketId, acceptCallback);
-            });
-        }
-
-        HttpServer.prototype._onAccept = function(socketId) {
-            console.log('Connection established on socket ' + socketId);
+        HttpServer.prototype._onAccept = function(socket) {
+            console.log('Connection established on socket ' + socket.socketId);
             var requestData = {
                 state: STATE_NEW,
-                socket: new Socket(socketId),
+                socket: socket,
                 dataAsStr: '', // Used only when parsing head of request.
                 method: null,
                 resource: null,
@@ -379,7 +423,7 @@
                 httpResponse: null,
                 httpRequest: null
             };
-            this._requests[socketId] = requestData;
+            this._requests[socket.socketId] = requestData;
             var self = this;
             return readRequestHeaders(requestData)
             .then(function() {
