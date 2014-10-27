@@ -13,6 +13,8 @@
   },
   "devDependencies": {
     "cordova": "latest",
-    "cordova-android": "apache/cordova-android#4.0.x"
+    "cordova-android": "apache/cordova-android#4.0.x",
+    "gulp": "latest",
+    "gulp-jshint": "~1.6"
   }
 }
