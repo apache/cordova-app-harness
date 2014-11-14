@@ -79,31 +79,10 @@
         }
 
         function pipeRequestToFile(req, destUrl) {
-            var writer = null;
-            function handleChunk(arrayBuffer) {
-                var ret = $q.when();
-                if (writer == null) {
-                   ret = ResourcesLoader.createFileWriter(destUrl)
-                   .then(function(w) {
-                       writer = w;
-                   });
-                }
-                return ret.then(function() {
-                    var deferred = $q.defer();
-                    writer.onwrite = deferred.resolve;
-                    writer.onerror = function() {
-                      deferred.reject(writer.error);
-                    };
-                    writer.write(arrayBuffer);
-                    return deferred.promise;
-                })
-                .then(function() {
-                    if (req.bytesRemaining > 0) {
-                        return req.readChunk().then(handleChunk);
-                    }
-                });
-            }
-            return req.readChunk().then(handleChunk);
+            return ResourcesLoader.createFileWriter(destUrl)
+            .then(function(w) {
+                return req.pipeToUri(w, destUrl);
+            });
         }
 
         function pipeFileToResponse(srcUrl, resp) {
