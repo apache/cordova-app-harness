@@ -34,7 +34,8 @@
                 var getInfoCallback = function() {
                     HarnessServer.getListenAddress(/* skipCache */ true)
                     .then(function(value) {
-                        $scope.ipAddress = value ? value : 'Failed to start server';
+                        // No IP addresses happens when wifi is not connected.
+                        $scope.ipAddress = value ? value : '127.0.0.1';
                     });
                 };
 
