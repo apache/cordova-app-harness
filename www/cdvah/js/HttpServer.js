@@ -18,6 +18,7 @@
 */
 (function() {
     'use strict';
+
     /* global myApp */
     /* global chrome */
     myApp.factory('HttpServer', ['$q', function($q) {
@@ -35,6 +36,9 @@
         var socketMap = Object.create(null);
 
         chrome.sockets.tcp.onReceive.addListener(function(receiveInfo) {
+            if (HttpServer.VERBOSE_LOGGING) {
+                console.log('read on socket ' + receiveInfo.socketId + ' of len=' + (receiveInfo.data && receiveInfo.data.byteLength));
+            }
             var socket = socketMap[receiveInfo.socketId];
             if (socket) {
                 // data will be missing when piping to a file.
@@ -141,7 +145,9 @@
                     // TODO: Change this to pass in self.bytesRemaining.
                     return self._requestData.socket.pipeToUri(uri, true)
                     .then(null, null, function(numBytesRead) {
-                        console.log('Piped chunk of size ' + numBytesRead);
+                        if (HttpServer.VERBOSE_LOGGING) {
+                            console.log('Piped chunk of size ' + numBytesRead);
+                        }
                         self._updateBytesRemaining(numBytesRead);
                         if (self.bytesRemaining === 0) {
                             // TODO: Delete stopPipeToFile() once pipeToUrl takes in a byteCount.
@@ -199,7 +205,9 @@
             .then(function(chunk) {
                 if (chunk) {
                     var chunkSize = chunk.byteLength;
-                    console.log('Processing request chunk of size ' + chunkSize);
+                    if (HttpServer.VERBOSE_LOGGING) {
+                        console.log('Processing request chunk of size ' + chunkSize);
+                    }
                     self._updateBytesRemaining(chunkSize);
                 }
                 return chunk;
@@ -291,7 +299,7 @@
             if (disconnect) {
                 this._requestData.socket.close();
             } else {
-                this._requestData.httpServer._onAccept(this._requestData.socket);
+                this._requestData.httpServer._onAccept(this._requestData.socket, true);
             }
         };
 
@@ -441,6 +449,10 @@
             var deferred = this._writeQueue[1];
             if (arrayBuffer && arrayBuffer.byteLength > 0) {
                 var self = this;
+                if (HttpServer.VERBOSE_LOGGING) {
+                    console.log('sending chunk of len=' + arrayBuffer.byteLength);
+                    console.log('contents: ' + arrayBufferToString(arrayBuffer));
+                }
                 chrome.sockets.tcp.send(this.socketId, arrayBuffer, function(writeInfo) {
                     if (writeInfo.bytesSent !== arrayBuffer.byteLength) {
                         console.warn('Failed to write entire ArrayBuffer.');
@@ -457,6 +469,9 @@
                     }
                 });
             } else {
+                if (HttpServer.VERBOSE_LOGGING) {
+                    console.log('not sending chunk of len=' + arrayBuffer);
+                }
                 this._writeQueue.shift();
                 this._writeQueue.shift();
                 deferred.resolve();
@@ -469,6 +484,9 @@
             this._requests = Object.create(null); // Map of socketId -> Object
             this._handlers = Object.create(null); // Map of resourcePath -> function(httpRequest, httpResponse)
         }
+
+        // Toggle this to enable more console logs.
+        HttpServer.VERBOSE_LOGGING = false;
 
         HttpServer.prototype.addRoute = function(path, func) {
             this._handlers[path] = func;
@@ -492,7 +510,7 @@
                             if (acceptInfo.socketId === createInfo.socketId) {
                                 // Default size of 4k does not work very efficiently over Cordova's exec() bridge.
                                 chrome.sockets.tcp.update(acceptInfo.clientSocketId, {bufferSize: 200 * 1024});
-                                self._onAccept(new Socket(acceptInfo.clientSocketId));
+                                self._onAccept(new Socket(acceptInfo.clientSocketId), false);
                             }
                         });
                         chrome.sockets.tcpServer.onAcceptError.addListener(function(errorInfo) {
@@ -510,8 +528,12 @@
             return deferred.promise;
         };
 
-        HttpServer.prototype._onAccept = function(socket) {
-            console.log('Connection established on socket ' + socket.socketId);
+        HttpServer.prototype._onAccept = function(socket, isReuse) {
+            if (isReuse) {
+                console.log('Re-using socket ' + socket.socketId + ' due to Connection: keep-alive');
+            } else {
+                console.log('Connection established on socket ' + socket.socketId);
+            }
             var requestData = {
                 state: STATE_NEW,
                 socket: socket,
