@@ -37,7 +37,11 @@
 
         chrome.sockets.tcp.onReceive.addListener(function(receiveInfo) {
             if (HttpServer.VERBOSE_LOGGING) {
-                console.log('read on socket ' + receiveInfo.socketId + ' of len=' + (receiveInfo.data && receiveInfo.data.byteLength));
+                if (receiveInfo.data) {
+                    console.log('read on socket ' + receiveInfo.socketId + ' of len=' + receiveInfo.data.byteLength);
+                } else {
+                    console.log('piped read on socket ' + receiveInfo.socketId + ' of len=' + receiveInfo.bytesRead);
+                }
             }
             var socket = socketMap[receiveInfo.socketId];
             if (socket) {
@@ -142,17 +146,9 @@
                 var deferred = $q.defer();
                 // Only way to get a null arrayBuffer is when flushReadQueue() has been called.
                 if (!arrayBuffer) {
-                    // TODO: Change this to pass in self.bytesRemaining.
-                    return self._requestData.socket.pipeToUri(uri, true)
+                    return self._requestData.socket.pipeToUri(uri, self.bytesRemaining, true)
                     .then(null, null, function(numBytesRead) {
-                        if (HttpServer.VERBOSE_LOGGING) {
-                            console.log('Piped chunk of size ' + numBytesRead);
-                        }
                         self._updateBytesRemaining(numBytesRead);
-                        if (self.bytesRemaining === 0) {
-                            // TODO: Delete stopPipeToFile() once pipeToUrl takes in a byteCount.
-                            self._requestData.socket.stopPipeToFile();
-                        }
                     });
                 }
                 fileWriter.onwrite = deferred.resolve;
@@ -371,6 +367,8 @@
                 chrome.sockets.tcp.close(this.socketId);
                 if (this.onClose) {
                     this.onClose(error);
+                } else if (error) {
+                    console.warn(error);
                 }
             }
             if (this._pendingReadDeferred) {
@@ -393,7 +391,7 @@
             return deferred.promise;
         };
 
-        Socket.prototype.pipeToUri = function(uri, append) {
+        Socket.prototype.pipeToUri = function(uri, numBytes, append) {
             if (this._pendingReadDeferred) {
                 throw new Error('socket.pipeToUri() called during bad state.');
             }
@@ -403,17 +401,16 @@
             if (this._pendingReadChunks.length) {
                 throw new Error('socket.pipeToUri() called when there are outstanding read chunks.');
             }
-            this._pendingPipeToFileDeferred = $q.defer();
-            chrome.sockets.tcp.update(this.socketId, { destUri: uri, append: append });
+            var deferred = $q.defer();
+            this._pendingPipeToFileDeferred = deferred;
+            var self = this;
+            chrome.sockets.tcp.pipeToFile(this.socketId, { uri: uri, append: append, numBytes: numBytes}, function() {
+                self._pendingPipeToFileDeferred = null;
+                deferred.resolve();
+            });
             // TODO: The sockets call to initiate piping should unpause automatically.
             this._setPaused(false);
-            return this._pendingPipeToFileDeferred.promise;
-        };
-
-        Socket.prototype.stopPipeToFile = function() {
-            var deferred = this._pendingPipeToFileDeferred;
-            this._pendingPipeToFileDeferred = null;
-            chrome.sockets.tcp.update(this.socketId, { destUri: '' }, deferred.resolve);
+            return deferred.promise;
         };
 
         Socket.prototype._setPaused = function(value) {
@@ -437,7 +434,15 @@
         };
 
         Socket.prototype._onReceiveError = function(resultCode) {
-            var err = new Error('Socket.read() failed with code ' + resultCode);
+            var desc = (chrome.runtime.lastError && chrome.runtime.lastError.message);
+            var msg;
+            if (this._pendingReadDeferred) {
+                msg = 'Socket.read() failed with code ' + resultCode + ' reason: ' + desc;
+            } else {
+                msg = 'Socket closed because: ' + desc + ' (code=' + resultCode + ')';
+            }
+            var err = new Error(msg);
+            err.resultCode = resultCode;
             this.close(err);
         };
 
@@ -470,7 +475,7 @@
                 });
             } else {
                 if (HttpServer.VERBOSE_LOGGING) {
-                    console.log('not sending chunk of len=' + arrayBuffer);
+                    console.log('not sending chunk of len=' + (arrayBuffer && arrayBuffer.byteLength));
                 }
                 this._writeQueue.shift();
                 this._writeQueue.shift();
@@ -548,6 +553,17 @@
             };
             this._requests[socket.socketId] = requestData;
             var self = this;
+            socket.onClose = function(err) {
+                // -2 means closed by remote side.
+                if (err && err.resultCode == -2 && requestData.state === STATE_NEW) {
+                    if (HttpServer.VERBOSE_LOGGING) {
+                        console.log('Socket ' + socket.socketId + ' closed by remote peer');
+                    }
+                } else if (err) {
+                    console.warn('Socket ' + socket.socketId + ': ' + err);
+                }
+                delete self._requests[socket.socketId];
+            };
             return readRequestHeaders(requestData)
             .then(function() {
                 var req = new HttpRequest(requestData);
