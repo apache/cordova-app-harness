@@ -158,7 +158,7 @@
                     activeInstaller = installer;
                     return installer.launch();
                 }).then(function(launchUrl) {
-                    return installer.getPluginMetadata()
+                    return $q.when(installer.getPluginMetadata())
                     .then(function(pluginMetadata) {
                         $location.path('/inappmenu');
                         // If we're relaunching the active app, just reload the existing webview.
