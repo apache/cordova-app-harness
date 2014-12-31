@@ -29,7 +29,7 @@ try {
     var HarnessClient = require('cordova-harness-client');
 } catch (e) {
     console.log('Please run: ( cd ' +
-        path.join(__dirname, 'node_modules', 'chrome-app-developer-tool-client') +
+        path.join(__dirname, 'node_modules', 'cordova-harness-client') +
         ' && npm install )');
     process.exit(1);
 }
