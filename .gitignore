@@ -2,3 +2,4 @@
 /harness-push/node_modules/*
 !/harness-push/node_modules/cordova-harness-client
 /harness-push/node_modules/cordova-harness-client/node_modules
+/node_modules
