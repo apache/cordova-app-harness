@@ -30,7 +30,7 @@
             });
             if (cordova.platformId == 'android') {
                 // This is a plugin bundled with the platform.
-                ret.push('App');
+                ret.push('CoreAndroid');
                 // Needed for launching to work.
                 ret.push('UrlRemap');
             }

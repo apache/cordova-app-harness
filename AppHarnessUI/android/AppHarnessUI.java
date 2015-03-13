@@ -18,6 +18,8 @@
 */
 package org.apache.appharness;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,39 +29,48 @@ import org.apache.cordova.ConfigXmlParser;
 import org.apache.cordova.CordovaActivity;
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.LinearLayoutSoftKeyboardDetect;
+import org.apache.cordova.CordovaWebView;
+import org.apache.cordova.CordovaWebViewEngine;
+import org.apache.cordova.CordovaWebViewImpl;
 import org.apache.cordova.PluginEntry;
 import org.apache.cordova.PluginResult;
+import org.apache.cordova.whitelist.WhitelistPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.annotation.TargetApi;
+import android.content.res.XmlResourceParser;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewPropertyAnimator;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class AppHarnessUI extends CordovaPlugin {
     private static final String LOG_TAG = "AppHarnessUI";
     ViewGroup contentView;
-    View origMainView;
-    CustomCordovaWebView slaveWebView;
+    CordovaWebView slaveWebView;
+    CustomCordovaWebView slaveWebViewEngine;
     boolean slaveVisible;
     CallbackContext eventsCallback;
-    LinearLayoutSoftKeyboardDetect layoutView;
+
+    @Override
+    public void pluginInitialize() {
+        contentView = (ViewGroup)cordova.getActivity().findViewById(android.R.id.content);
+    }
 
     public boolean isSlaveVisible() {
         return slaveVisible;
     }
 
     public boolean isSlaveCreated() {
-        return slaveWebView != null && slaveWebView.getView().getParent() != null && ((ViewGroup)slaveWebView.getView().getParent()).getParent() != null;
+        return slaveWebView != null && slaveWebView.getView().getParent() != null;
     }
 
     @Override
@@ -126,10 +137,10 @@ public class AppHarnessUI extends CordovaPlugin {
     }
 
     private void evalJs(String code, CallbackContext callbackContext) {
-        if (slaveWebView == null) {
+        if (slaveWebViewEngine == null) {
             Log.w(LOG_TAG, "Not evaluating JS since no app is active");
         } else {
-            slaveWebView.evaluateJavascript(code);
+            slaveWebViewEngine.evaluateJavascript(code);
         }
         callbackContext.success();
     }
@@ -140,24 +151,24 @@ public class AppHarnessUI extends CordovaPlugin {
         if (slaveWebView != null) {
             Log.w(LOG_TAG, "create: already exists");
         } else {
-            slaveWebView = new CustomAndroidWebView(this, activity);
+            slaveWebViewEngine = new CustomAndroidWebView(this, activity);
+            slaveWebView = new CordovaWebViewImpl(webView.getContext(), (CordovaWebViewEngine)slaveWebViewEngine);
+            // A consistent view ID is needed for plugins that utilize the background-activity plugin.
+            slaveWebView.getView().setId(200);
             // We'll set the plugin entries in initWebView.
-            slaveWebView.init(cordova, new ArrayList<PluginEntry>(), webView.getWhitelist(), webView.getExternalWhitelist(), preferences);
+            slaveWebView.init(cordova, new ArrayList<PluginEntry>(), preferences);
         }
         {
-            initWebView(slaveWebView, pluginIdWhitelist);
-            if (preferences.getBoolean("DisallowOverscroll", false)) {
-                slaveWebView.getView().setOverScrollMode(View.OVER_SCROLL_NEVER);
-            }
+            initWebView((CordovaWebViewEngine)slaveWebViewEngine, pluginIdWhitelist);
+
             slaveWebView.clearCache(true);
             slaveWebView.clearHistory();
             slaveWebView.loadUrl(url);
-            View newView = (View)slaveWebView.getView().getParent();
-            contentView.addView(newView);
+            contentView.addView(slaveWebView.getView());
             slaveVisible = true;
             // Back button capturing breaks without these:
             webView.getView().setEnabled(false);
-            newView.requestFocus();
+            slaveWebView.getView().requestFocus();
         }
         callbackContext.success();
     }
@@ -179,13 +190,13 @@ public class AppHarnessUI extends CordovaPlugin {
             Log.w(LOG_TAG, "destroy: already destroyed");
         } else {
             slaveWebView.loadUrl("data:text/plain;charset=utf-8,");
-            contentView.removeView((View)slaveWebView.getView().getParent());
+            contentView.removeView(slaveWebView.getView());
             webView.getView().setEnabled(true);
-            origMainView.requestFocus();
+            webView.getView().requestFocus();
 
             slaveWebView.getView().setScaleX(1.0f);
             slaveWebView.getView().setScaleY(1.0f);
-            slaveWebView.setStealTapEvents(false);
+            slaveWebViewEngine.setStealTapEvents(false);
             slaveVisible = false;
             sendEvent("destroyed");
         }
@@ -211,14 +222,14 @@ public class AppHarnessUI extends CordovaPlugin {
                 anim.scaleX(1.0f).scaleY(1.0f);
                 webView.getView().setEnabled(false);
                 slaveWebView.getView().setEnabled(true);
-                ((View)slaveWebView.getView().getParent()).requestFocus();
+                slaveWebView.getView().requestFocus();
             } else {
                 anim.scaleX(.25f).scaleY(.25f);
                 webView.getView().setEnabled(true);
                 slaveWebView.getView().setEnabled(false);
-                origMainView.requestFocus();
+                webView.getView().requestFocus();
             }
-            slaveWebView.setStealTapEvents(!value);
+            slaveWebViewEngine.setStealTapEvents(!value);
             anim.setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
         }
         if (callbackContext != null) {
@@ -235,36 +246,47 @@ public class AppHarnessUI extends CordovaPlugin {
         for (PluginEntry p : parser.getPluginEntries()) {
             if (!pluginIdWhitelist.contains(p.service)) {
                 pluginEntries.remove(p);
+            } else if (WhitelistPlugin.class.getCanonicalName().equals(p.pluginClass)) {
+                // TODO: pass through path to launching config.xml.
+                //p.plugin = createWhitelistPlugin();
             }
         }
         slaveWebView.getPluginManager().setPluginEntries(pluginEntries);
         // This is added by cordova-android in code, so we need to re-add it likewise.
         // Note that we re-route navigator.app.exitApp() in JS to close the webview rather than close the Activity.
-        slaveWebView.getPluginManager().addService("App", "org.apache.cordova.CoreAndroid");
+        slaveWebView.getPluginManager().addService("CoreAndroid", "org.apache.cordova.CoreAndroid");
     }
 
-    private void initWebView(final CustomCordovaWebView newWebView, Set<String> pluginIdWhitelist) {
+    private CordovaPlugin createWhitelistPlugin(Uri configXml) {
+        InputStream istr = null;
+        try {
+            istr = webView.getResourceApi().openForRead(configXml).inputStream;
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            factory.setNamespaceAware(false);
+            XmlPullParser parser = factory.newPullParser();
+            parser.setInput(istr, "UTF-8");
+            return new WhitelistPlugin(parser);
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (istr != null) {
+                try {
+                    istr.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+        return null;
+    }
+
+    private void initWebView(final CordovaWebViewEngine newWebView, Set<String> pluginIdWhitelist) {
         setPluginEntries(pluginIdWhitelist);
 
-        CordovaActivity activity = (CordovaActivity)cordova.getActivity();
-        if (contentView == null) {
-            contentView = (ViewGroup)activity.findViewById(android.R.id.content);
-            origMainView = contentView.getChildAt(0);
-        }
-
-        if(layoutView == null) {
-            layoutView = new LinearLayoutSoftKeyboardDetect(activity, contentView.getWidth(), contentView.getHeight());
-            layoutView.addView(newWebView.getView());
-        }
-        layoutView.setOrientation(LinearLayout.VERTICAL);
-
-//        layoutView.setBackground(origRootView.getBackground());
-        layoutView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.BOTTOM | Gravity.LEFT));
-
-        newWebView.getView().setLayoutParams(new LinearLayout.LayoutParams(
+        newWebView.getView().setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                1.0F));
+                ViewGroup.LayoutParams.MATCH_PARENT));
         newWebView.getView().setVisibility(View.VISIBLE);
     }
 }

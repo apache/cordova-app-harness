@@ -18,65 +18,48 @@
 */
 package org.apache.appharness;
 
-import org.apache.cordova.AndroidWebView;
+import org.apache.cordova.engine.SystemWebView;
+import org.apache.cordova.engine.SystemWebViewEngine;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.webkit.WebView;
 
-class CustomAndroidWebView extends AndroidWebView implements CustomCordovaWebView {
-    private static final String LOG_TAG = "AppHarnessUI";
+class CustomAndroidWebView extends SystemWebViewEngine implements CustomCordovaWebView {
+    private static final String LOG_TAG = "CustomAndroidWebView";
 
     private AppHarnessUI parent;
+    TwoFingerDoubleTapGestureDetector twoFingerTapDetector;
+    boolean stealTapEvents;
 
     public CustomAndroidWebView(AppHarnessUI parent, Context context) {
-        super(context);
+        super(new CustomView(context));
         this.parent = parent;
+        ((CustomView)webView).parent = this;
         twoFingerTapDetector = new TwoFingerDoubleTapGestureDetector(parent);
     }
 
+    @Override
     public void setStealTapEvents(boolean value){
         stealTapEvents=value;
     }
 
-    TwoFingerDoubleTapGestureDetector twoFingerTapDetector;
-    boolean stealTapEvents;
-
+    @SuppressLint("NewApi")
     @Override
-    public boolean onTouchEvent(MotionEvent e) {
-        if (stealTapEvents) {
-            if (e.getAction() == MotionEvent.ACTION_UP) {
-                parent.sendEvent("hideMenu");
-            }
-            return true;
-        }
-        twoFingerTapDetector.onTouchEvent(e);
-        return super.onTouchEvent(e);
-    }
-
-    @SuppressLint("NewApi")
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        // Needed for the view to stay in the bottom when rotating.
-        setPivotY(h);
-    }
-
-    @SuppressLint("NewApi")
     public void evaluateJavascript(String script) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-            loadUrl("javascript:" + script);
+            webView.loadUrl("javascript:" + script);
         } else {
-            ((WebView)this).evaluateJavascript(script, null);
+            webView.evaluateJavascript(script, null);
         }
     }
-    
+
     @Override
-    public boolean backHistory() {
+    public boolean goBack() {
         if (canGoBack()) {
-            return super.backHistory();
+            return super.goBack();
         }
         if (parent.slaveVisible) {
             parent.sendEvent("showMenu");
@@ -85,5 +68,31 @@ class CustomAndroidWebView extends AndroidWebView implements CustomCordovaWebVie
         // Should never get here since the webview does not have focus.
         Log.w(LOG_TAG, "Somehow back button was pressed when app not visible");
         return false;
+    }
+
+    private static class CustomView extends SystemWebView {
+        CustomAndroidWebView parent;
+        public CustomView(Context context) {
+            super(context);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            if (parent.stealTapEvents) {
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+                    parent.parent.sendEvent("hideMenu");
+                }
+                return true;
+            }
+            parent.twoFingerTapDetector.onTouchEvent(e);
+            return super.onTouchEvent(e);
+        }
+
+        @SuppressLint("NewApi")
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            // Needed for the view to stay in the bottom when rotating.
+            setPivotY(h);
+        }
     }
 }
