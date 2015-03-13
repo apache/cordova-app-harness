@@ -108,7 +108,7 @@ perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
 PLATFORM_ARGS="${PLATFORMS/android/$AH_PATH/node_modules/cordova-android}"
 
 set -x
-$CORDOVA platform add $PLATFORM_ARGS || exit 1
+$CORDOVA platform add $PLATFORM_ARGS --link || exit 1
 set +x
 
 if [[ "$PLATFORMS" = *android* ]]; then
@@ -142,6 +142,7 @@ set -x
     org.chromium.sockets.tcpserver \
     org.chromium.system.network \
     org.chromium.zip \
+    --link \
     --searchpath="$PLUGIN_SEARCH_PATH" \
     $PLUGIN_REGISTRY_FLAG || exit $?
 
@@ -164,6 +165,8 @@ if [[ "$2" = "--allplugins" ]]; then
     org.apache.cordova.splashscreen \
     org.apache.cordova.statusbar \
     org.apache.cordova.vibration \
+    org.apache.cordova.whitelist \
+    --link \
     --searchpath="$PLUGIN_SEARCH_PATH" \
     $PLUGIN_REGISTRY_FLAG || exit $?
     # Skipped core plugins:
