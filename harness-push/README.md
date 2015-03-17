@@ -10,9 +10,7 @@ For usage, run:
 
 ## Port Forwarding (Android)
 
-If are connected via `adb`, you can port forward via:
-
-    adb forward tcp:2424 tcp:2424
+No longer required!
 
 ## Port Forwarding (iOS)
 
