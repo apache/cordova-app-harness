@@ -18,6 +18,7 @@
 */
 package org.apache.appharness;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -76,20 +77,22 @@ public class AppHarnessUI extends CordovaPlugin {
     @Override
     public boolean execute(String action, CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
         if ("create".equals(action)) {
-            final String url = args.getString(0);
-            final Set<String> pluginIdWhitelistAsSet = jsonArrayToSet(args.getJSONArray(1));
+            final Uri startUri = Uri.parse(args.getString(0));
+            final Uri configXmlUri = Uri.parse(args.getString(1));
+            final Set<String> pluginIdWhitelistAsSet = jsonArrayToSet(args.getJSONArray(2));
+            final String webViewType = args.getString(3);
             this.cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
-                    create(url, pluginIdWhitelistAsSet, callbackContext);
+                    create(startUri, configXmlUri, pluginIdWhitelistAsSet, webViewType, callbackContext);
                 }
             });
         } else if ("reload".equals(action)) {
-            final String url = args.getString(0);
-            final Set<String> pluginIdWhitelistAsSet = jsonArrayToSet(args.getJSONArray(1));
-            final String webViewType = args.getString(2);
+            final Uri startUri = Uri.parse(args.getString(0));
+            final Uri configXmlUri = Uri.parse(args.getString(1));
+            final Set<String> pluginIdWhitelistAsSet = jsonArrayToSet(args.getJSONArray(2));
             this.cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
-                    reload(url, pluginIdWhitelistAsSet, webViewType, callbackContext);
+                    reload(startUri, configXmlUri, pluginIdWhitelistAsSet, callbackContext);
                 }
             });
         } else if ("destroy".equals(action)) {
@@ -145,7 +148,7 @@ public class AppHarnessUI extends CordovaPlugin {
         callbackContext.success();
     }
 
-    private void create(String url, Set<String> pluginIdWhitelist, CallbackContext callbackContext) {
+    private void create(Uri startUri, Uri configXmlUri, Set<String> pluginIdWhitelist, String webViewType, CallbackContext callbackContext) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
 
         if (slaveWebView != null) {
@@ -158,29 +161,28 @@ public class AppHarnessUI extends CordovaPlugin {
             // We'll set the plugin entries in initWebView.
             slaveWebView.init(cordova, new ArrayList<PluginEntry>(), preferences);
         }
-        {
-            initWebView((CordovaWebViewEngine)slaveWebViewEngine, pluginIdWhitelist);
+        setPluginEntries(pluginIdWhitelist, configXmlUri);
 
-            slaveWebView.clearCache(true);
-            slaveWebView.clearHistory();
-            slaveWebView.loadUrl(url);
-            contentView.addView(slaveWebView.getView());
-            slaveVisible = true;
-            // Back button capturing breaks without these:
-            webView.getView().setEnabled(false);
-            slaveWebView.getView().requestFocus();
-        }
+        slaveWebView.clearCache(true);
+        slaveWebView.clearHistory();
+        slaveWebView.loadUrl(startUri.toString());
+        contentView.addView(slaveWebView.getView());
+        slaveVisible = true;
+        // Back button capturing breaks without these:
+        webView.getView().setEnabled(false);
+        slaveWebView.getView().requestFocus();
         callbackContext.success();
     }
 
-    private void reload(String url, Set<String> pluginIdWhitelist, String webViewType, CallbackContext callbackContext) {
+    private void reload(Uri startUri, Uri configXmlUri, Set<String> pluginIdWhitelist, CallbackContext callbackContext) {
         if (slaveWebView == null) {
             Log.w(LOG_TAG, "reload: no webview exists");
         } else {
             // TODO(maxw): If the webview type has changed, create a new webview.
-            setPluginEntries(pluginIdWhitelist);
+            setPluginEntries(pluginIdWhitelist, configXmlUri);
             slaveWebView.clearCache(true);
-            slaveWebView.loadUrl(url);
+            slaveWebView.clearHistory();
+            slaveWebView.loadUrl(startUri.toString());
         }
         callbackContext.success();
     }
@@ -237,19 +239,21 @@ public class AppHarnessUI extends CordovaPlugin {
         }
     }
 
-    private void setPluginEntries(Set<String> pluginIdWhitelist) {
+    private void setPluginEntries(Set<String> pluginIdWhitelist, Uri configXmlUri) {
         CordovaActivity activity = (CordovaActivity)cordova.getActivity();
+        // Extract the <feature> from CADT's config.xml, and filter out unwanted plugins.
         ConfigXmlParser parser = new ConfigXmlParser();
-        // TODO: Parse the app's config.xml rather than our own config.xml.
         parser.parse(activity);
         ArrayList<PluginEntry> pluginEntries = new ArrayList<PluginEntry>(parser.getPluginEntries());
-        for (PluginEntry p : parser.getPluginEntries()) {
+        for (int i = 0; i < pluginEntries.size();) {
+            PluginEntry p = pluginEntries.get(i);
             if (!pluginIdWhitelist.contains(p.service)) {
                 pluginEntries.remove(p);
+                continue;
             } else if (WhitelistPlugin.class.getCanonicalName().equals(p.pluginClass)) {
-                // TODO: pass through path to launching config.xml.
-                //p.plugin = createWhitelistPlugin();
+                pluginEntries.set(i, new PluginEntry(p.service, createWhitelistPlugin(configXmlUri)));
             }
+            ++i;
         }
         slaveWebView.getPluginManager().setPluginEntries(pluginEntries);
         // This is added by cordova-android in code, so we need to re-add it likewise.
@@ -257,10 +261,10 @@ public class AppHarnessUI extends CordovaPlugin {
         slaveWebView.getPluginManager().addService("CoreAndroid", "org.apache.cordova.CoreAndroid");
     }
 
-    private CordovaPlugin createWhitelistPlugin(Uri configXml) {
+    private CordovaPlugin createWhitelistPlugin(Uri configXmlUri) {
         InputStream istr = null;
         try {
-            istr = webView.getResourceApi().openForRead(configXml).inputStream;
+            istr = new FileInputStream(configXmlUri.getPath());
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
             factory.setNamespaceAware(false);
             XmlPullParser parser = factory.newPullParser();
@@ -279,14 +283,5 @@ public class AppHarnessUI extends CordovaPlugin {
             }
         }
         return null;
-    }
-
-    private void initWebView(final CordovaWebViewEngine newWebView, Set<String> pluginIdWhitelist) {
-        setPluginEntries(pluginIdWhitelist);
-
-        newWebView.getView().setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-        newWebView.getView().setVisibility(View.VISIBLE);
     }
 }

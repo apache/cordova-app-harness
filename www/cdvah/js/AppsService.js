@@ -163,11 +163,21 @@
                         $location.path('/inappmenu');
                         // If we're relaunching the active app, just reload the existing webview.
                         // Otherwise, create a new one.
-                        // TODO(maxw): Use the existing webview all the time.
+                        var configXmlUrl = installer.directoryManager.rootURL + 'config.xml';
+                        var webViewType = 'system';
                         if (relaunch) {
-                            return AppHarnessUI.reload(launchUrl, pluginMetadata, 'system');
+                            if (webViewType != curWebViewType) {
+                                curWebViewType = webViewType;
+                                return AppHarnessUI.destroy()
+                                .then(function() {
+                                    return AppHarnessUI.create(launchUrl, configXmlUrl, pluginMetadata, webViewType);
+                                });
+                            } else {
+                                return AppHarnessUI.reload(launchUrl, configXmlUrl, pluginMetadata);
+                            }
                         } else {
-                            return AppHarnessUI.create(launchUrl, pluginMetadata);
+                            curWebViewType = webViewType;
+                            return AppHarnessUI.create(launchUrl, configXmlUrl, pluginMetadata, webViewType);
                         }
                     }).then(function() {
                         if (AppsService.onAppListChange) {

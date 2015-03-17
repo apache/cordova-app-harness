@@ -18,6 +18,7 @@
 */
 package org.apache.appharness;
 
+import org.apache.cordova.CordovaWebViewEngine;
 import org.apache.cordova.engine.SystemWebView;
 import org.apache.cordova.engine.SystemWebViewEngine;
 
@@ -54,6 +55,11 @@ class CustomAndroidWebView extends SystemWebViewEngine implements CustomCordovaW
         } else {
             webView.evaluateJavascript(script, null);
         }
+    }
+
+    @Override
+    public CordovaWebViewEngine asEngine() {
+        return this;
     }
 
     @Override

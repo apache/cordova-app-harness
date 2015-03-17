@@ -25,13 +25,13 @@ function eventHandler(type) {
 
 exports.onEvent = null;
 
-exports.create = function(url, serviceNameWhitelist, win) {
+exports.create = function(startUrl, configXmlUrl, serviceNameWhitelist, webViewType, win) {
     exec(eventHandler, null, 'AppHarnessUI', 'events', []);
-    exec(win, null, 'AppHarnessUI', 'create', [url, serviceNameWhitelist]);
+    exec(win, null, 'AppHarnessUI', 'create', [startUrl, configXmlUrl, serviceNameWhitelist, webViewType]);
 };
 
-exports.reload = function(url, serviceNameWhitelist, webViewType, win) {
-    exec(win, null, 'AppHarnessUI', 'reload', [url, serviceNameWhitelist, webViewType]);
+exports.reload = function(startUrl, configXmlUrl, serviceNameWhitelist, win) {
+    exec(win, null, 'AppHarnessUI', 'reload', [startUrl, configXmlUrl, serviceNameWhitelist]);
 };
 
 exports.destroy = function(win) {

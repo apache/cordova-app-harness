@@ -38,10 +38,10 @@
         }
 
         return {
-            create: function(url, pluginMetadata) {
+            create: function(startUrl, configXmlUrl, pluginMetadata, webViewType) {
                 var deferred = $q.defer();
                 var serviceNames = createServiceNameWhitelist(pluginMetadata);
-                cordova.plugins.appharnessui.create(url, serviceNames, deferred.resolve);
+                cordova.plugins.appharnessui.create(startUrl, configXmlUrl, serviceNames, webViewType, deferred.resolve);
                 return deferred.promise;
             },
             destroy: function() {
@@ -49,10 +49,10 @@
                 cordova.plugins.appharnessui.destroy(deferred.resolve);
                 return deferred.promise;
             },
-            reload: function(url, pluginMetadata, webViewType) {
+            reload: function(startUrl, configXmlUrl, pluginMetadata) {
                 var deferred = $q.defer();
                 var serviceNames = createServiceNameWhitelist(pluginMetadata);
-                cordova.plugins.appharnessui.reload(url, serviceNames, webViewType, deferred.resolve);
+                cordova.plugins.appharnessui.reload(startUrl, configXmlUrl, serviceNames, deferred.resolve);
                 return deferred.promise;
             },
             setVisible: function(value) {
