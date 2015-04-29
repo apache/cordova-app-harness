@@ -43,6 +43,8 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.annotation.TargetApi;
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.res.XmlResourceParser;
 import android.net.Uri;
 import android.os.Build;
@@ -64,6 +66,60 @@ public class AppHarnessUI extends CordovaPlugin {
     @Override
     public void pluginInitialize() {
         contentView = (ViewGroup)cordova.getActivity().findViewById(android.R.id.content);
+    }
+
+    @Override
+    public void onPause(boolean multitasking) {
+        if (slaveWebView != null) {
+            slaveWebView.handlePause(multitasking);
+        }
+    }
+
+    @Override
+    public void onResume(boolean multitasking) {
+        if (slaveWebView != null) {
+            slaveWebView.handleResume(multitasking);
+        }
+    }
+
+    @Override
+    public void onStart() {
+        if (slaveWebView != null) {
+            slaveWebView.handleStart();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        if (slaveWebView != null) {
+            slaveWebView.handleStop();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (slaveWebView != null) {
+            slaveWebView.handleDestroy();
+        }
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        if (slaveWebView != null) {
+            slaveWebView.onNewIntent(intent);
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        // TODO: implement me by passing a custom CordovaInterface to slaveWebView
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        if (slaveWebView != null) {
+            slaveWebView.getPluginManager().onConfigurationChanged(newConfig);
+        }
     }
 
     public boolean isSlaveVisible() {
@@ -155,7 +211,7 @@ public class AppHarnessUI extends CordovaPlugin {
             Log.w(LOG_TAG, "create: already exists");
         } else {
             slaveWebViewEngine = new CustomAndroidWebView(this, activity);
-            slaveWebView = new CordovaWebViewImpl(webView.getContext(), (CordovaWebViewEngine)slaveWebViewEngine);
+            slaveWebView = new CordovaWebViewImpl((CordovaWebViewEngine)slaveWebViewEngine);
             // A consistent view ID is needed for plugins that utilize the background-activity plugin.
             slaveWebView.getView().setId(200);
             // We'll set the plugin entries in initWebView.
