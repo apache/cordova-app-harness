@@ -134,47 +134,47 @@ set -x
 "$CORDOVA" plugin add\
     "$AH_PATH/UrlRemap" \
     "$AH_PATH/AppHarnessUI" \
-    org.apache.cordova.file \
-    org.apache.cordova.file-transfer \
-    org.apache.cordova.device \
-    org.apache.cordova.network-information \
-    org.chromium.sockets.tcp \
-    org.chromium.sockets.tcpserver \
-    org.chromium.system.network \
-    org.chromium.zip \
+    cordova-plugin-file \
+    cordova-plugin-file-transfer \
+    cordova-plugin-device \
+    cordova-plugin-network-information \
+    cordova-plugin-chrome-apps-sockets-tcp \
+    cordova-plugin-chrome-apps-sockets-tcpserver \
+    cordova-plugin-chrome-apps-system-network \
+    cordova-plugin-zip \
     --link \
     --searchpath="$PLUGIN_SEARCH_PATH" \
     $PLUGIN_REGISTRY_FLAG || exit $?
 
 if [[ "$PLATFORMS" = *android* ]]; then
-    cp plugins/org.apache.cordova.file/src/android/build-extras.gradle platforms/android/build-extras.gradle
+    if [[ -e plugins/cordova-plugin-file/src/android/build-extras.gradle ]]; then
+        cp plugins/cordova-plugin-file/src/android/build-extras.gradle platforms/android/build-extras.gradle
+    fi
 fi
 
 if [[ "$2" = "--allplugins" ]]; then
 "$CORDOVA" plugin add \
-    org.apache.cordova.battery-status \
-    org.apache.cordova.camera \
-    org.apache.cordova.contacts \
-    org.apache.cordova.device-motion \
-    org.apache.cordova.device-orientation \
-    org.apache.cordova.device \
-    org.apache.cordova.dialogs \
-    org.apache.cordova.file-transfer \
-    org.apache.cordova.file \
-    org.apache.cordova.geolocation \
-    org.apache.cordova.globalization \
-    org.apache.cordova.inappbrowser \
-    org.apache.cordova.media \
-    org.apache.cordova.media-capture \
-    org.apache.cordova.splashscreen \
-    org.apache.cordova.statusbar \
-    org.apache.cordova.vibration \
+    cordova-plugin-battery-status \
+    cordova-plugin-camera \
+    cordova-plugin-contacts \
+    cordova-plugin-device-motion \
+    cordova-plugin-device-orientation \
+    cordova-plugin-device \
+    cordova-plugin-dialogs \
+    cordova-plugin-file-transfer \
+    cordova-plugin-file \
+    cordova-plugin-geolocation \
+    cordova-plugin-globalization \
+    cordova-plugin-inappbrowser \
+    cordova-plugin-media \
+    cordova-plugin-media-capture \
+    cordova-plugin-splashscreen \
+    cordova-plugin-statusbar \
+    cordova-plugin-vibration \
     cordova-plugin-whitelist \
     --link \
     --searchpath="$PLUGIN_SEARCH_PATH" \
     $PLUGIN_REGISTRY_FLAG || exit $?
-    # Skipped core plugins:
-    # org.apache.cordova.console
 fi
 
 # To enable barcode scanning:
