@@ -26,6 +26,7 @@
         var _installers = null;
         // The app that is currently running.
         var activeInstaller = null;
+        var curWebViewType = null;
 
         function readAppsJson() {
             var deferred = $q.defer();
@@ -133,6 +134,7 @@
                 if (activeInstaller) {
                     activeInstaller.unlaunch();
                     activeInstaller = null;
+                    curWebViewType = null;
                     return AppHarnessUI.destroy();
                 }
                 return $q.when();

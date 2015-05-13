@@ -105,10 +105,8 @@ perl -i -pe "s/{ID}/$APP_ID/g" config.xml || exit 1
 perl -i -pe "s/{NAME}/$APP_NAME/g" config.xml || exit 1
 perl -i -pe "s/{VERSION}/$APP_VERSION/g" config.xml || exit 1
 
-PLATFORM_ARGS="${PLATFORMS/android/$AH_PATH/node_modules/cordova-android}"
-
 set -x
-$CORDOVA platform add $PLATFORM_ARGS --link || exit 1
+$CORDOVA platform add $PLATFORMS --link || exit 1
 set +x
 
 if [[ "$PLATFORMS" = *android* ]]; then
@@ -138,6 +136,8 @@ set -x
     cordova-plugin-file-transfer \
     cordova-plugin-device \
     cordova-plugin-network-information \
+    cordova-plugin-whitelist \
+    cordova-plugin-chrome-apps-runtime \
     cordova-plugin-chrome-apps-sockets-tcp \
     cordova-plugin-chrome-apps-sockets-tcpserver \
     cordova-plugin-chrome-apps-system-network \
@@ -171,7 +171,6 @@ if [[ "$2" = "--allplugins" ]]; then
     cordova-plugin-splashscreen \
     cordova-plugin-statusbar \
     cordova-plugin-vibration \
-    cordova-plugin-whitelist \
     --link \
     --searchpath="$PLUGIN_SEARCH_PATH" \
     $PLUGIN_REGISTRY_FLAG || exit $?
